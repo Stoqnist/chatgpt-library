@@ -48,7 +48,6 @@ def main() -> None:
             "api_key_configured": bool(os.environ.get("OPENAI_API_KEY")),
             "mode": "offline_check_only", "model_calls": 0,
             "max_specialist_calls": len(request["domains"]),
-            "max_output_tokens_per_specialist": 600,
             "writes_permitted": False,
         }, indent=2))
         return
