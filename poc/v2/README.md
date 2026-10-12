@@ -1,6 +1,6 @@
 # V2 deterministic coordinator POC
 
-**Status:** simulation only; **not deployed**. It does not call model APIs, agent runtimes, bank connectors, Google Drive, inventory or remote services. It makes **zero file writes** when invoked. The fixture contains fictional data only.
+**Default status:** offline simulation; **not deployed**. The default coordinator makes no model calls, network requests or file writes. A separate opt-in adapter can call model APIs using only the verified fictional fixture, without access to bank connectors, Google Drive, inventory or remote services.
 
 Run from this directory with Python 3.10+:
 
@@ -33,8 +33,12 @@ inventory, deployed services or a saved chat as input. No key is stored in Git.
 
 ```bash
 python3 -m pip install -r requirements-live.txt
-export OPENAI_API_KEY=...  # supply privately; never commit or print the value
+PYTHONPATH=. python3 -m v2_poc.live fixtures/purchase.json --check-only
+# Only after explicit approval to incur API charges:
+read -rsp "OpenAI API key: " OPENAI_API_KEY; echo
+export OPENAI_API_KEY
 PYTHONPATH=. python3 -m v2_poc.live fixtures/purchase.json --allow-api-calls --model gpt-4.1-mini
+unset OPENAI_API_KEY
 ```
 
 If no key or SDK is available, run only the unit suite. Regression tests use a
@@ -47,3 +51,18 @@ PYTHONPATH=. python3 -m unittest discover -s tests -v
 **Status:** adapter code and mocked integration tests; a successful paid live
 model-call smoke test is **not yet verified**. This proof of concept is not a
 production multi-agent service and cannot call ChatGPT custom GPTs directly.
+
+### Safety, costs and CI
+
+The billable CLI accepts **only the committed synthetic fixture**, checked by
+absolute path and SHA-256. The `--check-only` preflight makes zero API calls and
+prints whether the optional SDK and key are configured; it never prints a key.
+Each model call uses one turn, no tools/handoffs, disabled tracing, and at most
+600 generated output tokens. The fixture requests three specialists. These
+limits reduce exposure but **are not a monetary cap** (network retries and
+billing policies remain provider-controlled). Verify project-level API limits
+before authorizing live traffic. Never put a key in a GitHub commit or chat.
+
+GitHub PR CI installs the pinned SDK and checks its offline construction/schema
+interfaces; no API secrets are supplied to the workflow and no model calls
+are made. A green CI run confirms local compatibility, **not** a live API test.
