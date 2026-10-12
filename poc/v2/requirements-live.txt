@@ -1,0 +1,4 @@
+# Optional: required only for explicit, billable SDK smoke tests.
+# Pin exact resolved versions before a deployed environment is approved.
+openai-agents==0.23.1
+pydantic>=2,<3
