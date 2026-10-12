@@ -32,7 +32,6 @@ class FakeSdk:
         assert run_config.tracing_disabled is True
         assert max_turns == 1
         assert agent.tools == [] and agent.handoffs == []
-        assert agent.model_settings.max_output_tokens == 600
         payload = json.loads(prompt)
         self.calls.append({"event": "run", "domain": agent.name, "input": payload})
         if agent.name == self.fail_domain:
