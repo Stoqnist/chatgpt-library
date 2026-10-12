@@ -57,10 +57,10 @@ production multi-agent service and cannot call ChatGPT custom GPTs directly.
 The billable CLI accepts **only the committed synthetic fixture**, checked by
 absolute path and SHA-256. The `--check-only` preflight makes zero API calls and
 prints whether the optional SDK and key are configured; it never prints a key.
-Each model call uses one turn, no tools/handoffs, disabled tracing, and at most
-600 generated output tokens. The fixture requests three specialists. These
-limits reduce exposure but **are not a monetary cap** (network retries and
-billing policies remain provider-controlled). Verify project-level API limits
+Each model call uses one turn, no tools/handoffs, disabled tracing, and
+structured results with at most three findings and three questions. The fixture
+requests three specialists. These limits reduce exposure but **are not a token
+or monetary cap** (network retries and billing policies remain provider-controlled). Verify project-level API limits
 before authorizing live traffic. Never put a key in a GitHub commit or chat.
 
 GitHub PR CI installs the pinned SDK and checks its offline construction/schema
