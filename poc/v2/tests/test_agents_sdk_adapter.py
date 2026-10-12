@@ -25,10 +25,14 @@ class FakeSdk:
     def RunConfig(self, **kwargs):
         return SimpleNamespace(**kwargs)
 
+    def ModelSettings(self, **kwargs):
+        return SimpleNamespace(**kwargs)
+
     def run_sync(self, agent, prompt, *, max_turns, run_config):
         assert run_config.tracing_disabled is True
         assert max_turns == 1
         assert agent.tools == [] and agent.handoffs == []
+        assert agent.model_settings.max_output_tokens == 600
         payload = json.loads(prompt)
         self.calls.append({"event": "run", "domain": agent.name, "input": payload})
         if agent.name == self.fail_domain:
