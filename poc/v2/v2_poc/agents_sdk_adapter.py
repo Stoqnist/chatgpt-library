@@ -18,6 +18,7 @@ MODEL_DEFAULT = "gpt-4.1-mini"
 MAX_EVIDENCE_INPUT_CHARS = 12000
 MAX_FINDINGS = 3
 MAX_QUESTIONS = 3
+MAX_OUTPUT_TOKENS = 600  # Per specialist. Limits generated output, not total billing.
 
 
 class AIClaim(BaseModel):
@@ -112,6 +113,7 @@ class AgentsSDKAdapter:
                 instructions=COMMON_INSTRUCTIONS + "\n\n" + DOMAIN_INSTRUCTIONS[domain],
                 model=self.model,
                 output_type=AIAssessment,
+                model_settings=self.sdk.ModelSettings(max_output_tokens=MAX_OUTPUT_TOKENS),
                 tools=[],
                 handoffs=[],
             )
