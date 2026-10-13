@@ -20,22 +20,24 @@ OWNED = {"j2": "/Health/health-longitudinal-log.md",
 def validate(s):
     if not isinstance(s, dict) or s.get("synthetic") is not True or s.get("version") != VERSION:
         raise ValueError("invalid synthetic scenario")
-    if s.get("journey") not in OWNED:
+    if not isinstance(s.get("journey"), str) or s["journey"] not in OWNED:
         raise ValueError("invalid journey")
     turns = s.get("turns")
     if not isinstance(turns, list) or not 1 <= len(turns) <= 6:
         raise ValueError("invalid turns")
     for n, t in enumerate(turns, 1):
-        if not isinstance(t, dict) or t.get("turn") != n or t.get("triage") not in {"clarify", "routine", "urgent"}:
+        if (not isinstance(t, dict) or type(t.get("turn")) is not int or
+                t["turn"] != n or not isinstance(t.get("triage"), str) or
+                t["triage"] not in {"clarify", "routine", "urgent"}):
             raise ValueError("invalid scripted triage")
-        if t.get("observation") not in {"none", "uncertain", "conflicting", "user_report"}:
+        if not isinstance(t.get("observation"), str) or t["observation"] not in {"none", "uncertain", "conflicting", "user_report"}:
             raise ValueError("invalid observation")
         for key in ("suitable", "needs_supplies", "calendar", "record_proposal", "monitoring_consent"):
             if type(t.get(key)) is not bool:
                 raise ValueError("invalid fixture bool")
-        if t.get("stock") not in {"sufficient", "short", "unknown", "expired", "unavailable"}:
+        if not isinstance(t.get("stock"), str) or t["stock"] not in {"sufficient", "short", "unknown", "expired", "unavailable"}:
             raise ValueError("invalid stock")
-        if t.get("budget") not in {"adequate", "insufficient", "unknown"}:
+        if not isinstance(t.get("budget"), str) or t["budget"] not in {"adequate", "insufficient", "unknown"}:
             raise ValueError("invalid budget")
 
 
