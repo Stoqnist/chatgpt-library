@@ -73,6 +73,10 @@ class I1MockIntegrationTests(TestCase):
         stage = session.advance(1)
         self.assertEqual({p["owner"] for p in stage["previews"]},
                          {"purchase", "health", "calendar"})
+        # Independent golden digest for the complete exact preview intent,
+        # authored separately from P3's candidate fingerprint function.
+        self.assertEqual(stage["previews"][0]["fingerprint"],
+                         "ee530ba572206752fe0c6bfea727e8422890bdadb389b9da298d96ca8d2c31b7")
         changes = {p["owner"]: p["change"] for p in stage["previews"]}
         self.assertEqual(changes["purchase"], {"type": "purchase_note", "code": "routine_review"})
         self.assertEqual(changes["health"], {"type": "health_note", "code": "followup_needed"})
@@ -83,7 +87,8 @@ class I1MockIntegrationTests(TestCase):
         self.assertEqual(result["status"], "verified")
         self.assertEqual(len(result["outcomes"]), 3)
         applied = session.store.state
-        session.advance(2)
+        after = session.advance(2)
+        self.assertEqual(after["withdrawn_operation_ids"], [])
         self.assertEqual(session.execute()["status"], "urgent_escalated")
         self.assertEqual(session.store.state, applied)
 
