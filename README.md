@@ -2,6 +2,11 @@
 
 Reusable household agent architecture and policies, versioned in Git and delivered to existing ChatGPT Library files.
 
+## Development roadmap
+
+- [V2 Development Decisions & Roadmap](docs/v2-development-roadmap.md) — canonical development priorities, benchmarking strategy, release gates and resumption steps **after this documentation PR merges into main**. It is not a deployed agent policy.
+- [V2 orchestration POC (draft PR #3)](https://github.com/Stoqnist/chatgpt-library/pull/3) — experimental coordinator/adapter implementation, not yet merged or deployed.
+
 ## Current scope
 
 - `library/library-sync-poc.md`: harmless exact-copy publication test.
