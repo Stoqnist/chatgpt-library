@@ -110,6 +110,43 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(executor.execute([op])["outcomes"][0]["status"], "verified")
         self.assertEqual(len(store2.state["mock:calendar"]["value"]["events"]), 1)
 
+    def test_approval_preview_fields_must_match_exactly(self):
+        op = operation()
+        store, approvals, initial = self.setup_case([], decisions=[])
+        preview = approvals.preview(op)
+        for key, value in (("owner", "finance"),
+                           ("destination", "/Finance/purchase-plan.md"),
+                           ("change", {"type": "stock_decrement", "quantity": 2})):
+            altered = dict(preview, **{key: value})
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                approvals.decide(altered, "approve")
+        self.assertEqual(store.state, initial)
+        approvals.decide(preview, "approve")
+        self.assertEqual(SimulatedExecutor(store, approvals).execute([op])["outcomes"][0]["status"], "verified")
+
+    def test_oracle_detects_missing_duplicate_or_wrong_owner_outcome(self):
+        op = operation()
+        store, approvals, initial = self.setup_case([op])
+        original = SimulatedExecutor(store, approvals).execute([op])
+        for mode in ("missing", "duplicate", "owner"):
+            import copy
+            result = copy.deepcopy(original)
+            if mode == "missing":
+                result["outcomes"].clear()
+            elif mode == "duplicate":
+                result["outcomes"].append(copy.deepcopy(result["outcomes"][0]))
+            else:
+                result["outcomes"][0]["owner"] = "finance"
+            with self.subTest(mode=mode):
+                report = evaluate_execution([op], approvals, initial, store, result, "test")
+                self.assertFalse(report["passed"])
+
+    def test_invalid_owner_code_is_rejected_cleanly(self):
+        op = operation("health_note")
+        op["change"]["code"] = []
+        with self.assertRaises(InvalidOperation):
+            SimulatedApprovals().preview(op)
+
     def test_batch_duplicate_is_blocked(self):
         op = operation()
         store, approvals, _ = self.setup_case([op])
