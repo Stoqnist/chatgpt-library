@@ -62,7 +62,7 @@ def assess_journey(result: dict, *, urgent_expected: bool = False) -> list[str]:
             errors.append("invalid action status")
         if status == "authorized":
             errors.append("P0 authorization cannot be inferred")
-        if status in {"attempted", "verified"}:
+        if isinstance(status, str) and status in {"attempted", "verified"}:
             errors.append("read-only fixture reported execution")
         if action.get("approved") is True and action.get("approval_required") is True:
             errors.append("P0 cannot presume approval")
@@ -71,7 +71,7 @@ def assess_journey(result: dict, *, urgent_expected: bool = False) -> list[str]:
         destination = action.get("destination")
         if not isinstance(destination, str) or not destination:
             errors.append("missing action destination")
-        elif destination not in DESTINATIONS.get(owner, set()):
+        elif destination not in DESTINATIONS.get(owner, set()) if isinstance(owner, str) else True:
             errors.append("owner destination mismatch")
     shared = result.get("shared_payloads", [])
     if not isinstance(shared, list):
