@@ -11,6 +11,7 @@ import os
 from copy import deepcopy
 from pathlib import Path
 from .health_evaluation import MockBoundary
+from .journey_mechanics import supersede_unexecuted
 
 VERSION = "j2-j3-synthetic-1"
 OWNED = {"j2": "/Health/health-longitudinal-log.md",
@@ -70,10 +71,7 @@ def run(s, boundary):
     answers, actions = {}, []
     for t in s["turns"]:
         n, triage = t["turn"], t["triage"]
-        for a in actions:
-            if a["status"] == "proposed":
-                a["status"] = "blocked"
-                a["reason"] = "superseded"
+        supersede_unexecuted(actions)
         boundary.event("assessment", "health", n, ["symptoms"], code=triage)
         lines = [f"Fictional {s['journey']} turn {n}. Scripted urgency: {triage}; not a diagnosis."]
         if triage == "urgent":

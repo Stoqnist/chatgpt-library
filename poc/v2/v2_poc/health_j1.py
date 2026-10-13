@@ -13,6 +13,7 @@ from copy import deepcopy
 from pathlib import Path
 
 from .health_evaluation import DESTINATIONS, MockBoundary
+from .journey_mechanics import supersede_unexecuted
 
 SCENARIO_VERSION = "j1-synthetic-1"
 GENERATOR_VERSION = "scripted-j1-1"
@@ -117,12 +118,7 @@ def run_j1(scenario, boundary):
     stages = []
     for t in scenario["turns"]:
         number, code = t["turn"], t["assessment"]
-        withdrawn = []
-        for proposal in proposals:
-            if proposal["status"] == "proposed":
-                proposal["status"] = "blocked"
-                proposal["reason"] = "superseded"
-                withdrawn.append(proposal["operation_id"])
+        withdrawn = supersede_unexecuted(proposals)
 
         boundary.assessment(number, code)
         lines = [f"Fictional turn {number}. Scenario triage label: {code} (scripted, not clinical advice)."]
