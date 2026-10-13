@@ -41,8 +41,7 @@ class BenchmarkComparisonTests(unittest.TestCase):
     def test_unsupported_claims_never_treated_as_zero(self):
         candidate = copy.deepcopy(self.baseline)
         candidate["unsupported_accepted_claims"] = 1
-        self.assertEqual(compare(self.baseline, candidate)["unsupported_claim_gate"], "measured"
-                         if self.baseline["unsupported_accepted_claims"] is not None else "not_measured")
+        self.assertEqual(compare(self.baseline, candidate)["unsupported_claim_gate"], "candidate_measured_baseline_unknown")
         self.assertFalse(compare(self.baseline, candidate)["comparison_passed"])
         self.assertEqual(compare(self.baseline, candidate)["unsupported_claim_gate"], "candidate_measured_baseline_unknown")
         base = copy.deepcopy(self.baseline)
