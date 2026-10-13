@@ -303,7 +303,7 @@ class I1MockIntegrationTests(TestCase):
                          ["inspection_only", "verified"])
         self.assertEqual(session.approvals.status(old_operation), "revoked")
         with self.assertRaises(ValueError):
-            session.reconcile("calendar-t1")  # already reconciled
+            session.reconcile("calendar-t1", requester_owner="calendar")  # already reconciled
         cumulative = session.execute()
         self.assertEqual([o["status"] for o in cumulative["cumulative_outcomes"]],
                          ["verified", "verified", "verified"])
@@ -323,8 +323,8 @@ class I1MockIntegrationTests(TestCase):
         before_state = session.store.state
         session.advance(2)
         writes = len([e for e in session.store.events if e["kind"] == "write_attempt"])
-        first_inspection = session.reconcile("calendar-t1")
-        second_inspection = session.reconcile("calendar-t1")
+        first_inspection = session.reconcile("calendar-t1", requester_owner="calendar")
+        second_inspection = session.reconcile("calendar-t1", requester_owner="calendar")
         self.assertEqual([first_inspection["status"], second_inspection["status"]],
                          ["unknown", "unknown"])
         report = session.execute()
