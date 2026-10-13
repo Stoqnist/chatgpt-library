@@ -36,5 +36,7 @@ jobs:
         run: PYTHONPATH=. python -m unittest discover -s tests -v
       - name: Run seeded golden journey (24 cases; no API calls)
         run: PYTHONPATH=. python -m v2_poc.benchmark --cases 24 --seed-start 100
+      - name: Prove adversarial regression detection (offline mutations)
+        run: python scripts/check_adversarial_mutations.py
       - name: Run zero-cost CLI preflight
         run: PYTHONPATH=. python -m v2_poc.live fixtures/purchase.json --check-only

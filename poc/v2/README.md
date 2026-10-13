@@ -119,3 +119,30 @@ Use the **same fixed seeds** to compare versions; separately use alternate seeds
 to discover failures. Timing is environmental and does not support strict
 performance comparisons across unlike machines. This is a deterministic
 coordinator benchmark, **not** a live-model quality/cost benchmark.
+
+### Focused adversarial gate (Priority 2)
+
+```bash
+PYTHONPATH=.:tests python3 -m unittest test_adversarial test_coordinator test_agents_sdk_adapter -v
+python3 scripts/check_adversarial_mutations.py
+```
+
+The four focused families cover missing/ambiguous evidence, conflicting bank
+identifiers or values, unauthorized/wrong-domain actions, and invented evidence
+or unsupported AI assertions. Existing coordinator and adapter tests remain
+part of the gate, including input minimization and receipt/payment uncertainty.
+The new cases additionally check missing transaction IDs, classification conflicts
+in both input orders, account-scoped identity, fabricated execution/readback,
+unchanged input, and preservation of independent domain results.
+
+The mutation command first requires a passing baseline, then removes one safeguard
+at a time in temporary source copies and reruns the same tests. Nine controlled
+regressions must produce assertion failures; surviving mutations, test errors, or
+stale source anchors fail the command. Production source is never modified.
+CI runs this command on both supported Python versions. All model responses use
+the existing fake SDK, with no provider requests or charges.
+
+This proves detection of these selected regressions, not general model safety.
+Custom handler callables remain trusted executable code; the model boundary is
+the constrained SDK adapter. No production writes, deployment, or V1 changes
+are authorized by passing this gate.
