@@ -5,12 +5,11 @@ or invoke any live specialist, connected source, calendar, or provider API.
 """
 from __future__ import annotations
 
-from .health_evaluation import DESTINATIONS
+from .owner_contract import DESTINATIONS, OWNERS
 
 ALLOWED_STATUSES = frozenset({
     "proposed", "authorized", "attempted", "verified", "blocked", "failed", "unknown"
 })
-OWNERS = frozenset({"health", "home", "finance", "purchase", "calendar"})
 SENSITIVE = ("mental-health narrative:", "symptom details:", "diagnosis:")
 
 

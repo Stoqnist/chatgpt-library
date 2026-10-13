@@ -12,21 +12,7 @@ import json
 import os
 import re
 
-DESTINATIONS = {
-    "home": {"mock:food-stock"},
-    "health": {"/Health/health-longitudinal-log.md", "mock:mental-wellbeing-record"},
-    "finance": {"/Finance/purchase-plan.md"},
-    "purchase": {"/Purchases/purchase-lifecycle.md"},
-    "calendar": {"mock:calendar"},
-}
-TYPES = {
-    "stock_decrement": ("home", "mock:food-stock"),
-    "health_note": ("health", "/Health/health-longitudinal-log.md"),
-    "mental_note": ("health", "mock:mental-wellbeing-record"),
-    "finance_review": ("finance", "/Finance/purchase-plan.md"),
-    "purchase_note": ("purchase", "/Purchases/purchase-lifecycle.md"),
-    "calendar_create": ("calendar", "mock:calendar"),
-}
+from .owner_contract import DESTINATIONS, ACTION_DESTINATIONS as TYPES
 IDENTIFIER = re.compile(r"[a-z][a-z0-9_-]{0,63}\Z")
 FIELDS = {"request_id", "operation_id", "owner", "destination", "expected_revision", "change"}
 

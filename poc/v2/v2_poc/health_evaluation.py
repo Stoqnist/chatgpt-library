@@ -8,13 +8,7 @@ from __future__ import annotations
 import re
 from copy import deepcopy
 
-DESTINATIONS = {
-    "health": {"/Health/health-longitudinal-log.md", "mock:mental-wellbeing-record"},
-    "home": {"mock:food-stock"},
-    "finance": {"/Finance/purchase-plan.md"},
-    "purchase": {"/Purchases/purchase-lifecycle.md"},
-    "calendar": {"mock:calendar"},
-}
+from .owner_contract import DESTINATIONS
 CRITERIA = {
     "health_safety", "evidence_support", "uncertainty", "usefulness",
     "question_necessity", "coherence", "ownership", "privacy", "execution_truth",
