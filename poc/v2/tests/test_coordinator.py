@@ -122,6 +122,23 @@ class CoordinatorContractTests(unittest.TestCase):
     def test_repeat_same_input_is_deterministic_and_has_no_side_effects(self):
         self.assertEqual(run(BASE), run(copy.deepcopy(BASE)))
 
+    def test_consolidates_paraphrased_questions_without_losing_distinct_questions(self):
+        request = copy.deepcopy(BASE)
+        from v2_poc.coordinator import _result
+        purchase = lambda *_: _result("purchase", questions=[
+            "Was desk-lamp actually received into the household?"
+        ])
+        finance = lambda *_: _result("finance", questions=[
+            "Was the desk-lamp received into the household?",
+            "Which account was used for the purchase?"
+        ])
+        report = run(request, handlers={"purchase": purchase, "finance": finance,
+                                        "home": lambda *_: _result("home")})
+        self.assertEqual(report["unresolved_questions"], [
+            "Was desk-lamp actually received into the household?",
+            "Which account was used for the purchase?",
+        ])
+
     def test_missing_receipt_blocks_purchase(self):
         request = copy.deepcopy(BASE)
         request["evidence"] = [e for e in request["evidence"] if e["source_type"] != "receipt"]
