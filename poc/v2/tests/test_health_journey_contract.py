@@ -40,6 +40,30 @@ class HealthJourneyContractTests(unittest.TestCase):
         self.assertIn("routine actions delayed health escalation",
                       assess_journey(fixture, urgent_expected=True))
 
+    def test_malformed_untrusted_fields_fail_closed(self):
+        self.assertIn("invalid journey result", assess_journey(None))
+        for key, value, expected in (
+            ("invoked_owners", {"health": True}, "invoked owners must be a list"),
+            ("invoked_owners", [[]], "unrecognized owner"),
+            ("shared_payloads", "private text", "shared payloads must be a list"),
+            ("shared_payloads", [None], "invalid shared payload"),
+            ("shared_payloads", [{"recipient": []}], "invalid disclosure recipient"),
+        ):
+            with self.subTest(field=key, value=value):
+                fixture = compliant_fixture()
+                fixture[key] = value
+                self.assertIn(expected, assess_journey(fixture))
+        for key, value, expected in (
+            ("owner", [], "invalid action owner"),
+            ("status", [], "invalid action status"),
+            ("destination", [], "missing action destination"),
+            ("status", "authorized", "P0 authorization cannot be inferred"),
+        ):
+            with self.subTest(action_field=key, value=value):
+                fixture = compliant_fixture()
+                fixture["actions"][0][key] = value
+                self.assertIn(expected, assess_journey(fixture))
+
     def test_unknown_stock_and_budget_never_authorize(self):
         fixture = compliant_fixture()
         fixture["claimed_stock_available"] = True
