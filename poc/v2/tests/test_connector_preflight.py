@@ -17,7 +17,8 @@ def observation(provider, role="owner"):
 class ConnectorPreflightTests(unittest.TestCase):
     def test_read_probe_is_not_write_authority(self):
         for target, (owner, provider) in TARGETS.items():
-            role = "editor" if provider == "library" else "owner"
+            role = {"library": "viewer", "sheets": "reader",
+                    "calendar": "reader"}[provider]
             probe = observation(provider, role)
             with self.subTest(target=target):
                 result = classify(target, probe, owner=owner)
@@ -26,6 +27,48 @@ class ConnectorPreflightTests(unittest.TestCase):
                 write = classify(target, probe, owner=owner, requested_action="write")
                 self.assertEqual(write["status"], "blocked")
                 self.assertIn("live_execution_disabled", write["reasons"])
+
+    def test_elevated_read_acl_is_not_least_privilege(self):
+        # Independent fixture expectations: do not import the classifier's
+        # minimum-role map as an oracle for this regression.
+        elevated_cases = (
+            ("health_library", "health", "library", "editor"),
+            ("mental_health_library", "health", "library", "editor"),
+            ("finance_library", "finance", "library", "editor"),
+            ("purchase_library", "purchase", "library", "editor"),
+            ("home_stock", "home", "sheets", "writer"),
+            ("home_stock", "home", "sheets", "owner"),
+            ("calendar_followup", "calendar", "calendar", "writer"),
+            ("calendar_followup", "calendar", "calendar", "owner"),
+        )
+        for target, owner, provider, role in elevated_cases:
+            with self.subTest(target=target, role=role):
+                result = classify(target, observation(provider, role), owner=owner)
+                self.assertEqual(result["status"], "blocked")
+                self.assertIn("excess_read_privilege", result["reasons"])
+                self.assertNotIn("read_role_missing", result["reasons"])
+                self.assertFalse(result["execution_allowed"])
+
+        # A missing OAuth scope verification cannot hide the excess ACL.
+        unverified_scope = observation("sheets", "owner")
+        unverified_scope["scope_verified"] = False
+        result = classify("home_stock", unverified_scope, owner="home")
+        self.assertIn("excess_read_privilege", result["reasons"])
+        self.assertIn("oauth_scope_unverified", result["reasons"])
+
+    def test_minimal_reader_role_does_not_imply_write_permission(self):
+        for target, owner, provider, role in (
+            ("health_library", "health", "library", "viewer"),
+            ("home_stock", "home", "sheets", "reader"),
+            ("calendar_followup", "calendar", "calendar", "reader"),
+        ):
+            with self.subTest(target=target):
+                result = classify(target, observation(provider, role),
+                                  owner=owner, requested_action="write")
+                self.assertEqual(result["status"], "blocked")
+                self.assertIn("write_role_missing", result["reasons"])
+                self.assertIn("live_execution_disabled", result["reasons"])
+                self.assertFalse(result["execution_allowed"])
 
     def test_denied_stale_timeout_and_disconnected_fail_closed(self):
         for fault in ("permission_denied", "stale", "timeout", "unavailable", "not_found"):
