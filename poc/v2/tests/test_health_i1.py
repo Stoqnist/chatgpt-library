@@ -178,6 +178,100 @@ class I1MockIntegrationTests(TestCase):
                       if e["kind"] == "write_attempt" and e["operation_id"] == "calendar-t1"]
             self.assertEqual(len(writes), 1)
 
+    def test_superseded_approved_operation_is_rejected_at_both_p3_boundaries(self):
+        session = make("j1")
+        session.advance(1)
+        prior = session.advance(2)
+        preview = prior["previews"][0]
+        operation = {key: deepcopy(preview[key]) for key in (
+            "request_id", "operation_id", "owner", "destination",
+            "expected_revision", "change")}
+        session.decide(preview, "approve")
+        self.assertEqual(session.approvals.status(operation), "approve")
+        before = session.store.state
+
+        session.advance(3)  # scripted urgent; old permission is revoked
+        self.assertEqual(session.approvals.status(operation), "revoked")
+        with self.assertRaises(ValueError):
+            session.approvals.decide(preview, "approve")
+        with self.assertRaises(InvalidOperation):
+            session.approvals.preview(operation)
+
+        # Bypass the I1 current-turn routing list deliberately. P3 itself
+        # must refuse the old positive decision before any write attempt.
+        denied = session.executor.execute([operation])
+        self.assertEqual(denied["outcomes"][0]["status"], "blocked")
+        self.assertEqual(denied["outcomes"][0]["reason"], "approval_revoked")
+        with self.assertRaises(PermissionError):
+            session.store.apply(operation, session.approvals)
+        self.assertEqual(session.store.state, before)
+        self.assertFalse(any(e["kind"] == "write_attempt" for e in session.store.events))
+
+    def test_verified_and_attempted_outcomes_survive_urgent_supersession(self):
+        session = make("j2", faults={"calendar-t1": "before_failure"})
+        stage = session.advance(1)
+        for preview in stage["previews"]:
+            session.decide(preview, "approve")
+        first = session.execute()
+        self.assertEqual([o["status"] for o in first["outcomes"]],
+                         ["verified", "verified", "failed"])
+        self.assertIn("attempted", first["outcomes"][2]["history"])
+        recorded = deepcopy(first["outcomes"])
+        existing_state = session.store.state
+        urgent = session.advance(2)
+        self.assertEqual(urgent["withdrawn_operation_ids"], [])
+        self.assertEqual([o["status"] for o in urgent["prior_outcomes"]],
+                         ["verified", "verified", "failed"])
+        self.assertTrue(all(o["turn"] == 1 for o in urgent["prior_outcomes"]))
+        for prior, original in zip(urgent["prior_outcomes"], recorded):
+            for field in ("request_id", "operation_id", "status", "reason", "history"):
+                self.assertEqual(prior[field], original[field])
+        final = session.execute()
+        self.assertEqual(final["status"], "urgent_escalated")
+        self.assertEqual(final["outcomes"], [])
+        self.assertEqual(final["prior_outcomes"], urgent["prior_outcomes"])
+        self.assertEqual(final["cumulative_outcomes"], urgent["prior_outcomes"])
+        self.assertEqual(final["cumulative_status"], "partial")
+        self.assertEqual(session.store.state, existing_state)
+
+    def test_unknown_timeout_survives_new_urgent_turn_without_retry(self):
+        session = make("j2", faults={"calendar-t1": "before_timeout"})
+        stage = session.advance(1)
+        for preview in stage["previews"]:
+            session.decide(preview, "approve")
+        result = session.execute()
+        self.assertEqual([o["status"] for o in result["outcomes"]],
+                         ["verified", "verified", "unknown"])
+        uncertain = deepcopy(result["outcomes"][2])
+        self.assertIn("attempted", uncertain["history"])
+        before = session.store.state
+        urgent = session.advance(2)
+        self.assertEqual(urgent["withdrawn_operation_ids"], [])
+        self.assertEqual(urgent["prior_outcomes"][2]["status"], "unknown")
+        self.assertEqual(urgent["prior_outcomes"][2]["history"], uncertain["history"])
+        final = session.execute()
+        self.assertEqual(final["cumulative_outcomes"][2]["status"], "unknown")
+        self.assertEqual(final["cumulative_outcomes"][2]["history"], uncertain["history"])
+        self.assertEqual(final["cumulative_status"], "partial")
+        self.assertEqual(session.store.state, before)
+        attempts = [e for e in session.store.events
+                    if e["kind"] == "write_attempt" and e["operation_id"] == "calendar-t1"]
+        self.assertEqual(len(attempts), 1)
+
+    def test_rechecked_unknown_preserves_original_attempt_history(self):
+        session = make("j2", faults={"calendar-t1": "before_timeout"})
+        stage = session.advance(1)
+        for preview in stage["previews"]:
+            session.decide(preview, "approve")
+        session.execute()
+        second = session.execute()
+        session.advance(2)
+        prior = session.execute()["prior_outcomes"]
+        self.assertEqual(prior[2]["status"], "unknown")
+        self.assertIn("attempted", prior[2]["history"])
+        self.assertIn("rechecked", prior[2]["history"])
+        self.assertEqual(second["outcomes"][2]["status"], "unknown")
+
     def test_no_arbitrary_turn_or_execution_before_planning(self):
         session = make("j3")
         with self.assertRaises(ValueError):
