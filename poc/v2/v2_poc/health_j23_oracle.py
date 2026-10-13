@@ -20,7 +20,7 @@ def evaluate(s, result, boundary, source_commit):
         elif triage == "routine":
             if t["needs_supplies"] and t["suitable"]:
                 expected_trace.append((n, "read", "home"))
-                if t["stock"] == "short" and t["suitable"]:
+                if t["stock"] == "short":
                     expected_trace.append((n, "read", "finance"))
                     if t["budget"] == "adequate":
                         expected_trace.extend([(n, "read", "purchase"), (n, "proposal", "purchase")])
