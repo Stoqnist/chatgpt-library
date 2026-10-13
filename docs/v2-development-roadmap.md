@@ -2,7 +2,7 @@
 
 **Purpose:** Canonical *development* record for V2 priorities, course corrections, test strategy and resumable next steps. This is not an agent system prompt, runtime policy, source of personal facts, or a replacement for the [V2 orchestration contract](https://github.com/Stoqnist/chatgpt-library/pull/3).
 
-**Status:** Benchmark strategy agreed on 2026-10-13; implementation pending. The source of truth is this file on `main` **once the documentation PR is merged**. Until then, it is a proposed canonical record on the review branch. V1 is unchanged; V2 has **not** been deployed.
+**Status:** Benchmark-first strategy accepted on 2026-10-13. Priority 1 is implemented on experimental PR #3, with final CI/review pending; remaining priorities are tracked below. This file on `main` is the canonical development roadmap. V1 is unchanged; V2 has **not** been deployed.
 
 ## Development north star
 
@@ -49,7 +49,7 @@ These are **agreed design decisions**, not claims that the corresponding benchma
 
 | Order | Work item | State | Completion evidence |
 | --- | --- | --- | --- |
-| **1 — Now** | Build seeded golden-journey generator (~20–30 cases), independent oracle and metamorphic assertions. | **Not started** | Reproducible free benchmark command with fixed seeds and a verified example report. |
+| **1 — Now** | Build seeded golden-journey generator (~20–30 cases), independent oracle and metamorphic assertions. | **Implemented in draft PR #3; review/final CI pending** | 24 fixed seeds and three metamorphic variants per case; regression tests passed on Python 3.11 and 3.13. Explicit CLI CI step awaiting verification. |
 | **2 — Now** | Implement/organize four core adversarial scenarios and cross-domain safety invariants. Reuse existing tests; do not delete useful coverage merely to shrink the suite. | **Not started** | Explicit failure-mode cases pass and can be shown to fail under controlled regressions. |
 | **3 — Next** | Add JSON report, stored comparison baseline, and version-to-version comparison summary. | **Not started** | Reports identify commit, seeds, outcomes, timing and applicable usage/cost fields. |
 | **4 — Next** | Optimize CI: fast offline benchmark per PR, optional SDK compatibility on a controlled schedule/change trigger, dependency caching as justified. | **Not started** | Measured improvement in CI wall time with unchanged safety coverage; no model charges on PRs. |
@@ -61,7 +61,7 @@ These are **agreed design decisions**, not claims that the corresponding benchma
 
 - [V2 POC / orchestration draft, PR #3](https://github.com/Stoqnist/chatgpt-library/pull/3) remains separate from this documentation proposal. Its deterministic coordinator, specialist adapter, evidence gate and offline CI already exist on the draft branch.
 - A user-run synthetic three-specialist API smoke test reported 3/3 completed calls and zero record writes. That **does not** measure the full system's factual accuracy, incremental AI value or actual API billing.
-- The preexisting regression suite covers key behaviors, but an independent seeded benchmark and version-comparison report are **not implemented**.
+- The preexisting regression suite covers key behaviors. A 24-seed independent-oracle benchmark is now implemented **in draft PR #3** and passed regression tests; explicit CLI CI verification is pending. Version-to-version comparison and persistent baseline reports remain **not implemented**.
 
 ## Risks to revisit at every release review
 
@@ -85,3 +85,5 @@ These are **agreed design decisions**, not claims that the corresponding benchma
 ### Decision log
 
 - **2026-10-13 — Benchmark-first strategy accepted:** small and fast seeded golden journey, limited focused adversarial tests, independent oracle, release safety gates, version metrics, controlled paid canary, and 0/1/3-agent ablation. Prioritize implementation before VPS staging. This file is proposed as the project's single development decision/roadmap record.
+
+- **2026-10-13 — Priority 1 implementation proposed in draft PR #3:** added reproducible 24-seed fixture generation, an independent oracle, three metamorphic invariants per case, zero-API JSON reporting and regression tests. Both Python 3.11 and 3.13 regression jobs passed for the initial code. A newer commit added a dedicated benchmark command to PR CI; its run still requires verification. No merge, production deployment or personal-data access is implied.
