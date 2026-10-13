@@ -206,3 +206,18 @@ Timing is local environment dependent. Real incremental AI value and
 cost-per-success remain unmeasured until a separately authorized, bounded
 real-model comparison is designed and reviewed. This offline result cannot
 authorize production deployment, API spend, or record updates.
+
+### Counterfactual before paid AI evaluation
+
+Run `PYTHONPATH=. python3 -m v2_poc.rule_counterfactual --cases 24 --seed-start 100`.
+This checks whether the narrowly typed mock Finance signal adds anything that a
+read-only deterministic rule using the same independent validation gate cannot
+produce. It includes linked-receipt and missing-bank-ID negative controls.
+The rule requires a single completed receipt and a single unique card
+transaction; it proposes a question, **not** a verified association or write.
+
+The output distinguishes rule-only questions, scripted-model questions and
+unique scripted-model questions. No model is called and no billed costs or model
+quality are measured. Equivalence on this limited synthetic case does not prove
+the rule generalizes or that real AI has no value. Do not authorize real model
+calls, staging or deployment based on this result alone.

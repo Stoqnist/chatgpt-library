@@ -44,6 +44,8 @@ jobs:
           PYTHONPATH=. python -m v2_poc.compare_benchmarks baselines/v2-golden-1-python311.json candidate-benchmark.json > benchmark-comparison.json
       - name: Run controlled scripted 0/1/3 ablation (zero API calls)
         run: PYTHONPATH=. python -m v2_poc.ablation --cases 24 --seed-start 100 > ablation-report.json
+      - name: Run zero-model rule counterfactual and negative controls
+        run: PYTHONPATH=. python -m v2_poc.rule_counterfactual --cases 24 --seed-start 100 > rule-counterfactual.json
       - name: Verify ablation JSON exists and has all three variants
         run: |
           test -s ablation-report.json
@@ -57,6 +59,7 @@ jobs:
             poc/v2/candidate-benchmark.json
             poc/v2/benchmark-comparison.json
             poc/v2/ablation-report.json
+            poc/v2/rule-counterfactual.json
           if-no-files-found: error
       - name: Prove adversarial regression detection (offline mutations)
         run: python scripts/check_adversarial_mutations.py
