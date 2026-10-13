@@ -1,6 +1,6 @@
 # P4 Connector Feasibility and Least-Privilege Review
 
-**Status:** 2026-10-13, experimental audit, not release clearance. This file contains **no private account identifiers**. Repository `main` remains V1; P3 test doubles are not a production API.
+**Status:** 2026-10-14, experimental audit, not release clearance. This file contains **no private account identifiers**. Repository `main` remains V1; P3 test doubles are not a production API.
 
 ## Read-only discovery evidence
 
@@ -23,7 +23,7 @@ These observations establish **only metadata discovery**, and may become stale. 
 
 1. Resolve canonical provider and owner from the current deployed architecture; obtain private resource bindings at runtime. Do not infer mappings from mock destinations or Git.
 2. Start read-only; read only the minimum authorized fields. Health detail must not reach Finance/Purchase/Calendar. Return unknown for stale or inaccessible sources; do not substitute old chat or screenshots.
-3. Treat a successful metadata probe as metadata only. For a synthetic **read** probe, compare the stated ACL role against the minimum read role (`viewer` for Library, `reader` for Sheets/Calendar): editor/writer/owner is flagged `excess_read_privilege` and blocked until a separately reviewed exception or narrower connection is established. This role comparison is **not** a real effective-grants, principal, ACL-inheritance or OAuth scope audit; no exception is granted here. The offline P4 classifier has **no execution path** and always returns `execution_allowed=false`, even when all synthetic capabilities are true.
+3. Treat a successful metadata probe as metadata only. For a synthetic **read** probe, compare the stated ACL role against the minimum read role (`viewer` for Library, `reader` for Sheets/Calendar): editor/writer/owner is flagged `excess_read_privilege` and blocked until a separately reviewed exception or narrower connection is established. The independent synthetic OAuth posture check now rejects a minimal ACL paired with broad/unknown scopes, or an elevated ACL paired with minimal scopes. Neither synthetic classification is a real effective-grants, principal, ACL-inheritance or OAuth scope audit; no exception is granted here. The offline P4 classifier has **no execution path** and always returns `execution_allowed=false`, even when all synthetic capabilities are true.
 4. For a **separately authorized** future disposable write: confirm dedicated test resource, principal, required provider scopes, owner, exact operation preview and explicit user approval; verify current version and that no other writer has changed it.
 5. Execute only through an independently gated adapter. Capture attempt/operation ID, provider response, provider state after readback, partial outcomes and unknown state. Inspect unknown outcomes before retry; never assume exactly-once or transactional writes.
 6. No production or private-record writing, deletions, purchasing, notification delivery, or calendar mutations occur in this PR or CI.
@@ -37,6 +37,21 @@ These observations establish **only metadata discovery**, and may become stale. 
 - **Identity/scope:** Effective OAuth grants, tenant/account identity and private resource bindings were not obtained. A synthetic minimum-role regression now rejects overprivileged read ACLs, but does **not** prove actual granted scopes or effective permissions; these still require private, provider-specific verification. Discovery is not authorization.
 - **Privacy/operations:** Keep private probe logs and identifiers out of CI, repo, and artifacts. For live tests, keep redacted event IDs, exact provider error type, and manual repair status privately.
 - **Rollback:** Multi-provider operations are not atomic; no automatic global rollback. For each verified partial write, stop new dependent actions, report verified changes, seek owner/user approval for compensating action, then verify compensation. Do not delete an uncertain write blindly.
+
+## 2026-10-14 live read-only feasibility follow-up
+
+This follow-up exercised **bounded provider reads** on the user's registered destinations. Private resource IDs, account identity, permissions grantees, personal values and calendar details are intentionally withheld from this public development file. All operations were read-only and did not invoke the offline classifier as an authorization source.
+
+| Destination | Directly observed | Still **not** established |
+| --- | --- | --- |
+| Library Health, Finance, Purchase records | Canonical named files found in Library; one-line bounded reads succeeded without inspecting or publishing personal contents; Library reports editor role | Effective connected principal, actual token scope, least-privilege separation or safe revision/compare-and-set writes |
+| Registered food Google Sheet / Drive | Native spreadsheet metadata, registered `Stock` tab, and exact non-sensitive A1:K1 header schema read succeeded; Drive returned ACL-role metadata | Token scopes, principal-to-ACL resolution, inherited grants, atomic row revisions, idempotent mutation or current stock values (not read) |
+| Google Calendar | Connected Drive and Calendar profiles matched; calendar-list ACL roles were discoverable; a five-minute `primary` free/busy read succeeded without titles or attendee details | OAuth grant set, full event-read ability, notifications, calendar owner authorization for actual follow-up events, or effect of retries |
+| External Finance/Purchase providers | Relevant canonical Library records located and minimally readable | Any authenticated bank, payment, merchant, ordering or refund API access; no such trial was conducted |
+
+**Interpretation:** provider metadata + a successful narrow read prove those individual read operations were accessible at the time of the probe, not that their connectors had minimal OAuth scopes or that future reads/writes will behave identically. Drive permission listings may include owner/reader entries unrelated to the active effective principal. Library editor roles and Calendar owner roles alone are not evidence of effective OAuth powers. `freeBusyReader` and event-detail readers have different capabilities; a free/busy success does not establish event reading.
+
+**Open P4 permission gate:** establish privately, per provider/operation, the effective principal, exact granted OAuth scopes or documented inability to inspect them, resource-level ACL/inheritance, minimum fields, and relevant provider-side audit. If any component is unknown or broader than necessary, retain `blocked` and document a narrower connection or reviewed exception. Keep read-only access and explicit `execution_allowed=false`; no trial here authorizes new permissions, production writes, paid model calls, deployment or I1.
 
 ## P4 acceptance status
 
