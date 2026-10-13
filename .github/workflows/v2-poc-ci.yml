@@ -26,8 +26,8 @@ jobs:
       PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install pinned, optional Agents SDK dependencies
@@ -44,7 +44,7 @@ jobs:
           PYTHONPATH=. python -m v2_poc.compare_benchmarks baselines/v2-golden-1-python311.json candidate-benchmark.json > benchmark-comparison.json
       - name: Upload benchmark and comparison artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: v2-benchmark-python-${{ matrix.python-version }}
           path: |
