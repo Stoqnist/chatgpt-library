@@ -193,7 +193,10 @@ evidence gate decides whether they produce policy-authored questions. No SDK
 provider requests are made. The report checks correctness, fixed specialist
 routing, evidence scoping, independent financial totals, read-only behavior,
 consolidation and additional questions. It records per-case outcomes, mocked
-call counts, elapsed Python orchestration time and explicitly zero API spend.
+call counts, and elapsed time for only one candidate coordinator execution.
+The deterministic reference and oracle validation are excluded from candidate
+latency. It explicitly records zero API spend. CI generates the ablation JSON
+before uploading artifacts and checks that its three variant reports exist.
 
 Crucial limitation: this is a *harness/control validation*, not an ablation of
 real model capability. Scripted signals are predetermined; any extra question
