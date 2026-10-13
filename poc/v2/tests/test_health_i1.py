@@ -294,7 +294,7 @@ class I1MockIntegrationTests(TestCase):
         session.store._faults.pop("calendar-t1")  # provider readback becomes accessible
         prior_attempts = len([e for e in session.store.events
                               if e["kind"] == "write_attempt"])
-        inspected = session.reconcile("calendar-t1")
+        inspected = session.reconcile("calendar-t1", requester_owner="calendar")
         self.assertEqual(inspected["status"], "verified")
         self.assertEqual(inspected["outcome"]["initial_reason"], "unverified_readback")
         self.assertEqual(inspected["outcome"]["history"][:len(attempt_history)],
@@ -340,6 +340,40 @@ class I1MockIntegrationTests(TestCase):
             session.reconcile("purchase-t1")  # verified, not ambiguous
         with self.assertRaises(ValueError):
             session.reconcile("arbitrary-id")
+
+    def test_foreign_or_unpermitted_requester_cannot_recover_j2_calendar_evidence(self):
+        session = make("j2", faults={"calendar-t1": "readback_unavailable"})
+        stage = session.advance(1)
+        for preview in stage["previews"]:
+            session.decide(preview, "approve")
+        result = session.execute()
+        self.assertEqual(result["outcomes"][2]["status"], "unknown")
+        session.advance(2)  # urgent, all old write approvals revoked
+        old = deepcopy(session.execute()["prior_outcomes"][2])
+        before = session.store.state
+        inspection_events = [e for e in session.store.events
+                             if e["kind"] in {"inspect", "readback"}]
+        for requester in ("health", "purchase", None, "unrecognized-owner"):
+            with self.subTest(requester=requester):
+                with self.assertRaises(PermissionError):
+                    session.reconcile("calendar-t1", requester_owner=requester)
+        # Even the correct owner loses access when its independent MOCK read
+        # permission is absent; old approved writes do not grant inspection.
+        grant = ("calendar", "fictional-i1-j2", "calendar-t1", "mock:calendar")
+        session._recovery_read_permissions.remove(grant)
+        with self.assertRaises(PermissionError):
+            session.reconcile("calendar-t1", requester_owner="calendar")
+        self.assertEqual([e for e in session.store.events
+                          if e["kind"] in {"inspect", "readback"}],
+                         inspection_events)
+        self.assertEqual(session.store.state, before)
+        self.assertEqual(session.execute()["prior_outcomes"][2], old)
+        self.assertEqual(session.approvals.status({
+            key: deepcopy(stage["previews"][2][key]) for key in (
+                "request_id", "operation_id", "owner", "destination",
+                "expected_revision", "change")}), "revoked")
+        self.assertEqual(len([e for e in session.store.events
+                              if e["kind"] == "write_attempt"]), 3)
 
     def test_no_arbitrary_turn_or_execution_before_planning(self):
         session = make("j3")
