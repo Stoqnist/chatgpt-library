@@ -48,7 +48,7 @@ class J1JourneyTests(unittest.TestCase):
               "calendar": False}, ["health", "home", "finance"]),
             ({"budget": {"state": "unknown", "fresh": False, "connected": False},
               "calendar": False}, ["health", "home", "finance"]),
-            ({"suitable": False, "calendar": False}, ["health", "home"]),
+            ({"suitable": False, "calendar": False}, ["health"]),
         ]:
             scenario = copy.deepcopy(self.scenario)
             scenario["turns"] = [dict(scenario["turns"][1], turn=1, **edits)]
