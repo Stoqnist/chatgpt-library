@@ -29,7 +29,7 @@ def evaluate_j1(scenario, result, boundary, source_commit="local-unverified"):
             if t["supplies"] and t["suitable"]:
                 expected_events.append((n, "home", "read"))
                 stock = t["stock"]
-                if stock["connected"] and stock["fresh"] and stock["state"] == "short" and t["suitable"]:
+                if stock["connected"] and stock["fresh"] and stock["state"] == "short":
                     expected_events.append((n, "finance", "read"))
                     budget = t["budget"]
                     if budget["connected"] and budget["fresh"] and budget["state"] == "adequate":
