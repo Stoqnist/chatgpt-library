@@ -23,6 +23,8 @@ jobs:
         working-directory: poc/v2
     env:
       OPENAI_AGENTS_DISABLE_TRACING: "1"
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,6 +38,19 @@ jobs:
         run: PYTHONPATH=. python -m unittest discover -s tests -v
       - name: Run seeded golden journey (24 cases; no API calls)
         run: PYTHONPATH=. python -m v2_poc.benchmark --cases 24 --seed-start 100
+      - name: Compare candidate with verified fixed-seed baseline (offline)
+        run: |
+          PYTHONPATH=. python -m v2_poc.benchmark --cases 24 --seed-start 100 > candidate-benchmark.json
+          PYTHONPATH=. python -m v2_poc.compare_benchmarks baselines/v2-golden-1-python311.json candidate-benchmark.json > benchmark-comparison.json
+      - name: Upload benchmark and comparison artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-benchmark-python-${{ matrix.python-version }}
+          path: |
+            poc/v2/candidate-benchmark.json
+            poc/v2/benchmark-comparison.json
+          if-no-files-found: warn
       - name: Prove adversarial regression detection (offline mutations)
         run: python scripts/check_adversarial_mutations.py
       - name: Run zero-cost CLI preflight

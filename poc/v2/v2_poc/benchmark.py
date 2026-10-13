@@ -22,6 +22,9 @@ from .coordinator import DESTINATIONS, run
 BENCHMARK_VERSION = "v2-golden-1"
 DEFAULT_SEED_START = 100
 DEFAULT_CASES = 24
+BENCHMARK_CONTRACT = {"contract_version": BENCHMARK_VERSION,
+    "fixture_revision": "seeded-purchase-v1", "oracle_revision": "golden-oracle-v1",
+    "metamorphic_revision": "rename-reorder-duplicate-v1", "checks_per_case": 3}
 ITEM_NAMES = ("desk-lamp", "office-chair", "monitor", "bookshelf", "keyboard", "coffee-machine")
 
 
@@ -190,6 +193,12 @@ def run_suite(seed_start: int = DEFAULT_SEED_START, cases: int = DEFAULT_CASES,
     duration = [c["elapsed_ms"] for c in results]
     return {
         "benchmark_version": BENCHMARK_VERSION,
+        "benchmark_contract": dict(BENCHMARK_CONTRACT),
+        "source_provenance": {
+            "pr_head_sha": os.environ.get("PR_HEAD_SHA") or None,
+            "tested_merge_sha": os.environ.get("GITHUB_SHA") or None,
+            "base_sha": os.environ.get("PR_BASE_SHA") or None,
+        },
         "source_commit": os.environ.get("GITHUB_SHA") or "not-provided",
         "configuration": "deterministic_coordinator_offline",
         "model": None, "seed_start": seed_start, "case_count": cases,
