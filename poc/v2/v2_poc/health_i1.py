@@ -36,6 +36,9 @@ class MockJourneyIntegration:
         self._operations = []
         self._previews = []
         self._last_outcomes = {}
+        # Immutable prior-turn outcomes are kept separately from current
+        # permissions. Revoking consent must not rewrite observed effects.
+        self._prior_outcomes = []
 
     def advance(self, turn):
         if type(turn) is not int or turn != self.turn + 1 or turn > len(self.fixture["turns"]):
@@ -92,17 +95,25 @@ class MockJourneyIntegration:
                             "change": change})
         elif any(a["status"] == "proposed" for a in actions):
             raise InvalidOperation("non-routine proposal")
-        previews = [self.approvals.preview(op) for op in ops]
-        # A verified or attempted mock effect cannot truthfully be withdrawn.
-        # Only not-yet-attempted previews are invalidated by the new turn.
+        # Authoritative revocation lives in P3's shared approval ledger:
+        # a direct executor/store call with an old operation must also fail.
+        # Revocation does not erase earlier attempts or their effects.
         withdrawn = [op["operation_id"] for op in self._operations
                      if (op["operation_id"] not in self._last_outcomes or
                          self._last_outcomes[op["operation_id"]].get("reason") == "approval_missing")]
+        for op in self._operations:
+            self.approvals.revoke(op)
+        self._prior_outcomes.extend(
+            {"turn": self.turn, **deepcopy(outcome)}
+            for outcome in self._last_outcomes.values()
+        )
+        previews = [self.approvals.preview(op) for op in ops]
         self._operations, self._previews = ops, previews
         self._last_outcomes = {}
         self.turn, self.triage = turn, triage
         return {"simulation": True, "turn": turn, "triage": triage,
                 "withdrawn_operation_ids": withdrawn, "previews": deepcopy(previews),
+                "prior_outcomes": deepcopy(self._prior_outcomes),
                 "approval_inferred": False, "external_actions": 0}
 
     def decide(self, preview, decision):
@@ -114,10 +125,27 @@ class MockJourneyIntegration:
         if self.turn == 0:
             raise ValueError("must plan a turn before execution")
         result = self.executor.execute(deepcopy(self._operations))
-        self._last_outcomes = {o["operation_id"]: deepcopy(o) for o in result["outcomes"]}
+        for outcome in result["outcomes"]:
+            current = deepcopy(outcome)
+            prior = self._last_outcomes.get(current["operation_id"])
+            if prior:
+                # Keep the first attempted trace when a repeat only inspects
+                # an uncertain outcome or reads back an already applied mock.
+                current["history"] = prior["history"] + ["rechecked"] + current["history"]
+            self._last_outcomes[current["operation_id"]] = current
+        cumulative = deepcopy(self._prior_outcomes) + [
+            {"turn": self.turn, **deepcopy(outcome)}
+            for outcome in self._last_outcomes.values()
+        ]
+        cumulative_status = ("no_actions" if not cumulative else
+                             "verified" if all(o["status"] == "verified" for o in cumulative)
+                             else "partial")
         status = result["status"] if self.triage == "routine" else (
             "urgent_escalated" if self.triage == "urgent" else "clarification_needed")
         return {"simulation": True, "mode": "disposable_mock_only",
                 "journey": self.journey, "turn": self.turn, "status": status,
-                "outcomes": result["outcomes"], "external_actions": 0,
+                "outcomes": result["outcomes"],
+                "prior_outcomes": deepcopy(self._prior_outcomes),
+                "cumulative_outcomes": cumulative, "cumulative_status": cumulative_status,
+                "external_actions": 0,
                 "clinical_validity": "not_evaluated", "promotion_authorized": False}
