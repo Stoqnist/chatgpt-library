@@ -26,7 +26,7 @@ def evaluate_j1(scenario, result, boundary, source_commit="local-unverified"):
         if code == "urgent":
             expected_events.append((n, "health", "escalation"))
         elif code == "routine":
-            if t["supplies"]:
+            if t["supplies"] and t["suitable"]:
                 expected_events.append((n, "home", "read"))
                 stock = t["stock"]
                 if stock["connected"] and stock["fresh"] and stock["state"] == "short" and t["suitable"]:
