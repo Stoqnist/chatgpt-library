@@ -55,13 +55,15 @@ class ExecutionTests(unittest.TestCase):
         op = operation()
         store, approvals, _ = self.setup_case([op],
                                                faults={"op-1": "readback_unavailable"})
-        executor = SimulatedExecutor(store, approvals)
+        executor = SimulatedExecutor(
+            store, approvals,
+            recovery_read_allowed=lambda owner, target: owner == "home" and target == op)
         first = executor.execute([op])
         self.assertEqual(first["outcomes"][0]["status"], "unknown")
         approvals.revoke(op)
         store._faults.pop("op-1")  # fictional provider readback restored
         writes = len([e for e in store.events if e["kind"] == "write_attempt"])
-        result = executor.inspect_only(op)
+        result = executor.inspect_only(op, requester_owner="home")
         self.assertEqual(result["status"], "verified")
         self.assertEqual(result["history"], ["inspected", "verified"])
         self.assertEqual(approvals.status(op), "revoked")
@@ -73,25 +75,74 @@ class ExecutionTests(unittest.TestCase):
     def test_inspection_only_rejects_new_or_wrong_intent_and_preserves_unknown(self):
         op = operation()
         store, approvals, initial = self.setup_case([], decisions=[])
-        executor = SimulatedExecutor(store, approvals)
-        blocked = executor.inspect_only(op)
+        executor = SimulatedExecutor(
+            store, approvals,
+            recovery_read_allowed=lambda owner, target: owner == "home" and target == op)
+        blocked = executor.inspect_only(op, requester_owner="home")
         self.assertEqual(blocked["reason"], "no_matching_uncertain_attempt")
         self.assertEqual(store.state, initial)
         self.assertFalse(any(e["kind"] == "inspect" for e in store.events))
 
         store2, approvals2, _ = self.setup_case([op],
                                                 faults={"op-1": "before_timeout"})
-        executor2 = SimulatedExecutor(store2, approvals2)
+        executor2 = SimulatedExecutor(
+            store2, approvals2,
+            recovery_read_allowed=lambda owner, target: owner == "home" and target == op)
         self.assertEqual(executor2.execute([op])["outcomes"][0]["status"], "unknown")
         approvals2.revoke(op)
         forged = operation()
         forged["change"]["quantity"] = 2
-        self.assertEqual(executor2.inspect_only(forged)["status"], "blocked")
+        self.assertEqual(executor2.inspect_only(forged, requester_owner="home")["status"], "blocked")
         before = store2.state
         writes = len([e for e in store2.events if e["kind"] == "write_attempt"])
-        self.assertEqual(executor2.inspect_only(op)["status"], "unknown")
+        self.assertEqual(executor2.inspect_only(op, requester_owner="home")["status"], "unknown")
         self.assertEqual(store2.state, before)
         self.assertEqual(len([e for e in store2.events if e["kind"] == "write_attempt"]), writes)
+
+    def test_recovery_evidence_requires_separate_owner_scoped_read_authority(self):
+        # Both operations were approved for WRITE and actually attempted.
+        # Neither prior approval nor possession of an operation ID gives READ access.
+        own = operation(operation_id="op-1")
+        foreign = operation("calendar_create", operation_id="op-2")
+        store, approvals, _ = self.setup_case(
+            [own, foreign],
+            faults={"op-1": "readback_unavailable",
+                    "op-2": "readback_unavailable"})
+        allowed = lambda owner, target: (
+            (owner == "home" and target == own)
+            or (owner == "calendar" and target == foreign))
+        authorized = SimulatedExecutor(
+            store, approvals, recovery_read_allowed=allowed)
+        attempted = authorized.execute([own, foreign])
+        self.assertEqual([o["status"] for o in attempted["outcomes"]],
+                         ["unknown", "unknown"])
+        self.assertEqual(approvals.status(foreign), "approve")
+        before = store.state
+        read_events_before = [e for e in store.events
+                              if e["kind"] in {"inspect", "readback"}]
+        denied = [
+            authorized.inspect_only(foreign, requester_owner="home"),
+            authorized.inspect_only(foreign),  # no requester
+            SimulatedExecutor(store, approvals).inspect_only(
+                foreign, requester_owner="calendar"),  # no independent grant
+            SimulatedExecutor(
+                store, approvals, recovery_read_allowed=lambda *_: False
+            ).inspect_only(foreign, requester_owner="calendar"),
+        ]
+        for response in denied:
+            self.assertEqual(response, {
+                "status": "blocked", "reason": "recovery_read_not_authorized",
+                "history": ["blocked"]})
+        self.assertEqual([e for e in store.events
+                          if e["kind"] in {"inspect", "readback"}],
+                         read_events_before)
+        self.assertEqual(store.state, before)
+        self.assertTrue(authorized.inspect_only(
+            own, requester_owner="home")["status"] == "unknown")
+        self.assertTrue(authorized.inspect_only(
+            foreign, requester_owner="calendar")["status"] == "unknown")
+        self.assertEqual(len([e for e in store.events
+                              if e["kind"] == "write_attempt"]), 2)
 
     def test_revoked_approval_cannot_execute_or_be_reauthorized(self):
         op = operation()
