@@ -77,10 +77,21 @@ class SimulatedApprovals:
         self._previews = {}
         self._preview_details = {}
         self._decisions = {}
+        self._revoked = set()
+
+    def revoke(self, operation):
+        """Irreversibly revoke one previously previewed fictional intent."""
+        digest = fingerprint(operation)
+        key = op_key(operation)
+        if self._previews.get(key) != digest:
+            raise InvalidOperation("cannot revoke an unregistered or mismatched intent")
+        self._revoked.add(key)
 
     def preview(self, operation):
         digest = fingerprint(operation)
         key = op_key(operation)
+        if key in self._revoked:
+            raise InvalidOperation("revoked operation ID cannot be reopened")
         if key in self._previews and self._previews[key] != digest:
             raise InvalidOperation("operation ID reused with changed intent")
         self._previews[key] = digest
@@ -101,6 +112,8 @@ class SimulatedApprovals:
             raise ValueError("invalid preview identifiers")
         key = (request_id, operation_id)
         digest = self._previews.get(key)
+        if key in self._revoked:
+            raise ValueError("revoked preview cannot be approved")
         if not digest or preview != self._preview_details.get(key):
             raise ValueError("unregistered or mismatched preview")
         if key in self._decisions:
@@ -113,6 +126,8 @@ class SimulatedApprovals:
         key = op_key(operation)
         if self._previews.get(key) != fingerprint(operation):
             return "missing"
+        if key in self._revoked:
+            return "revoked"
         decision = self._decisions.get(key)
         return decision[1] if decision and decision[0] == fingerprint(operation) else "missing"
 
@@ -282,7 +297,8 @@ class SimulatedExecutor:
             approval = self.approvals.status(op)
             if approval != "approve":
                 item.update(status="denied" if approval == "deny" else "blocked",
-                            reason="approval_denied" if approval == "deny" else "approval_missing")
+                            reason=({"deny": "approval_denied",
+                                     "revoked": "approval_revoked"}.get(approval, "approval_missing")))
                 item["history"].append(item["status"])
                 outcomes.append(item)
                 continue

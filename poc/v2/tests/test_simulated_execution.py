@@ -51,6 +51,36 @@ class ExecutionTests(unittest.TestCase):
             self.assertEqual(result["outcomes"][0]["status"],
                              "denied" if decision else "blocked")
 
+    def test_revoked_approval_cannot_execute_or_be_reauthorized(self):
+        op = operation()
+        store, approvals, initial = self.setup_case([op])
+        self.assertEqual(approvals.status(op), "approve")
+        approvals.revoke(op)
+        self.assertEqual(approvals.status(op), "revoked")
+        blocked = SimulatedExecutor(store, approvals).execute([op])
+        self.assertEqual(blocked["outcomes"][0]["status"], "blocked")
+        self.assertEqual(blocked["outcomes"][0]["reason"], "approval_revoked")
+        with self.assertRaises(PermissionError):
+            store.apply(op, approvals)
+        with self.assertRaises(ValueError):
+            approvals.decide(approvals._preview_details[(op["request_id"], op["operation_id"])],
+                             "approve")
+        with self.assertRaises(InvalidOperation):
+            approvals.preview(op)
+        self.assertEqual(store.state, initial)
+        self.assertFalse(any(e["kind"] == "write_attempt" for e in store.events))
+
+    def test_revoke_requires_same_fingerprinted_intent(self):
+        op = operation()
+        approvals = SimulatedApprovals()
+        approvals.preview(op)
+        tampered = dict(op, change={"type": "stock_decrement", "quantity": 2})
+        with self.assertRaises(InvalidOperation):
+            approvals.revoke(tampered)
+        self.assertEqual(approvals.status(op), "missing")
+        approvals.revoke(op)
+        self.assertEqual(approvals.status(op), "revoked")
+
     def test_owner_destination_and_mutated_approval_rejected(self):
         op = operation()
         store, approvals, initial = self.setup_case([op])
