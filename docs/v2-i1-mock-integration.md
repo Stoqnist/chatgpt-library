@@ -34,15 +34,27 @@ previews only. It does not retroactively withdraw actions already attempted.
 The historical snapshots keep their original `verified`, `failed`, or
 `unknown` status and attempt history after a later urgent/changed turn.
 An unknown mock effect is not marked cancelled or verified by revocation.
-The mock now supports explicit `reconcile(operation_id)` **after a later
-turn supersedes it**. The bridge retains the exact prior attempted operation,
-and P3's separate `inspect_only(operation)` checks the registered intent,
-a prior `write_attempt`, and an ambiguous-outcome marker before inspecting.
+The mock supports explicit `reconcile(operation_id, requester_owner=...)`
+**after a later turn supersedes it**. The bridge retains the exact prior
+attempted operation. P3's separate `inspect_only(operation,
+requester_owner=...)` first requires matching original owner and a trusted
+fixture-backed, exact request/operation/resource **recovery-read permission**,
+then checks the registered intent, prior `write_attempt`, and ambiguous marker
+before inspecting. A missing read permission or foreign owner fails closed
+without inspecting, reading back, or disclosing target metadata. Write
+approvals, including old approvals, never confer recovery-read permission.
 These APIs do not consult or restore approval, do not call `apply`, and cannot
 create a new write. Matching applied markers plus successful readback can
 change historical `unknown` to `verified` with the original unknown/attempt
 trace retained; missing or inaccessible evidence remains `unknown`.
 Current-turn `execute()` continues to block stale consent.
+
+The synthetic requester owner is supplied by the caller; the fictional
+read permission is assigned by the mock runner when a scoped ambiguous
+operation is superseded. **Neither mechanism authenticates a real principal**
+or proves provider/connector read access. A real integration must obtain
+trusted requester identity and operation-specific read authorization outside
+this simulator. This introduces no general role/permissions framework.
 
 This is a deterministic in-memory repair demonstration, **not** a safe real
 provider reconciliation protocol. In particular, a missing mock marker is

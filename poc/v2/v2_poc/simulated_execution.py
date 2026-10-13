@@ -266,8 +266,11 @@ class DisposableStore:
 
 class SimulatedExecutor:
     """Serial owner-scoped dispatch; unknown operations never blindly retried."""
-    def __init__(self, store, approvals):
+    def __init__(self, store, approvals, *, recovery_read_allowed=None):
         self.store, self.approvals = store, approvals
+        # Separate, trusted mock read decision; NEVER inferred from write approval.
+        # Defaults to no recovery access.
+        self._recovery_read_allowed = recovery_read_allowed
 
     def _verify(self, operation, marker):
         try:
@@ -280,9 +283,22 @@ class SimulatedExecutor:
             return "unknown"
         return "verified"
 
-    def inspect_only(self, operation):
-        """Reconcile a recorded ambiguous attempt; never authorize or apply."""
+    def inspect_only(self, operation, *, requester_owner=None):
+        """Recovery read needs a separately permitted owner, never write consent."""
         validate_operation(operation)
+        # Check read authority before touching operation markers or provider
+        # inspection. Denials disclose no target owner/resource/attempt metadata.
+        if (requester_owner != operation["owner"]
+                or self._recovery_read_allowed is None):
+            return {"status": "blocked", "reason": "recovery_read_not_authorized",
+                    "history": ["blocked"]}
+        try:
+            permitted = self._recovery_read_allowed(requester_owner, operation) is True
+        except Exception:
+            permitted = False
+        if not permitted:
+            return {"status": "blocked", "reason": "recovery_read_not_authorized",
+                    "history": ["blocked"]}
         item = {"request_id": operation["request_id"],
                 "operation_id": operation["operation_id"],
                 "owner": operation["owner"], "destination": operation["destination"]}

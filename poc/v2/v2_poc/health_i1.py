@@ -30,7 +30,9 @@ class MockJourneyIntegration:
                 raise ValueError("journey mismatch")
         self.store = DisposableStore(faults=faults)
         self.approvals = SimulatedApprovals()
-        self.executor = SimulatedExecutor(self.store, self.approvals)
+        self.executor = SimulatedExecutor(
+            self.store, self.approvals,
+            recovery_read_allowed=self._mock_recovery_read_allowed)
         self.turn = 0
         self.triage = None
         self._operations = []
@@ -42,6 +44,16 @@ class MockJourneyIntegration:
         # Only exact operations previously attempted with ambiguous outcomes
         # may be reconciled; no old approval is restored.
         self._prior_uncertain = {}
+        # Fictional owner/resource/operation read permissions are independent
+        # of the simulated user's write-approval decisions.
+        self._recovery_read_permissions = set()
+
+    def _mock_recovery_read_allowed(self, requester_owner, operation):
+        op_id = operation["operation_id"]
+        grant = (requester_owner, operation["request_id"],
+                 op_id, operation["destination"])
+        return (grant in self._recovery_read_permissions
+                and self._prior_uncertain.get(op_id) == operation)
 
     def advance(self, turn):
         if type(turn) is not int or turn != self.turn + 1 or turn > len(self.fixture["turns"]):
@@ -115,6 +127,9 @@ class MockJourneyIntegration:
             if (result and result["status"] == "unknown"
                     and "attempted" in result["history"]):
                 self._prior_uncertain[old["operation_id"]] = deepcopy(old)
+                self._recovery_read_permissions.add(
+                    (old["owner"], old["request_id"],
+                     old["operation_id"], old["destination"]))
         previews = [self.approvals.preview(op) for op in ops]
         self._operations, self._previews = ops, previews
         self._last_outcomes = {}
@@ -129,8 +144,8 @@ class MockJourneyIntegration:
             raise ValueError("stale or unregistered preview")
         self.approvals.decide(preview, decision)
 
-    def reconcile(self, operation_id):
-        """Inspect a superseded ambiguous mock attempt, without reapproval."""
+    def reconcile(self, operation_id, *, requester_owner=None):
+        """Inspect with separately scoped fictional read permission, never approval."""
         if not isinstance(operation_id, str) or operation_id not in self._prior_uncertain:
             raise ValueError("no superseded unknown attempt available to inspect")
         operation = self._prior_uncertain[operation_id]
@@ -140,7 +155,10 @@ class MockJourneyIntegration:
                       and o["status"] == "unknown"), None)
         if prior is None:
             raise ValueError("historical unknown outcome is unavailable")
-        inspected = self.executor.inspect_only(deepcopy(operation))
+        inspected = self.executor.inspect_only(
+            deepcopy(operation), requester_owner=requester_owner)
+        if inspected.get("reason") == "recovery_read_not_authorized":
+            raise PermissionError("recovery read not authorized")
         if inspected["status"] not in {"verified", "unknown"}:
             raise InvalidOperation("inspection did not match an ambiguous attempt")
         # Preserve the original attempt and unknown state in the history.
@@ -152,6 +170,9 @@ class MockJourneyIntegration:
         prior["reason"] = "inspection_only"
         if inspected["status"] == "verified":
             del self._prior_uncertain[operation_id]
+            self._recovery_read_permissions.discard(
+                (operation["owner"], operation["request_id"],
+                 operation["operation_id"], operation["destination"]))
         return {"simulation": True, "operation_id": operation_id,
                 "status": inspected["status"], "outcome": deepcopy(prior),
                 "external_actions": 0}
