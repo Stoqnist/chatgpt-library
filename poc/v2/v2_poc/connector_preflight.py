@@ -164,9 +164,11 @@ def run_offline_demo():
     for name, (owner, provider) in TARGETS.items():
         observation = deepcopy(baseline)
         observation["provider"] = provider
-        observation["role"] = "editor" if provider == "library" else "reader"
+        observation["role"] = {"library": "editor", "sheets": "reader",
+                               "calendar": "freeBusyReader"}[provider]
         probes[name] = {
-            "read": classify(name, observation, owner=owner),
+            "read": classify(name, observation, owner=owner,
+                             read_operation="freebusy" if provider == "calendar" else None),
             "write": classify(name, observation, owner=owner, requested_action="write"),
         }
     return {
