@@ -93,7 +93,7 @@ Build **3 base journeys and initially 6–9 targeted negative variations**, not 
 - Original **Priority 3:** verified fixed-seed baseline, JSON comparison and provenance safeguards, merged to experimental V2 via [PR #7](https://github.com/Stoqnist/chatgpt-library/pull/7).
 - Original **Priority 4 (partial):** Node.js 24 GitHub Action upgrades through [PR #8](https://github.com/Stoqnist/chatgpt-library/pull/8). Full CI speed/caching/SDK split is **not** completed or necessary before P0.
 - Original **Priority 5:** 0/1/3 **scripted/mock** specialist harness via [PR #9](https://github.com/Stoqnist/chatgpt-library/pull/9), and deterministic Finance typed-question counterfactual via [PR #10](https://github.com/Stoqnist/chatgpt-library/pull/10); both merged to experimental V2. They demonstrate only synthetic harness equivalence and safety, not real-model value/cost/latency, clinical suitability, authenticated side effects or release readiness.
-- The canonical development record on \`main\` previously lagged these experimental commits. This status reconciliation updates documentation only; no runtime or publishing rules change.
+- The canonical development record on `main` previously lagged these experimental commits. This status reconciliation updates documentation only; no runtime or publishing rules change.
 
 ## Risks to revisit at every release review
 
