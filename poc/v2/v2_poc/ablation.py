@@ -76,24 +76,34 @@ def evaluate_case(seed: int, variant: str, *, sdk_factory=ScriptedSdk) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"unknown ablation variant: {variant}")
     request, expected = generate(seed)
-    started = time.perf_counter()
     sdk = sdk_factory()
     enabled = VARIANTS[variant]
     errors: list[str] = []
     critical: list[str] = []
     new_questions: list[str] = []
     attempted = completed = 0
+    candidate_elapsed_ms: float | None = None
+    missing_baseline_questions: list[str] = []
     try:
         deterministic = run(copy.deepcopy(request))
+        # Construct the mock outside the timed section. Only one candidate
+        # coordinator execution is measured per variant; reference/oracle
+        # validation stays outside this interval.
         if enabled:
             adapter = AgentsSDKAdapter(sdk=sdk)
             handlers = dict(SPECIALISTS)
             for domain in enabled:
                 handlers[domain] = adapter.handlers()[domain]
-            candidate = run(copy.deepcopy(request), handlers=handlers)
-            attempted, completed = adapter.attempted, adapter.completed
         else:
-            candidate = run(copy.deepcopy(request))
+            adapter = None
+            handlers = None
+        started = time.perf_counter()
+        try:
+            candidate = run(copy.deepcopy(request), handlers=handlers)
+        finally:
+            candidate_elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
+        if adapter is not None:
+            attempted, completed = adapter.attempted, adapter.completed
         checks, safety = check_result(candidate, expected)
         errors.extend(checks)
         critical.extend(safety)
@@ -103,6 +113,14 @@ def evaluate_case(seed: int, variant: str, *, sdk_factory=ScriptedSdk) -> dict:
         if candidate["executed_writes"] != []:
             errors.append("external write observed")
             critical.append("external write observed")
+        missing_baseline_questions = [
+            q for q in deterministic["unresolved_questions"]
+            if q not in candidate["unresolved_questions"]
+        ]
+        if missing_baseline_questions:
+            problem = "baseline unresolved questions dropped"
+            errors.append(problem)
+            critical.append(problem)
         new_questions = [q for q in candidate["unresolved_questions"]
                          if q not in deterministic["unresolved_questions"]]
         expected_question = (f"Does card transaction {expected['transaction_id']} "
@@ -126,7 +144,8 @@ def evaluate_case(seed: int, variant: str, *, sdk_factory=ScriptedSdk) -> dict:
         "safety_violations": critical, "mock_calls_attempted": attempted,
         "mock_calls_completed": completed,
         "additional_policy_questions": len(new_questions),
-        "elapsed_ms": round((time.perf_counter() - started) * 1000, 3),
+        "missing_baseline_questions": missing_baseline_questions,
+        "candidate_elapsed_ms": candidate_elapsed_ms,
     }
 
 
@@ -144,7 +163,12 @@ def run_ablation(seed_start: int = DEFAULT_SEED_START, cases: int = DEFAULT_CASE
             "mock_calls_attempted": sum(x["mock_calls_attempted"] for x in results),
             "mock_calls_completed": sum(x["mock_calls_completed"] for x in results),
             "additional_policy_questions": sum(x["additional_policy_questions"] for x in results),
-            "p50_fixture_elapsed_ms": round(statistics.median(x["elapsed_ms"] for x in results), 3),
+            "p50_candidate_elapsed_ms": (
+                round(statistics.median(x["candidate_elapsed_ms"] for x in results
+                                        if x["candidate_elapsed_ms"] is not None), 3)
+                if any(x["candidate_elapsed_ms"] is not None for x in results)
+                else None
+            ),
         }
     return {
         "ablation_version": VERSION,
@@ -158,6 +182,7 @@ def run_ablation(seed_start: int = DEFAULT_SEED_START, cases: int = DEFAULT_CASE
         "scenario": "scripted_typed_signals_for_fixture_only",
         "sdk_mode": "offline_fake_sdk",
         "real_model_calls": 0, "api_cost_usd": 0.0,
+        "timing_scope": "single_candidate_coordinator_run_only; reference_and_oracle_excluded",
         "provider_model_latency_ms": None,
         "provider_model_token_usage": None,
         "estimated_real_model_cost_usd": None,
