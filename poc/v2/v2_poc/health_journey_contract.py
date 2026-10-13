@@ -5,6 +5,8 @@ or invoke any live specialist, connected source, calendar, or provider API.
 """
 from __future__ import annotations
 
+from .health_evaluation import DESTINATIONS
+
 ALLOWED_STATUSES = frozenset({
     "proposed", "authorized", "attempted", "verified", "blocked", "failed", "unknown"
 })
@@ -59,6 +61,8 @@ def assess_journey(result: dict, *, urgent_expected: bool = False) -> list[str]:
             errors.append("P0 invented readback")
         if not action.get("destination"):
             errors.append("missing action destination")
+        elif action["destination"] not in DESTINATIONS.get(action.get("owner"), set()):
+            errors.append("owner destination mismatch")
     for record in result.get("shared_payloads", []):
         if record.get("recipient") in {"finance", "purchase", "calendar"}:
             text = str(record.get("content", "")).lower()

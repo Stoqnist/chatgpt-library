@@ -52,3 +52,16 @@ These are scenario *contracts*, not clinical treatment recommendations. Medical 
 ## P0 review gate
 
 Review owner permissions, schema and clinical-safety ambiguity first. Then implement J1 as a separately reviewed synthetic read-only dispatcher/fixture test. Add J2 wound, J3 mental wellbeing, mock approval/write verification and disposable-calendar integration only in later gated PRs. Do not merge or deploy experimental V2 to `main` on the strength of this specification.
+
+## PR #12 review response: evidence and judge contracts
+
+`v2_poc.health_evaluation` adds two independent component interfaces:
+
+- `MockBoundary` records calls before denying any write. Supply its copied event log and separately captured before/after state to `assess_observations`. Expected assessment codes per turn and evidence audiences come from the scenario author, not the generated answer. Urgent turns forbid routine activity and require an observed escalation. Missing evidence, mismatched owners/destinations, repeated operations and arbitrary cross-domain prose fail closed.
+- `validate_judge_report` validates nine criterion rows, independent scenario/rubric/judge versions and assistant/judge configuration, actual answer quotations or observed event references, null scores for insufficient evidence, and mandatory review for critical concerns. It validates the report contract, **not the correctness of the judge**. `mock` and `model` generation modes must be distinguished.
+
+The destination allowlist deliberately covers only this narrow synthetic physical-health fixture. `mock:food-stock` and `mock:calendar` are test destinations, never private resource bindings. Mental-health records and shared acquisition intake require a reviewed scenario-specific extension; do not silently accept arbitrary destinations.
+
+The old `assess_journey` remains a limited result-shape/negative-control checker, now with owner/destination validation. Its self-reported urgency/execution flags and literal phrase checks are **not sufficient acceptance evidence**. Future J1 acceptance must additionally use boundary/state observations plus semantic evaluation of actual generated answers. The new structured disclosure check rejects arbitrary cross-domain prose; it does not claim to detect semantic leaks in unrestricted natural language.
+
+No J1 dispatcher or actual model judge is implemented here. No generated clinical answer, model quality score or clinical validity is claimed. See the existing `docs/v2-development-roadmap.md` for the accepted staged follow-up, including full J1, comparison/calibration, and clinician review. This preserves the separate dispatcher review gate above.
