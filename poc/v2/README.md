@@ -176,3 +176,30 @@ The JSON comparison includes per-seed regressions and commit provenance;
 `promotion_authorized` is always false. This does not approve V2 deployment.
 CI uploads the candidate and comparison JSON for inspection, without paid calls
 or personal records.
+
+### Priority 5 — controlled scripted 0/1/3 ablation (offline)
+
+Run the reproducible 24-seed comparison without credentials or model calls:
+
+```bash
+PYTHONPATH=. python3 -m v2_poc.ablation --seed-start 100 --cases 24 > ablation-report.json
+```
+
+Three variants use identical synthetic generated inputs and the same independent
+golden-journey oracle: deterministic-only; deterministic plus one **mock**
+Finance specialist; deterministic plus three **mock** specialists. The scripted
+SDK returns typed receipt/delivery-link review signals; the existing independent
+evidence gate decides whether they produce policy-authored questions. No SDK
+provider requests are made. The report checks correctness, fixed specialist
+routing, evidence scoping, independent financial totals, read-only behavior,
+consolidation and additional questions. It records per-case outcomes, mocked
+call counts, elapsed Python orchestration time and explicitly zero API spend.
+
+Crucial limitation: this is a *harness/control validation*, not an ablation of
+real model capability. Scripted signals are predetermined; any extra question
+is not proof a model would discover it. The 0/1/3 mock counts are not
+provider usage, token counts, monetary estimates or real-model latency.
+Timing is local environment dependent. Real incremental AI value and
+cost-per-success remain unmeasured until a separately authorized, bounded
+real-model comparison is designed and reviewed. This offline result cannot
+authorize production deployment, API spend, or record updates.
