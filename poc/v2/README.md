@@ -66,3 +66,14 @@ before authorizing live traffic. Never put a key in a GitHub commit or chat.
 GitHub PR CI installs the pinned SDK and checks its offline construction/schema
 interfaces; no API secrets are supplied to the workflow and no model calls
 are made. A green CI run confirms local compatibility, **not** a live API test.
+
+### Live-smoke review follow-up
+
+The first real three-specialist fixture run completed successfully without writes. It
+also showed repeated AI paraphrases and two equivalent questions about possession.
+The coordinator now consolidates strongly overlapping questions, and the adapter
+filters specialist questions already represented in the deterministic baseline.
+Model instructions explicitly prohibit treating equal amounts as proof of a
+receipt-to-bank transaction match. These guardrails improve presentation but
+cannot guarantee that every unsupported AI claim is caught; provenance and
+human review remain required. No production permissions have changed.
