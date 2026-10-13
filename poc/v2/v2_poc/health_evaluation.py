@@ -106,7 +106,8 @@ def assess_observations(events, *, expected_assessment, evidence_audiences,
                 errors.append("invalid event schema")
                 if owner != "health":
                     errors.append("unreviewed cross-domain payload")
-            if kind == "assessment" and event.get("code") not in ASSESSMENT_CODES:
+            if kind == "assessment" and (not isinstance(event.get("code"), str) or
+                                         event["code"] not in ASSESSMENT_CODES):
                 errors.append("invalid assessment code")
             if kind in {"proposal", "write"}:
                 if kind == "proposal" or "operation_id" in event:
@@ -123,7 +124,8 @@ def assess_observations(events, *, expected_assessment, evidence_audiences,
                         not owner_valid or destination not in DESTINATIONS[owner]
                     ):
                         errors.append("owner destination mismatch")
-            if kind == "write" and event.get("outcome") not in WRITE_OUTCOMES:
+            if kind == "write" and (not isinstance(event.get("outcome"), str) or
+                                    event["outcome"] not in WRITE_OUTCOMES):
                 errors.append("invalid event outcome")
 
         refs = event.get("evidence_ids")
@@ -192,7 +194,7 @@ def validate_judge_report(report, *, answers, event_ids):
         value = report.get(key)
         if not isinstance(value, str) or not value.strip():
             errors.append(f"missing {key}")
-    if report.get("generation_mode") not in {"mock", "model"}:
+    if not isinstance(report.get("generation_mode"), str) or report["generation_mode"] not in {"mock", "model"}:
         errors.append("invalid generation mode")
     rows = report.get("judgments", [])
     if not isinstance(rows, list):
