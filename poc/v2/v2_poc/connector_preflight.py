@@ -11,7 +11,7 @@ import json
 import os
 from copy import deepcopy
 
-CONTRACT_VERSION = "p4-connector-contract-1"
+CONTRACT_VERSION = "p4-connector-contract-2"
 # Public provider/domain map only. Real file IDs, sheet IDs, calendar IDs and
 # account-specific destinations must be supplied privately and never logged.
 TARGETS = {
@@ -37,6 +37,12 @@ READ_ROLES = {
 WRITE_ROLES = {
     "library": {"editor"}, "sheets": {"writer", "owner"},
     "calendar": {"writer", "owner"},
+}
+# Advisory minimums for a read-only probe, not proof of effective OAuth grants.
+# Elevated ACL roles require a narrower connection or a separately reviewed
+# exception; neither can enable execution through this classifier.
+MINIMUM_READ_ROLES = {
+    "library": {"viewer"}, "sheets": {"reader"}, "calendar": {"reader"},
 }
 # Key names are fixed, non-sensitive, and intentionally exclude identifiers or
 # record content. Unknown keys fail closed; never include raw observations in CI.
@@ -76,6 +82,8 @@ def classify(target, observation, *, owner, requested_action="read"):
         reasons.append("invalid_role")
     elif role not in READ_ROLES[provider]:
         reasons.append("read_role_missing")
+    elif requested_action == "read" and role not in MINIMUM_READ_ROLES[provider]:
+        reasons.append("excess_read_privilege")
     for key in ("binding_verified", "scope_verified", "freshness_verified",
                 "readback_capable", "conditional_write_capable",
                 "persistent_idempotency_verified", "disposable_target_verified"):
