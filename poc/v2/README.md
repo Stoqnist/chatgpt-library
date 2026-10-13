@@ -162,12 +162,17 @@ PYTHONPATH=. python3 -m v2_poc.benchmark --cases 24 --seed-start 100 > candidate
 PYTHONPATH=. python3 -m v2_poc.compare_benchmarks baselines/v2-golden-1-python311.json candidate-benchmark.json > benchmark-comparison.json
 ```
 
-The comparison exits nonzero when previously passing seeds regress, any critical
-safety violations appear, or measured unsupported accepted claims increase.
-Different seed corpora, models, configurations or benchmark versions are rejected
-as incomparable. Elapsed-time differences are informational: CI machines differ.
+The comparison fails for any candidate golden-journey failure, known critical
+safety violation, or known unsupported accepted claim, even when the baseline
+had no measurement. Unknown measurements remain explicitly unknown, not zero.
+The loader reconciles case errors, safety counts, pass/fail totals and full
+metamorphic coverage. Reports include a versioned contract naming fixture,
+oracle and metamorphic revisions; changing test semantics requires a new
+benchmark version and baseline. Different seeds, models, configurations or
+contract revisions are rejected as incomparable. Elapsed-time differences are informational: CI machines differ.
 Unmeasured unsupported claims remain explicitly unknown, never zero.
-The JSON comparison includes per-seed regressions and commit labels;
+CI also records PR head, tested temporary merge commit and base SHA separately.
+The JSON comparison includes per-seed regressions and commit provenance;
 `promotion_authorized` is always false. This does not approve V2 deployment.
 CI uploads the candidate and comparison JSON for inspection, without paid calls
 or personal records.
