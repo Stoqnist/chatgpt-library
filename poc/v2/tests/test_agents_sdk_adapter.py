@@ -160,7 +160,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["model_calls_completed"], 3)
         self.assertEqual(len(result["specialist_results"]["home"]["unresolved_questions"]), 1)
         self.assertEqual(len(result["unresolved_questions"]), 1)
-        self.assertEqual(result["unresolved_questions"][0], "Was desk-lamp actually received into the household?")
+        self.assertEqual(result["unresolved_questions"][0], repeated)
 
     def test_specialist_instructions_prohibit_unproven_transaction_linkage(self):
         mock = FakeSdk()
