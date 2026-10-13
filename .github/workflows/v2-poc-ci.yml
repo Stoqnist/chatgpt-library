@@ -1,0 +1,67 @@
+name: V2 POC offline checks
+
+on:
+  pull_request:
+    paths:
+      - "poc/v2/**"
+      - ".github/workflows/v2-poc-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    defaults:
+      run:
+        working-directory: poc/v2
+    env:
+      OPENAI_AGENTS_DISABLE_TRACING: "1"
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pinned, optional Agents SDK dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-live.txt
+      - name: Validate installed package without credentials
+        run: python -c "from agents import Agent, AgentOutputSchema, ModelSettings, RunConfig; print('SDK import and schema interfaces available')"
+      - name: Run all offline regression tests
+        run: PYTHONPATH=. python -m unittest discover -s tests -v
+      - name: Run seeded golden journey (24 cases; no API calls)
+        run: PYTHONPATH=. python -m v2_poc.benchmark --cases 24 --seed-start 100
+      - name: Compare candidate with verified fixed-seed baseline (offline)
+        run: |
+          PYTHONPATH=. python -m v2_poc.benchmark --cases 24 --seed-start 100 > candidate-benchmark.json
+          PYTHONPATH=. python -m v2_poc.compare_benchmarks baselines/v2-golden-1-python311.json candidate-benchmark.json > benchmark-comparison.json
+      - name: Run controlled scripted 0/1/3 ablation (zero API calls)
+        run: PYTHONPATH=. python -m v2_poc.ablation --cases 24 --seed-start 100 > ablation-report.json
+      - name: Run zero-model rule counterfactual and negative controls
+        run: PYTHONPATH=. python -m v2_poc.rule_counterfactual --cases 24 --seed-start 100 > rule-counterfactual.json
+      - name: Verify ablation JSON exists and has all three variants
+        run: |
+          test -s ablation-report.json
+          python -c "import json; r=json.load(open('ablation-report.json')); assert set(r['variants']) == {'deterministic', 'one_finance_mock', 'three_specialist_mock'}"
+      - name: Upload benchmark, comparison and ablation artifacts
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: v2-benchmark-python-${{ matrix.python-version }}
+          path: |
+            poc/v2/candidate-benchmark.json
+            poc/v2/benchmark-comparison.json
+            poc/v2/ablation-report.json
+            poc/v2/rule-counterfactual.json
+          if-no-files-found: error
+      - name: Prove adversarial regression detection (offline mutations)
+        run: python scripts/check_adversarial_mutations.py
+      - name: Run zero-cost CLI preflight
+        run: PYTHONPATH=. python -m v2_poc.live fixtures/purchase.json --check-only

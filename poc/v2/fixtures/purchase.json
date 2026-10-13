@@ -1,0 +1,29 @@
+{
+  "run_id": "synthetic-001",
+  "request_id": "synthetic-request-001",
+  "user_goal": "Review a fictional household purchase without changing records",
+  "requested_actions": ["read_only"],
+  "domains": ["purchase", "finance", "home"],
+  "evidence": [
+    {
+      "evidence_id": "receipt-a", "source_type": "receipt",
+      "source_locator": "fixture://purchase-receipt", "observed_at": "2026-10-01T10:00:00Z",
+      "data": {"receipt_id": "R-123", "item_id": "desk-lamp", "amount_eur": "49.90", "status": "completed"}
+    },
+    {
+      "evidence_id": "bank-a", "source_type": "bank_transaction",
+      "source_locator": "fixture://bank-export", "observed_at": "2026-10-02T10:00:00Z",
+      "data": {"source_account": "acct-a", "transaction_id": "T-001", "amount_eur": "49.90", "kind": "card_purchase"}
+    },
+    {
+      "evidence_id": "bank-a-repeat", "source_type": "bank_transaction",
+      "source_locator": "fixture://bank-overlap", "observed_at": "2026-10-03T10:00:00Z",
+      "data": {"source_account": "acct-a", "transaction_id": "T-001", "amount_eur": "49.90", "kind": "card_purchase"}
+    },
+    {
+      "evidence_id": "bank-own-transfer", "source_type": "bank_transaction",
+      "source_locator": "fixture://bank-export", "observed_at": "2026-10-02T10:00:00Z",
+      "data": {"source_account": "acct-a", "transaction_id": "T-002", "amount_eur": "100.00", "kind": "own_account_transfer"}
+    }
+  ]
+}
