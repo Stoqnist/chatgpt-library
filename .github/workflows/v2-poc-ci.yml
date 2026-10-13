@@ -38,6 +38,10 @@ jobs:
         run: PYTHONPATH=. python -m unittest discover -s tests -v
       - name: Run synthetic multi-turn J1 and create versioned evaluation report
         run: GITHUB_SHA=${{ github.event.pull_request.head.sha || github.sha }} PYTHONPATH=. python -m v2_poc.health_j1 > j1-evaluation-report.json
+      - name: Run fictional J2/J3 evaluations
+        run: |
+          GITHUB_SHA=${{ github.event.pull_request.head.sha || github.sha }} PYTHONPATH=. python -m v2_poc.health_j23 --fixture fixtures/health_j2.json > j2-evaluation-report.json
+          GITHUB_SHA=${{ github.event.pull_request.head.sha || github.sha }} PYTHONPATH=. python -m v2_poc.health_j23 --fixture fixtures/health_j3.json > j3-evaluation-report.json
       - name: Run seeded golden journey (24 cases; no API calls)
         run: PYTHONPATH=. python -m v2_poc.benchmark --cases 24 --seed-start 100
       - name: Compare candidate with verified fixed-seed baseline (offline)
@@ -63,6 +67,8 @@ jobs:
             poc/v2/ablation-report.json
             poc/v2/rule-counterfactual.json
             poc/v2/j1-evaluation-report.json
+            poc/v2/j2-evaluation-report.json
+            poc/v2/j3-evaluation-report.json
           if-no-files-found: error
       - name: Prove adversarial regression detection (offline mutations)
         run: python scripts/check_adversarial_mutations.py
