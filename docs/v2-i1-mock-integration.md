@@ -33,6 +33,6 @@ Passing offline tests does not authorize production writes or V1 cutover.
 Run from `poc/v2`:
 
 ```bash
-PYTHONPATH=. python -m unittest tests.test_health_i1 -v
+PYTHONPATH=. python -m unittest discover -s tests -p test_health_i1.py -v
 PYTHONPATH=. python -m unittest discover -s tests -v
 ```
