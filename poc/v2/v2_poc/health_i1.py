@@ -35,6 +35,7 @@ class MockJourneyIntegration:
         self.triage = None
         self._operations = []
         self._previews = []
+        self._last_outcomes = {}
 
     def advance(self, turn):
         if type(turn) is not int or turn != self.turn + 1 or turn > len(self.fixture["turns"]):
@@ -92,8 +93,13 @@ class MockJourneyIntegration:
         elif any(a["status"] == "proposed" for a in actions):
             raise InvalidOperation("non-routine proposal")
         previews = [self.approvals.preview(op) for op in ops]
-        withdrawn = [op["operation_id"] for op in self._operations]
+        # A verified or attempted mock effect cannot truthfully be withdrawn.
+        # Only not-yet-attempted previews are invalidated by the new turn.
+        withdrawn = [op["operation_id"] for op in self._operations
+                     if (op["operation_id"] not in self._last_outcomes or
+                         self._last_outcomes[op["operation_id"]].get("reason") == "approval_missing")]
         self._operations, self._previews = ops, previews
+        self._last_outcomes = {}
         self.turn, self.triage = turn, triage
         return {"simulation": True, "turn": turn, "triage": triage,
                 "withdrawn_operation_ids": withdrawn, "previews": deepcopy(previews),
@@ -108,6 +114,7 @@ class MockJourneyIntegration:
         if self.turn == 0:
             raise ValueError("must plan a turn before execution")
         result = self.executor.execute(deepcopy(self._operations))
+        self._last_outcomes = {o["operation_id"]: deepcopy(o) for o in result["outcomes"]}
         status = result["status"] if self.triage == "routine" else (
             "urgent_escalated" if self.triage == "urgent" else "clarification_needed")
         return {"simulation": True, "mode": "disposable_mock_only",
