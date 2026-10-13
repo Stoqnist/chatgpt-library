@@ -39,7 +39,16 @@ jobs:
       - name: Compare candidate with verified fixed-seed baseline (offline)
         run: |
           PYTHONPATH=. python -m v2_poc.benchmark --cases 24 --seed-start 100 > candidate-benchmark.json
-          PYTHONPATH=. python -m v2_poc.compare_benchmarks baselines/v2-golden-1-python311.json candidate-benchmark.json
+          PYTHONPATH=. python -m v2_poc.compare_benchmarks baselines/v2-golden-1-python311.json candidate-benchmark.json > benchmark-comparison.json
+      - name: Upload benchmark and comparison artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-benchmark-python-${{ matrix.python-version }}
+          path: |
+            poc/v2/candidate-benchmark.json
+            poc/v2/benchmark-comparison.json
+          if-no-files-found: warn
       - name: Prove adversarial regression detection (offline mutations)
         run: python scripts/check_adversarial_mutations.py
       - name: Run zero-cost CLI preflight
