@@ -8,11 +8,12 @@ No specialist has tools, handoffs, sessions, provider data access or write autho
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .coordinator import DOMAINS, SPECIALISTS, _finding, _same_question
+from .coordinator import DOMAINS, SPECIALISTS, _same_question
+from .output_validation import review_signal
 
 MODEL_DEFAULT = "gpt-4.1-mini"
 MAX_EVIDENCE_INPUT_CHARS = 12000
@@ -28,11 +29,21 @@ class AIClaim(BaseModel):
     uncertainty: str = Field(max_length=300)
 
 
+class AIReviewSignal(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    code: Literal["delivery_unconfirmed", "receipt_payment_link_unverified"]
+    evidence_ids: list[str] = Field(min_length=1, max_length=2)
+
+
 class AIAssessment(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    findings: list[AIClaim] = Field(max_length=MAX_FINDINGS)
-    questions: list[str] = Field(max_length=MAX_QUESTIONS)
+    # Legacy free-form items remain readable for compatibility with earlier
+    # test results, but must never be admitted to accepted user-facing findings.
+    findings: list[AIClaim] = Field(default_factory=list, max_length=MAX_FINDINGS)
+    questions: list[str] = Field(default_factory=list, max_length=MAX_QUESTIONS)
+    signals: list[AIReviewSignal] = Field(default_factory=list, max_length=MAX_QUESTIONS)
 
 
 DOMAIN_INSTRUCTIONS = {
@@ -67,8 +78,13 @@ COMMON_INSTRUCTIONS = (
     "Matching amounts alone do not prove a receipt and a bank transaction refer "
     "to the same purchase: do not assert a direct match without a shared explicit "
     "identifier. Receipt completion does not establish physical delivery. "
-    "If nothing useful can be added, return empty findings and questions. "
-    "Return at most three findings and three questions."
+    "Do not emit free-text findings or questions. They cannot pass the "
+    "independent evidence gate. Return only typed signals when the supplied "
+    "evidence suggests either (a) unconfirmed delivery of a completed purchase "
+    "or (b) an unverified association between a receipt and card transaction. "
+    "Cite the exact relevant evidence IDs with each signal. "
+    "If there is no independently testable signal, return empty arrays. "
+    "The coordinator will decide whether a signal is valid."
 )
 
 
@@ -128,24 +144,31 @@ class AgentsSDKAdapter:
                 run_config=self.sdk.RunConfig(tracing_disabled=True),
             )
             assessment = AIAssessment.model_validate(result.final_output)
-            # Validate the *entire* model response before admitting any new result.
-            for claim in assessment.findings:
-                if len(set(claim.evidence_ids)) != len(claim.evidence_ids):
-                    raise ValueError("AI cited duplicate evidence IDs")
-                if not set(claim.evidence_ids).issubset(allowed_ids):
-                    raise ValueError("AI cited evidence outside specialist scope")
-            if any(not isinstance(q, str) or not q.strip() or len(q) > 300 for q in assessment.questions):
-                raise ValueError("AI returned invalid questions")
-
-            self.completed += 1
-            baseline["findings"].extend(_finding(
-                claim.claim, claim.evidence_ids, "inferred",
-                limitation=claim.uncertainty or "AI interpretation of synthetic evidence; not independently verified."
-            ) for claim in assessment.findings)
-            for question in assessment.questions:
+            # Free-form model prose is not promoted to factual findings.
+            # Only independently evaluated, typed issue codes can produce
+            # policy-authored questions; rejected suggestions are counted.
+            rejected = len(assessment.findings) + len(assessment.questions)
+            accepted_codes: list[str] = []
+            for signal in assessment.signals:
+                question = review_signal(
+                    domain, signal.code, signal.evidence_ids, evidence
+                )
+                if question is None:
+                    rejected += 1
+                    continue
                 if not any(_same_question(question, prior)
                            for prior in baseline["unresolved_questions"]):
                     baseline["unresolved_questions"].append(question)
+                if signal.code not in accepted_codes:
+                    accepted_codes.append(signal.code)
+            baseline["model_review"] = {
+                "policy": "typed_evidence_gate_v1",
+                "accepted_signal_codes": accepted_codes,
+                "rejected_model_items": rejected,
+                "free_text_claims_accepted": 0,
+                "requires_human_review": rejected > 0,
+            }
+            self.completed += 1
             return baseline
         return handle
 
