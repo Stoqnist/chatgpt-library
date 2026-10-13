@@ -39,12 +39,11 @@ def evaluate(s, result, boundary, source_commit):
         actions = []
     reported = [(a.get("turn"), a.get("operation_id"), a.get("owner"), a.get("destination"))
                 for a in actions]
-    if (any(type(a[0]) is not int or any(not isinstance(v, str) for v in a[1:])
-            for a in reported) or len(reported) != len(actual) or
-            len(set(a for a in reported if type(a[0]) is int and
-                    all(isinstance(v, str) for v in a[1:]))) != len(reported) or
-            set(a for a in reported if type(a[0]) is int and
-                all(isinstance(v, str) for v in a[1:])) != actual):
+    valid_reported = [p for p in reported if type(p[0]) is int and
+                      all(isinstance(v, str) for v in p[1:])]
+    if (len(valid_reported) != len(reported) or
+            len(reported) != len(actual) or len(set(valid_reported)) != len(reported) or
+            set(valid_reported) != actual):
         errors.append("reported actions disagree with observed proposals")
     for a in actions:
         if a.get("status") != ("proposed" if a.get("turn") == len(s["turns"]) else "blocked"):
