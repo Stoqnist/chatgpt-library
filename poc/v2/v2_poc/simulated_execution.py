@@ -278,6 +278,7 @@ class SimulatedExecutor:
             key = op_key(op)
             if key in seen:
                 outcomes.append({"request_id": key[0], "operation_id": key[1],
+                                 "owner": op["owner"], "destination": op["destination"],
                                  "status": "blocked", "history": ["proposed", "blocked"],
                                  "reason": "duplicate_operation_in_batch"})
                 continue
