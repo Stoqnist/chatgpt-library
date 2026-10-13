@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from v2_poc.agents_sdk_adapter import (
-    AIClaim, AIAssessment, AgentsSDKAdapter, run_live_fixture,
+    AIClaim, AIReviewSignal, AIAssessment, AgentsSDKAdapter, run_live_fixture,
 )
 
 BASE = json.loads((Path(__file__).resolve().parents[1] / "fixtures/purchase.json").read_text())
@@ -69,32 +69,58 @@ class AdapterTests(unittest.TestCase):
         self.assertIsNone(sent[1]["input"]["prior_purchase_result"])
         self.assertEqual(sent[2]["input"]["prior_purchase_result"]["domain_owner"], "purchase")
 
-    def test_model_findings_are_inferred_and_bounded(self):
+    def test_free_text_claims_are_quarantined_even_with_real_evidence_id(self):
         mock = FakeSdk(AIAssessment(findings=[AIClaim(
-            claim="Receipt alone does not prove delivery.",
-            evidence_ids=["receipt-a"], uncertainty="Physical receipt was not observed."
-        )], questions=[]))
+            claim="The receipt proves physical possession and bank reconciliation.",
+            evidence_ids=["receipt-a"], uncertainty=""
+        )], questions=["Invented free-form question?"]))
         request = copy.deepcopy(BASE)
         request["domains"] = ["purchase"]
         result = run_live_fixture(request, sdk=mock, allow_api_calls=True)
+        self.assertEqual(result["status"], "completed")
         self.assertEqual(result["model_calls_completed"], 1)
-        last = result["findings"][-1]
-        self.assertEqual(last["provenance"], "inferred")
-        self.assertEqual(last["evidence_ids"], ["receipt-a"])
-        self.assertIn("Physical receipt", last["limitation"])
+        self.assertEqual(len(result["findings"]), 1)  # deterministic only
+        self.assertNotIn("proves physical possession", json.dumps(result))
+        review = result["specialist_results"]["purchase"]["model_review"]
+        self.assertEqual(review["rejected_model_items"], 2)
+        self.assertEqual(review["free_text_claims_accepted"], 0)
+        self.assertTrue(review["requires_human_review"])
 
-    def test_fake_evidence_reference_is_rejected_without_any_write(self):
-        mock = FakeSdk(AIAssessment(findings=[AIClaim(
-            claim="Unverified claim", evidence_ids=["made-up-id"], uncertainty="unknown"
-        )], questions=[]))
+    def test_unknown_evidence_reference_cannot_affect_result(self):
+        mock = FakeSdk(AIAssessment(signals=[AIReviewSignal(
+            code="delivery_unconfirmed", evidence_ids=["invented-id"]
+        )]))
+        request = copy.deepcopy(BASE)
+        request["domains"] = ["purchase"]
+        result = run_live_fixture(request, sdk=mock, allow_api_calls=True)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["specialist_results"]["purchase"]["model_review"]["rejected_model_items"], 1)
+        self.assertEqual(result["unresolved_questions"], [])
+        self.assertEqual(result["executed_writes"], [])
+
+    def test_typed_delivery_signal_is_checked_and_policy_authored(self):
+        mock = FakeSdk(AIAssessment(signals=[AIReviewSignal(
+            code="delivery_unconfirmed", evidence_ids=["receipt-a"]
+        )]))
+        request = copy.deepcopy(BASE)
+        request["domains"] = ["purchase"]
+        result = run_live_fixture(request, sdk=mock, allow_api_calls=True)
+        self.assertEqual(result["unresolved_questions"], ["Was desk-lamp actually received into the household?"])
+        self.assertEqual(result["specialist_results"]["purchase"]["model_review"]["accepted_signal_codes"],
+                         ["delivery_unconfirmed"])
+
+    def test_receipt_payment_relation_requires_explicit_id(self):
+        mock = FakeSdk(AIAssessment(signals=[AIReviewSignal(
+            code="receipt_payment_link_unverified", evidence_ids=["receipt-a", "bank-a"]
+        )]))
         request = copy.deepcopy(BASE)
         request["domains"] = ["finance"]
         result = run_live_fixture(request, sdk=mock, allow_api_calls=True)
-        self.assertEqual(result["status"], "partial")
-        self.assertEqual(result["failures_or_blocks"], ["finance"])
-        self.assertEqual(result["specialist_results"]["finance"]["status"], "failed")
-        self.assertEqual(result["proposed_writes"], [])
-        self.assertEqual(result["model_calls_completed"], 0)
+        self.assertEqual(result["unresolved_questions"], ["Does card transaction T-001 belong to receipt R-123?"])
+        request["evidence"][0]["data"]["transaction_id"] = "T-001"
+        resolved = run_live_fixture(request, sdk=mock, allow_api_calls=True)
+        self.assertEqual(resolved["unresolved_questions"], [])
+        self.assertEqual(resolved["specialist_results"]["finance"]["model_review"]["rejected_model_items"], 1)
 
     def test_failed_agent_keeps_other_domains_and_reports_partial(self):
         mock = FakeSdk(fail_domain="V2 finance specialist")
@@ -153,14 +179,15 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["model_calls_attempted"], 0)
         self.assertEqual(mock.calls, [])
 
-    def test_semantically_duplicate_home_question_is_removed(self):
+    def test_model_free_form_question_is_quarantined(self):
         repeated = "Was the desk-lamp actually received and physically located within the household?"
-        mock = FakeSdk(AIAssessment(findings=[], questions=[repeated]))
+        mock = FakeSdk(AIAssessment(questions=[repeated]))
         result = run_live_fixture(copy.deepcopy(BASE), sdk=mock, allow_api_calls=True)
         self.assertEqual(result["model_calls_completed"], 3)
         self.assertEqual(len(result["specialist_results"]["home"]["unresolved_questions"]), 1)
         self.assertEqual(len(result["unresolved_questions"]), 1)
-        self.assertEqual(result["unresolved_questions"][0], repeated)
+        self.assertEqual(result["unresolved_questions"][0], "Was desk-lamp actually received into the household?")
+        self.assertEqual(result["specialist_results"]["home"]["model_review"]["rejected_model_items"], 1)
 
     def test_specialist_instructions_prohibit_unproven_transaction_linkage(self):
         mock = FakeSdk()
