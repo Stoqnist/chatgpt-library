@@ -87,6 +87,24 @@ class J1JourneyTests(unittest.TestCase):
                 report = evaluate_j1(self.scenario, result, boundary)
                 self.assertIn(expected, report["failures"])
 
+    def test_reported_action_cannot_spoof_observed_owner_or_destination(self):
+        for key, spoof in (("owner", "finance"),
+                           ("destination", "/Finance/purchase-plan.md")):
+            boundary = FixtureBoundary(self.scenario)
+            result = run_j1(self.scenario, boundary)
+            result["actions"][0][key] = spoof
+            with self.subTest(key=key):
+                report = evaluate_j1(self.scenario, result, boundary)
+                self.assertIn("action owner/destination disagrees with observed proposal",
+                              report["failures"])
+
+    def test_duplicate_reported_action_cannot_hide_behind_set_equality(self):
+        boundary = FixtureBoundary(self.scenario)
+        result = run_j1(self.scenario, boundary)
+        result["actions"].append(copy.deepcopy(result["actions"][0]))
+        report = evaluate_j1(self.scenario, result, boundary)
+        self.assertIn("answer action list disagrees with observed proposals", report["failures"])
+
     def test_report_never_claims_semantic_or_clinical_validation(self):
         _, report, _ = self.run_case(self.scenario)
         self.assertEqual(report["mode"], "scripted_mock_only")
