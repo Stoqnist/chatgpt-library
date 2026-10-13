@@ -51,6 +51,48 @@ class ExecutionTests(unittest.TestCase):
             self.assertEqual(result["outcomes"][0]["status"],
                              "denied" if decision else "blocked")
 
+    def test_inspection_only_reconciles_revoked_unknown_without_new_write(self):
+        op = operation()
+        store, approvals, _ = self.setup_case([op],
+                                               faults={"op-1": "readback_unavailable"})
+        executor = SimulatedExecutor(store, approvals)
+        first = executor.execute([op])
+        self.assertEqual(first["outcomes"][0]["status"], "unknown")
+        approvals.revoke(op)
+        store._faults.pop("op-1")  # fictional provider readback restored
+        writes = len([e for e in store.events if e["kind"] == "write_attempt"])
+        result = executor.inspect_only(op)
+        self.assertEqual(result["status"], "verified")
+        self.assertEqual(result["history"], ["inspected", "verified"])
+        self.assertEqual(approvals.status(op), "revoked")
+        self.assertEqual(len([e for e in store.events if e["kind"] == "write_attempt"]), writes)
+        denied = executor.execute([op])
+        self.assertEqual(denied["outcomes"][0]["reason"], "approval_revoked")
+        self.assertEqual(store.state["mock:food-stock"]["value"]["count"], 2)
+
+    def test_inspection_only_rejects_new_or_wrong_intent_and_preserves_unknown(self):
+        op = operation()
+        store, approvals, initial = self.setup_case([], decisions=[])
+        executor = SimulatedExecutor(store, approvals)
+        blocked = executor.inspect_only(op)
+        self.assertEqual(blocked["reason"], "no_matching_uncertain_attempt")
+        self.assertEqual(store.state, initial)
+        self.assertFalse(any(e["kind"] == "inspect" for e in store.events))
+
+        store2, approvals2, _ = self.setup_case([op],
+                                                faults={"op-1": "before_timeout"})
+        executor2 = SimulatedExecutor(store2, approvals2)
+        self.assertEqual(executor2.execute([op])["outcomes"][0]["status"], "unknown")
+        approvals2.revoke(op)
+        forged = operation()
+        forged["change"]["quantity"] = 2
+        self.assertEqual(executor2.inspect_only(forged)["status"], "blocked")
+        before = store2.state
+        writes = len([e for e in store2.events if e["kind"] == "write_attempt"])
+        self.assertEqual(executor2.inspect_only(op)["status"], "unknown")
+        self.assertEqual(store2.state, before)
+        self.assertEqual(len([e for e in store2.events if e["kind"] == "write_attempt"]), writes)
+
     def test_revoked_approval_cannot_execute_or_be_reauthorized(self):
         op = operation()
         store, approvals, initial = self.setup_case([op])
