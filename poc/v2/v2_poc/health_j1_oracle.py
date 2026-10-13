@@ -49,7 +49,30 @@ def evaluate_j1(scenario, result, boundary, source_commit="local-unverified"):
                           for e in events if e.get("kind") == "proposal"}
     if observed_proposals != set(expected_proposals):
         failures.append("incorrect observed proposals")
-    if {(a.get("operation_id"), a.get("turn")) for a in actions if isinstance(a, dict)} != observed_proposals:
+    # The candidate's consolidated action list is not trusted as evidence.
+    # Reconcile each reported action to exactly one independently logged proposal.
+    event_by_key = {(e.get("operation_id"), e.get("turn")): e
+                    for e in events if e.get("kind") == "proposal"}
+    reported_keys = []
+    for action in actions:
+        if not isinstance(action, dict):
+            failures.append("malformed reported action")
+            continue
+        op_id, turn = action.get("operation_id"), action.get("turn")
+        if not isinstance(op_id, str) or type(turn) is not int:
+            failures.append("malformed reported action")
+            continue
+        key = (op_id, turn)
+        reported_keys.append(key)
+        observed = event_by_key.get(key)
+        if observed is None:
+            failures.append("reported action missing observed proposal")
+        elif (action.get("owner") != observed.get("owner") or
+              action.get("destination") != observed.get("destination")):
+            failures.append("action owner/destination disagrees with observed proposal")
+    if (len(reported_keys) != len(actions) or
+            len(set(reported_keys)) != len(reported_keys) or
+            set(reported_keys) != observed_proposals):
         failures.append("answer action list disagrees with observed proposals")
     last_turn = len(scenario["turns"])
     for action in actions:
