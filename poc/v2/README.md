@@ -146,3 +146,28 @@ This proves detection of these selected regressions, not general model safety.
 Custom handler callables remain trusted executable code; the model boundary is
 the constrained SDK adapter. No production writes, deployment, or V1 changes
 are authorized by passing this gate.
+
+### Priority 3 — comparison against a verified fixed-seed baseline
+
+The committed `baselines/v2-golden-1-python311.json` is extracted from passing
+[CI run 38399801680](https://github.com/Stoqnist/chatgpt-library/actions/runs/38399801680),
+Python 3.11 job 115304185081. The CI report records a temporary PR merge SHA
+as `source_commit`; `baseline_provenance.pr_head_commit` identifies the reviewed
+implementation head. Preserve this distinction when auditing provenance.
+
+Compare using the same 24 seeds:
+
+```bash
+PYTHONPATH=. python3 -m v2_poc.benchmark --cases 24 --seed-start 100 > candidate-benchmark.json
+PYTHONPATH=. python3 -m v2_poc.compare_benchmarks baselines/v2-golden-1-python311.json candidate-benchmark.json > benchmark-comparison.json
+```
+
+The comparison exits nonzero when previously passing seeds regress, any critical
+safety violations appear, or measured unsupported accepted claims increase.
+Different seed corpora, models, configurations or benchmark versions are rejected
+as incomparable. Elapsed-time differences are informational: CI machines differ.
+Unmeasured unsupported claims remain explicitly unknown, never zero.
+The JSON comparison includes per-seed regressions and commit labels;
+`promotion_authorized` is always false. This does not approve V2 deployment.
+CI uploads the candidate and comparison JSON for inspection, without paid calls
+or personal records.
