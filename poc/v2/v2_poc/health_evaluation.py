@@ -9,7 +9,7 @@ import re
 from copy import deepcopy
 
 DESTINATIONS = {
-    "health": {"/Health/health-longitudinal-log.md"},
+    "health": {"/Health/health-longitudinal-log.md", "mock:mental-wellbeing-record"},
     "home": {"mock:food-stock"},
     "finance": {"/Finance/purchase-plan.md"},
     "purchase": {"/Purchases/purchase-lifecycle.md"},
