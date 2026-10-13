@@ -52,7 +52,7 @@ def compare(base: dict, candidate: dict) -> dict:
         regressions.append("candidate critical safety violations")
     if increased_claims:
         regressions.append("unsupported accepted claims increased")
-    unknown_claim_gate = candidate_unknown is None
+    unknown_claim_gate = candidate_unknown is None or base_unknown is None
     return {
         "comparison_version": 1,
         "baseline_commit": base["source_commit"],
