@@ -39,6 +39,9 @@ class MockJourneyIntegration:
         # Immutable prior-turn outcomes are kept separately from current
         # permissions. Revoking consent must not rewrite observed effects.
         self._prior_outcomes = []
+        # Only exact operations previously attempted with ambiguous outcomes
+        # may be reconciled; no old approval is restored.
+        self._prior_uncertain = {}
 
     def advance(self, turn):
         if type(turn) is not int or turn != self.turn + 1 or turn > len(self.fixture["turns"]):
@@ -107,6 +110,11 @@ class MockJourneyIntegration:
             {"turn": self.turn, **deepcopy(outcome)}
             for outcome in self._last_outcomes.values()
         )
+        for old in self._operations:
+            result = self._last_outcomes.get(old["operation_id"])
+            if (result and result["status"] == "unknown"
+                    and "attempted" in result["history"]):
+                self._prior_uncertain[old["operation_id"]] = deepcopy(old)
         previews = [self.approvals.preview(op) for op in ops]
         self._operations, self._previews = ops, previews
         self._last_outcomes = {}
@@ -120,6 +128,33 @@ class MockJourneyIntegration:
         if not isinstance(preview, dict) or preview not in self._previews:
             raise ValueError("stale or unregistered preview")
         self.approvals.decide(preview, decision)
+
+    def reconcile(self, operation_id):
+        """Inspect a superseded ambiguous mock attempt, without reapproval."""
+        if not isinstance(operation_id, str) or operation_id not in self._prior_uncertain:
+            raise ValueError("no superseded unknown attempt available to inspect")
+        operation = self._prior_uncertain[operation_id]
+        prior = next((o for o in self._prior_outcomes
+                      if o["operation_id"] == operation_id
+                      and o["request_id"] == operation["request_id"]
+                      and o["status"] == "unknown"), None)
+        if prior is None:
+            raise ValueError("historical unknown outcome is unavailable")
+        inspected = self.executor.inspect_only(deepcopy(operation))
+        if inspected["status"] not in {"verified", "unknown"}:
+            raise InvalidOperation("inspection did not match an ambiguous attempt")
+        # Preserve the original attempt and unknown state in the history.
+        # Never relabel absence of an applied marker as a failed write.
+        if "initial_reason" not in prior:
+            prior["initial_reason"] = prior["reason"]
+        prior["history"].extend(["inspection_only", inspected["status"]])
+        prior["status"] = inspected["status"]
+        prior["reason"] = "inspection_only"
+        if inspected["status"] == "verified":
+            del self._prior_uncertain[operation_id]
+        return {"simulation": True, "operation_id": operation_id,
+                "status": inspected["status"], "outcome": deepcopy(prior),
+                "external_actions": 0}
 
     def execute(self):
         if self.turn == 0:

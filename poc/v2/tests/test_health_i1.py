@@ -272,6 +272,75 @@ class I1MockIntegrationTests(TestCase):
         self.assertIn("rechecked", prior[2]["history"])
         self.assertEqual(second["outcomes"][2]["status"], "unknown")
 
+    def test_superseded_unknown_can_be_readback_verified_without_reapproval(self):
+        session = make("j2", faults={"calendar-t1": "readback_unavailable"})
+        stage = session.advance(1)
+        for preview in stage["previews"]:
+            session.decide(preview, "approve")
+        before = session.execute()
+        self.assertEqual([o["status"] for o in before["outcomes"]],
+                         ["verified", "verified", "unknown"])
+        attempt_history = deepcopy(before["outcomes"][2]["history"])
+        self.assertIn("attempted", attempt_history)
+        old_preview = stage["previews"][2]
+        old_operation = {k: deepcopy(old_preview[k]) for k in (
+            "request_id", "operation_id", "owner", "destination",
+            "expected_revision", "change")}
+        snapshot = session.store.state
+        session.advance(2)  # scripted urgency revokes all prior approvals
+        self.assertEqual(session.approvals.status(old_operation), "revoked")
+        self.assertEqual(session.executor.execute([old_operation])["outcomes"][0]["reason"],
+                         "approval_revoked")
+        session.store._faults.pop("calendar-t1")  # provider readback becomes accessible
+        prior_attempts = len([e for e in session.store.events
+                              if e["kind"] == "write_attempt"])
+        inspected = session.reconcile("calendar-t1")
+        self.assertEqual(inspected["status"], "verified")
+        self.assertEqual(inspected["outcome"]["initial_reason"], "unverified_readback")
+        self.assertEqual(inspected["outcome"]["history"][:len(attempt_history)],
+                         attempt_history)
+        self.assertEqual(inspected["outcome"]["history"][-2:],
+                         ["inspection_only", "verified"])
+        self.assertEqual(session.approvals.status(old_operation), "revoked")
+        with self.assertRaises(ValueError):
+            session.reconcile("calendar-t1")  # already reconciled
+        cumulative = session.execute()
+        self.assertEqual([o["status"] for o in cumulative["cumulative_outcomes"]],
+                         ["verified", "verified", "verified"])
+        self.assertEqual(cumulative["cumulative_status"], "verified")
+        self.assertEqual(cumulative["status"], "urgent_escalated")
+        self.assertEqual(session.store.state, snapshot)
+        self.assertEqual(len([e for e in session.store.events
+                              if e["kind"] == "write_attempt"]), prior_attempts)
+
+    def test_superseded_unapplied_unknown_remains_unknown_and_is_never_retried(self):
+        session = make("j2", faults={"calendar-t1": "before_timeout"})
+        stage = session.advance(1)
+        for preview in stage["previews"]:
+            session.decide(preview, "approve")
+        first = session.execute()
+        self.assertEqual(first["outcomes"][2]["status"], "unknown")
+        before_state = session.store.state
+        session.advance(2)
+        writes = len([e for e in session.store.events if e["kind"] == "write_attempt"])
+        first_inspection = session.reconcile("calendar-t1")
+        second_inspection = session.reconcile("calendar-t1")
+        self.assertEqual([first_inspection["status"], second_inspection["status"]],
+                         ["unknown", "unknown"])
+        report = session.execute()
+        old = report["cumulative_outcomes"][2]
+        self.assertEqual(old["status"], "unknown")
+        self.assertIn("attempted", old["history"])
+        self.assertEqual(old["history"].count("inspection_only"), 2)
+        self.assertEqual(report["cumulative_status"], "partial")
+        self.assertEqual(session.store.state, before_state)
+        self.assertEqual(len([e for e in session.store.events
+                              if e["kind"] == "write_attempt"]), writes)
+        with self.assertRaises(ValueError):
+            session.reconcile("purchase-t1")  # verified, not ambiguous
+        with self.assertRaises(ValueError):
+            session.reconcile("arbitrary-id")
+
     def test_no_arbitrary_turn_or_execution_before_planning(self):
         session = make("j3")
         with self.assertRaises(ValueError):
