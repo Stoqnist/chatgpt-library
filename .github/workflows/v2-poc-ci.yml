@@ -44,6 +44,8 @@ jobs:
           GITHUB_SHA=${{ github.event.pull_request.head.sha || github.sha }} PYTHONPATH=. python -m v2_poc.health_j23 --fixture fixtures/health_j3.json > j3-evaluation-report.json
       - name: Run disposable P3 execution and save verification report
         run: GITHUB_SHA=${{ github.event.pull_request.head.sha || github.sha }} PYTHONPATH=. python -m v2_poc.simulated_execution > p3-execution-report.json
+      - name: Run offline P4 least-privilege preflight
+        run: GITHUB_SHA=${{ github.event.pull_request.head.sha || github.sha }} PYTHONPATH=. python -m v2_poc.connector_preflight > p4-connector-preflight.json
       - name: Run fixed-seed golden journey once and compare with verified baseline
         # compare_benchmarks validates each seed and all metamorphic check counts.
         # Preserve the candidate JSON as the single CI benchmark artifact.
@@ -72,6 +74,7 @@ jobs:
             poc/v2/j2-evaluation-report.json
             poc/v2/j3-evaluation-report.json
             poc/v2/p3-execution-report.json
+            poc/v2/p4-connector-preflight.json
           if-no-files-found: error
       - name: Prove adversarial regression detection (offline mutations)
         run: python scripts/check_adversarial_mutations.py
