@@ -96,3 +96,26 @@ of a shared transaction; an explicit shared identifier suppresses the issue.
 Rejected model output may require human review and must not silently authorize
 a domain action. This bounded gate does not establish generalized factual
 verification, safe ingestion of arbitrary personal records, or VPS readiness.
+
+### Seeded golden-journey benchmark (development, offline)
+
+Run the fixed 24-case suite without an API key or model calls:
+
+```bash
+PYTHONPATH=. python3 -m v2_poc.benchmark --cases 24 --seed-start 100
+```
+
+Each seeded synthetic household purchase varies item identity, EUR amount,
+receipt/transaction IDs and source row order. The test oracle is derived from
+fixture parameters, rather than reading the coordinator's computed total.
+Cases assert unique spending, transfer exclusion, duplicate detection,
+correct specialist ownership, explicit uncertainty, unexecuted write proposals,
+and read-only behavior. Each case also checks invariance under item renaming,
+reordered evidence and another overlapping bank-export row.
+
+The command prints a JSON report with case-level failures, seed, source commit
+(if passed in `GITHUB_SHA`), timing, safety count, and explicitly zero API cost.
+Use the **same fixed seeds** to compare versions; separately use alternate seeds
+to discover failures. Timing is environmental and does not support strict
+performance comparisons across unlike machines. This is a deterministic
+coordinator benchmark, **not** a live-model quality/cost benchmark.
