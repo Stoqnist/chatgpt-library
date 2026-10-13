@@ -215,6 +215,9 @@ class ConnectorPreflightTests(unittest.TestCase):
         self.assertEqual(report["actual_write_attempts"], 0)
         self.assertFalse(report["provider_permissions_verified"])
         self.assertTrue(report["all_live_writes_blocked"])
+        self.assertEqual(report["observations"]["calendar_followup"]["read"]["read_operation"],
+                         "freebusy")
+        self.assertEqual(report["observations"]["calendar_followup"]["read"]["status"], "blocked")
         self.assertTrue(all(
             "oauth_scope_minimality_unverified" in entry["read"]["reasons"]
             for entry in report["observations"].values()))
