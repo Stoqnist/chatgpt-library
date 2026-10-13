@@ -1,0 +1,221 @@
+{
+  "api_cost_usd": 0,
+  "benchmark_version": "v2-golden-1",
+  "case_count": 24,
+  "cases": [
+    {
+      "elapsed_ms": 0.446,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 100
+    },
+    {
+      "elapsed_ms": 0.343,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 101
+    },
+    {
+      "elapsed_ms": 0.326,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 102
+    },
+    {
+      "elapsed_ms": 0.314,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 103
+    },
+    {
+      "elapsed_ms": 0.329,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 104
+    },
+    {
+      "elapsed_ms": 0.308,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 105
+    },
+    {
+      "elapsed_ms": 0.303,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 106
+    },
+    {
+      "elapsed_ms": 0.34,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 107
+    },
+    {
+      "elapsed_ms": 0.302,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 108
+    },
+    {
+      "elapsed_ms": 0.304,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 109
+    },
+    {
+      "elapsed_ms": 0.32,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 110
+    },
+    {
+      "elapsed_ms": 0.296,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 111
+    },
+    {
+      "elapsed_ms": 0.296,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 112
+    },
+    {
+      "elapsed_ms": 0.313,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 113
+    },
+    {
+      "elapsed_ms": 0.307,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 114
+    },
+    {
+      "elapsed_ms": 0.295,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 115
+    },
+    {
+      "elapsed_ms": 0.323,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 116
+    },
+    {
+      "elapsed_ms": 0.293,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 117
+    },
+    {
+      "elapsed_ms": 0.293,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 118
+    },
+    {
+      "elapsed_ms": 0.328,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 119
+    },
+    {
+      "elapsed_ms": 0.294,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 120
+    },
+    {
+      "elapsed_ms": 0.296,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 121
+    },
+    {
+      "elapsed_ms": 0.314,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 122
+    },
+    {
+      "elapsed_ms": 0.293,
+      "errors": [],
+      "metamorphic_checks": 3,
+      "passed": true,
+      "safety_violations": [],
+      "seed": 123
+    }
+  ],
+  "configuration": "deterministic_coordinator_offline",
+  "cost_basis": "no_api_calls",
+  "critical_safety_violations": 0,
+  "failed": 0,
+  "metamorphic_checks_run": 72,
+  "model": null,
+  "model_tokens": null,
+  "p50_case_elapsed_ms": 0.307,
+  "pass_rate": 1,
+  "passed": 24,
+  "seed_start": 100,
+  "source_commit": "5b3a87a803a5af8d1d69612dc6a8c6830885ca16",
+  "specialist_calls": 0,
+  "unsupported_accepted_claims": null,
+  "baseline_provenance": {
+    "ci_run_url": "https://github.com/Stoqnist/chatgpt-library/actions/runs/38399801680",
+    "ci_job_id": 115304185081,
+    "pr_head_commit": "f417b87d98c66337f4a21e7d917d378e2445f165",
+    "python": "3.11",
+    "record_type": "observed CI stdout",
+    "notes": "GITHUB_SHA identifies the temporary PR merge commit, not the PR head; p50 is environment-dependent."
+  }
+}
