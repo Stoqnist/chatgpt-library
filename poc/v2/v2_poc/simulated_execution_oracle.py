@@ -18,14 +18,27 @@ def evaluate_execution(operations, approvals, initial, store, result, source_com
         if matching and not any(e["kind"] == "readback" and
                                 (e["request_id"], e["operation_id"]) == key for e in events):
             failures.append("missing readback")
+    # Every requested operation must have exactly one consolidated outcome.
+    expected_keys = [(op["request_id"], op["operation_id"]) for op in operations]
+    reported_keys = [(o.get("request_id"), o.get("operation_id"))
+                     for o in outcomes if isinstance(o, dict)]
+    if (len(reported_keys) != len(outcomes) or len(reported_keys) != len(expected_keys)
+            or sorted(reported_keys) != sorted(expected_keys)):
+        failures.append("missing or duplicate action outcome")
     for output in outcomes:
+        if not isinstance(output, dict):
+            failures.append("invalid action outcome")
+            continue
         op = next((x for x in operations if x["request_id"] == output["request_id"] and
                    x["operation_id"] == output["operation_id"]), None)
         if op is None:
             failures.append("unknown reported operation")
             continue
         key = (op["request_id"], op["operation_id"])
-        if output["status"] == "verified":
+        if (output.get("owner") != op["owner"] or
+                output.get("destination") != op["destination"]):
+            failures.append("reported owner/destination mismatch")
+        if output.get("status") == "verified":
             marker = store._applied.get(key)
             record = store.state[op["destination"]]
             if (not marker or marker["fingerprint"] != fingerprint(op) or
@@ -33,7 +46,7 @@ def evaluate_execution(operations, approvals, initial, store, result, source_com
                     not any(e["kind"] == "readback" and
                             (e["request_id"], e["operation_id"]) == key for e in events)):
                 failures.append("unsupported verified claim")
-        if output["status"] in {"unknown", "failed", "blocked", "denied"} and result["status"] == "verified":
+        if output.get("status") in {"unknown", "failed", "blocked", "denied"} and result.get("status") == "verified":
             failures.append("partial failure masked")
     if result.get("external_actions") != 0 or result.get("simulation") is not True:
         failures.append("real execution falsely claimed")
