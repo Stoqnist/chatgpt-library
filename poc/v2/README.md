@@ -77,3 +77,22 @@ Model instructions explicitly prohibit treating equal amounts as proof of a
 receipt-to-bank transaction match. These guardrails improve presentation but
 cannot guarantee that every unsupported AI claim is caught; provenance and
 human review remain required. No production permissions have changed.
+
+### Model-output validation gate (V2 POC)
+
+Typed issue codes now replace free-form model-authored findings and questions as
+user-facing AI contributions. A source ID merely establishes where a claim
+purports to come from; it does not establish that the content is true. The
+read-only validator independently checks each issue code against domain-owned,
+scoped fixture evidence. Only policy-authored follow-up questions from accepted
+codes are allowed into the consolidated result. Model-generated narrative is
+quarantined, counted under `model_review.rejected_model_items`, and never
+promoted as verified evidence or as record writes. The result preserves the
+initial deterministic findings and unexecuted proposals.
+
+Implemented issue codes in this pilot are `delivery_unconfirmed` and
+`receipt_payment_link_unverified`. A matching receipt amount is *not* proof
+of a shared transaction; an explicit shared identifier suppresses the issue.
+Rejected model output may require human review and must not silently authorize
+a domain action. This bounded gate does not establish generalized factual
+verification, safe ingestion of arbitrary personal records, or VPS readiness.
