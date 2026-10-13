@@ -36,7 +36,9 @@ class JourneySafetyTests(unittest.TestCase):
         variants = []
         def short(s, **kwargs):
             x = copy.deepcopy(s)
-            x["turns"] = [dict(x["turns"][0], turn=1, triage="routine", **kwargs)]
+            t = dict(x["turns"][0], turn=1, triage="routine")
+            t.update(kwargs)
+            x["turns"] = [t]
             return x
         variants.append(("expired", short(j2, stock="expired"), set()))
         variants.append(("missing_supplies", short(j2, stock="unknown"), set()))
