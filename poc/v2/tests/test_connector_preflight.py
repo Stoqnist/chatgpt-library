@@ -8,7 +8,7 @@ from v2_poc.connector_preflight import TARGETS, classify, run_offline_demo
 def observation(provider, role="owner"):
     return {"provider": provider, "role": role, "metadata_probe": "ok",
             "binding_verified": True, "scope_verified": True,
-            "freshness_verified": True, "readback_capable": True,
+            "oauth_scope_posture": "minimal_read", "freshness_verified": True, "readback_capable": True,
             "conditional_write_capable": True,
             "persistent_idempotency_verified": True,
             "disposable_target_verified": True}
@@ -56,6 +56,42 @@ class ConnectorPreflightTests(unittest.TestCase):
         self.assertIn("excess_read_privilege", result["reasons"])
         self.assertIn("oauth_scope_unverified", result["reasons"])
 
+    def test_role_and_oauth_scope_are_independent(self):
+        # Independent synthetic expectations, not borrowed from the classifier.
+        for target, owner, provider, minimum_role, high_role in (
+            ("health_library", "health", "library", "viewer", "editor"),
+            ("home_stock", "home", "sheets", "reader", "owner"),
+            ("calendar_followup", "calendar", "calendar", "reader", "owner"),
+        ):
+            with self.subTest(target=target):
+                # Minimal ACL does not make a broadly scoped token safe.
+                broad = observation(provider, minimum_role)
+                broad["oauth_scope_posture"] = "excess"
+                result = classify(target, broad, owner=owner)
+                self.assertEqual(result["status"], "blocked")
+                self.assertIn("oauth_scope_excess", result["reasons"])
+                self.assertNotIn("excess_read_privilege", result["reasons"])
+
+                # Minimal read token does not cure an overprivileged ACL.
+                elevated = observation(provider, high_role)
+                result = classify(target, elevated, owner=owner)
+                self.assertEqual(result["status"], "blocked")
+                self.assertIn("excess_read_privilege", result["reasons"])
+                self.assertNotIn("oauth_scope_excess", result["reasons"])
+
+                # Metadata discovery cannot be converted into scope attestation.
+                unknown = observation(provider, minimum_role)
+                unknown["oauth_scope_posture"] = "unknown"
+                result = classify(target, unknown, owner=owner)
+                self.assertIn("oauth_scope_minimality_unverified", result["reasons"])
+                self.assertFalse(result["execution_allowed"])
+
+                inconsistent = observation(provider, minimum_role)
+                inconsistent["scope_verified"] = False
+                result = classify(target, inconsistent, owner=owner)
+                self.assertIn("inconsistent_oauth_scope_evidence", result["reasons"])
+                self.assertIn("oauth_scope_unverified", result["reasons"])
+
     def test_minimal_reader_role_does_not_imply_write_permission(self):
         for target, owner, provider, role in (
             ("health_library", "health", "library", "viewer"),
@@ -101,7 +137,7 @@ class ConnectorPreflightTests(unittest.TestCase):
         probe["raw_health_record"] = "synthetic sensitive material"
         self.assertIn("invalid_evidence_schema",
                       classify("health_library", probe, owner="health")["reasons"])
-        for field in ("role", "metadata_probe", "provider"):
+        for field in ("role", "metadata_probe", "provider", "oauth_scope_posture"):
             altered = observation("library", "editor")
             altered[field] = []
             self.assertEqual(classify("health_library", altered, owner="health")["status"], "blocked")
@@ -128,6 +164,9 @@ class ConnectorPreflightTests(unittest.TestCase):
         self.assertEqual(report["actual_write_attempts"], 0)
         self.assertFalse(report["provider_permissions_verified"])
         self.assertTrue(report["all_live_writes_blocked"])
+        self.assertTrue(all(
+            "oauth_scope_minimality_unverified" in entry["read"]["reasons"]
+            for entry in report["observations"].values()))
 
 
 if __name__ == "__main__":
