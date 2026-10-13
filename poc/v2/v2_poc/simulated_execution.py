@@ -200,6 +200,16 @@ class DisposableStore:
     def is_uncertain(self, operation):
         return op_key(operation) in self._uncertain
 
+    def has_uncertain_attempt(self, operation):
+        """Inspection eligibility requires exact prior intent AND a write attempt."""
+        validate_operation(operation)
+        key = op_key(operation)
+        return (key in self._uncertain
+                and self._intents.get(key) == fingerprint(operation)
+                and any(e["kind"] == "write_attempt"
+                        and (e["request_id"], e["operation_id"]) == key
+                        for e in self._events))
+
     def apply(self, operation, approvals):
         """Enforce approval again at the provider simulation boundary."""
         validate_operation(operation)
@@ -269,6 +279,26 @@ class SimulatedExecutor:
             self.store.mark_uncertain(operation)
             return "unknown"
         return "verified"
+
+    def inspect_only(self, operation):
+        """Reconcile a recorded ambiguous attempt; never authorize or apply."""
+        validate_operation(operation)
+        item = {"request_id": operation["request_id"],
+                "operation_id": operation["operation_id"],
+                "owner": operation["owner"], "destination": operation["destination"]}
+        if not self.store.has_uncertain_attempt(operation):
+            return {**item, "status": "blocked",
+                    "reason": "no_matching_uncertain_attempt",
+                    "history": ["blocked"]}
+        try:
+            marker = self.store.inspect(operation)
+        except SimulatedFailure:
+            marker = None
+        # Absent markers and unreadable/mismatched readbacks are UNKNOWN,
+        # not proof that an earlier write did or did not happen.
+        state = self._verify(operation, marker) if marker else "unknown"
+        return {**item, "status": state, "reason": "inspection_only",
+                "history": ["inspected", state]}
 
     def execute(self, operations):
         outcomes = []
