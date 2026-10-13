@@ -92,6 +92,57 @@ class ConnectorPreflightTests(unittest.TestCase):
                 self.assertIn("inconsistent_oauth_scope_evidence", result["reasons"])
                 self.assertIn("oauth_scope_unverified", result["reasons"])
 
+    def test_calendar_read_permissions_are_operation_specific(self):
+        # These synthetic cases use independently authored expectations.
+        # A successful classification does not attest real provider grants.
+        for operation in ("freebusy", "calendar_list"):
+            with self.subTest(operation=operation):
+                minimum = classify(
+                    "calendar_followup", observation("calendar", "freeBusyReader"),
+                    owner="calendar", read_operation=operation)
+                self.assertEqual(minimum["status"], "metadata_probe_only")
+                self.assertEqual(minimum["read_operation"], operation)
+                self.assertFalse(minimum["execution_allowed"])
+
+                for elevated_role in ("reader", "writer", "owner"):
+                    elevated = classify(
+                        "calendar_followup", observation("calendar", elevated_role),
+                        owner="calendar", read_operation=operation)
+                    self.assertEqual(elevated["status"], "blocked")
+                    self.assertIn("excess_read_privilege", elevated["reasons"])
+                    self.assertNotIn("read_role_missing", elevated["reasons"])
+                    self.assertFalse(elevated["execution_allowed"])
+
+        insufficient = classify(
+            "calendar_followup", observation("calendar", "freeBusyReader"),
+            owner="calendar", read_operation="event_details")
+        self.assertIn("read_role_missing", insufficient["reasons"])
+        self.assertNotIn("excess_read_privilege", insufficient["reasons"])
+        detail_reader = classify(
+            "calendar_followup", observation("calendar", "reader"),
+            owner="calendar", read_operation="event_details")
+        self.assertEqual(detail_reader["status"], "metadata_probe_only")
+        self.assertFalse(detail_reader["execution_allowed"])
+
+    def test_unrecognized_calendar_operation_fails_closed(self):
+        for invalid in ("unrecognized", "", [], {}, 123):
+            with self.subTest(operation=repr(invalid)):
+                response = classify(
+                    "calendar_followup", observation("calendar", "reader"),
+                    owner="calendar", read_operation=invalid)
+                self.assertEqual(response["status"], "blocked")
+                self.assertIn("invalid_read_operation", response["reasons"])
+                self.assertFalse(response["execution_allowed"])
+        unrelated = classify(
+            "home_stock", observation("sheets", "reader"),
+            owner="home", read_operation="freebusy")
+        self.assertIn("invalid_read_operation", unrelated["reasons"])
+        write = classify(
+            "calendar_followup", observation("calendar", "owner"),
+            owner="calendar", requested_action="write", read_operation="freebusy")
+        self.assertIn("invalid_read_operation", write["reasons"])
+        self.assertFalse(write["execution_allowed"])
+
     def test_minimal_reader_role_does_not_imply_write_permission(self):
         for target, owner, provider, role in (
             ("health_library", "health", "library", "viewer"),
@@ -164,6 +215,9 @@ class ConnectorPreflightTests(unittest.TestCase):
         self.assertEqual(report["actual_write_attempts"], 0)
         self.assertFalse(report["provider_permissions_verified"])
         self.assertTrue(report["all_live_writes_blocked"])
+        self.assertEqual(report["observations"]["calendar_followup"]["read"]["read_operation"],
+                         "freebusy")
+        self.assertEqual(report["observations"]["calendar_followup"]["read"]["status"], "blocked")
         self.assertTrue(all(
             "oauth_scope_minimality_unverified" in entry["read"]["reasons"]
             for entry in report["observations"].values()))
