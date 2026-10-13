@@ -86,11 +86,11 @@ def run(s, boundary):
                 lines.append("Observation or image evidence is inconclusive and cannot establish a condition or mental state.")
             if not t["suitable"]:
                 lines.append("Health suitability is not established: no product recommendation or purchase.")
-            if t["needs_supplies"]:
+            if t["needs_supplies"] and t["suitable"]:
                 boundary.event("read", "home", n, ["need"])
                 if t["stock"] in {"unknown", "expired", "unavailable"}:
                     lines.append("Supplies cannot be confirmed usable or available; do not assume inventory.")
-                elif t["stock"] == "short" and t["suitable"]:
+                elif t["stock"] == "short":
                     boundary.event("read", "finance", n, ["cost"])
                     if t["budget"] == "adequate":
                         boundary.event("read", "purchase", n, ["cost"])

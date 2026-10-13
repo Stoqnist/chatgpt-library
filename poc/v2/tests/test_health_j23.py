@@ -55,6 +55,12 @@ class JourneySafetyTests(unittest.TestCase):
                 self.assertNotIn("write", [e["kind"] for e in b.events])
                 if name in {"expired", "missing_supplies", "unsuitable", "budget_block"}:
                     self.assertNotIn("purchase", [e["owner"] for e in b.events])
+                if name == "unsuitable":
+                    # Independently observe Health-only triage; no stock/budget lookup
+                    # should follow a scripted Health-owned product veto.
+                    self.assertEqual([(e["owner"], e["kind"]) for e in b.events],
+                                     [("health", "assessment"), ("health", "proposal"),
+                                      ("calendar", "proposal")])
                 if name == "crisis":
                     self.assertEqual([e["owner"] for e in b.events], ["health", "health"])
 

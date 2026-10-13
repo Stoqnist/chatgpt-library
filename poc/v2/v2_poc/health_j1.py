@@ -137,14 +137,12 @@ def run_j1(scenario, boundary):
             lines.append("This fictional scenario is marked routine; real symptoms still require appropriate professional judgment.")
             if not t["suitable"]:
                 lines.append("The fictional Health suitability gate blocks the product pathway.")
-            if t["supplies"]:
+            if t["supplies"] and t["suitable"]:
                 stock = boundary.read(number, "home")
                 if not _current(stock):
                     lines.append("Stock is unknown, stale or disconnected; no shortage or availability is assumed.")
                 elif stock["state"] == "sufficient":
                     lines.append("The current fictional stock record indicates supplies are sufficient.")
-                elif not t["suitable"]:
-                    lines.append("A shortage is indicated, but no purchase is considered because suitability is blocked.")
                 else:
                     lines.append("The current fictional stock record indicates a shortage.")
                     budget = boundary.read(number, "finance")
