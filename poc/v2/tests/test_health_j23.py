@@ -58,6 +58,32 @@ class JourneySafetyTests(unittest.TestCase):
                 if name == "crisis":
                     self.assertEqual([e["owner"] for e in b.events], ["health", "health"])
 
+    def test_invalid_fixture_types_are_rejected(self):
+        for field in ("journey",):
+            s = self.fixture("j2")
+            s[field] = []
+            with self.assertRaises(ValueError):
+                run(s, ObservedBoundary())
+        for field in ("triage", "observation", "stock", "budget"):
+            s = self.fixture("j2")
+            s["turns"][0][field] = []
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                run(s, ObservedBoundary())
+
+    def test_malformed_or_duplicated_reported_actions_fail(self):
+        for mutation in ("duplicate", "bad_owner", "missing_simulation"):
+            s = self.fixture("j2")
+            output, boundary, _ = self.execute(s)
+            if mutation == "duplicate":
+                output["actions"].append(copy.deepcopy(output["actions"][0]))
+            elif mutation == "bad_owner":
+                output["actions"][0]["owner"] = []
+            else:
+                output.pop("simulation")
+            with self.subTest(mutation=mutation):
+                report = evaluate(s, output, boundary, "fixture-only")
+                self.assertFalse(report["passed"])
+
     def test_oracle_catches_seven_mutations(self):
         for kind in ("missing_escalation", "wrong_owner", "privacy_title",
                      "false_write", "unresolved_suitability", "unsafe_reassurance",
