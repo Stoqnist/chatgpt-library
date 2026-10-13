@@ -11,7 +11,7 @@ import json
 import os
 from copy import deepcopy
 
-CONTRACT_VERSION = "p4-connector-contract-2"
+CONTRACT_VERSION = "p4-connector-contract-3"
 # Public provider/domain map only. Real file IDs, sheet IDs, calendar IDs and
 # account-specific destinations must be supplied privately and never logged.
 TARGETS = {
@@ -44,11 +44,14 @@ WRITE_ROLES = {
 MINIMUM_READ_ROLES = {
     "library": {"viewer"}, "sheets": {"reader"}, "calendar": {"reader"},
 }
+# Synthetic grant posture is independent of the resource ACL role. "Verified"
+# booleans and sample roles MUST NOT be populated from metadata-only discovery.
+OAUTH_SCOPE_POSTURES = frozenset({"minimal_read", "excess", "unknown"})
 # Key names are fixed, non-sensitive, and intentionally exclude identifiers or
 # record content. Unknown keys fail closed; never include raw observations in CI.
 EVIDENCE_FIELDS = frozenset({
     "provider", "role", "metadata_probe", "binding_verified",
-    "scope_verified", "freshness_verified", "readback_capable",
+    "scope_verified", "oauth_scope_posture", "freshness_verified", "readback_capable",
     "conditional_write_capable", "persistent_idempotency_verified",
     "disposable_target_verified",
 })
@@ -93,6 +96,15 @@ def classify(target, observation, *, owner, requested_action="read"):
         reasons.append("binding_unverified")
     if observation["scope_verified"] is not True:
         reasons.append("oauth_scope_unverified")
+    posture = observation["oauth_scope_posture"]
+    if not isinstance(posture, str) or posture not in OAUTH_SCOPE_POSTURES:
+        reasons.append("invalid_oauth_scope_posture")
+    elif posture == "excess":
+        reasons.append("oauth_scope_excess")
+    elif posture == "unknown":
+        reasons.append("oauth_scope_minimality_unverified")
+    elif observation["scope_verified"] is not True:
+        reasons.append("inconsistent_oauth_scope_evidence")
     if observation["freshness_verified"] is not True:
         reasons.append("freshness_unverified")
     # Even successful read metadata cannot establish a write gate.
@@ -121,6 +133,7 @@ def run_offline_demo():
     baseline = {
         "provider": "library", "role": "editor", "metadata_probe": "ok",
         "binding_verified": True, "scope_verified": False,
+        "oauth_scope_posture": "unknown",
         "freshness_verified": True, "readback_capable": False,
         "conditional_write_capable": False,
         "persistent_idempotency_verified": False,
