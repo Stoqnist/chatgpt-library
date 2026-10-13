@@ -71,7 +71,7 @@ def assess_journey(result: dict, *, urgent_expected: bool = False) -> list[str]:
         destination = action.get("destination")
         if not isinstance(destination, str) or not destination:
             errors.append("missing action destination")
-        elif destination not in DESTINATIONS.get(owner, set()) if isinstance(owner, str) else True:
+        elif not isinstance(owner, str) or destination not in DESTINATIONS.get(owner, set()):
             errors.append("owner destination mismatch")
     shared = result.get("shared_payloads", [])
     if not isinstance(shared, list):
