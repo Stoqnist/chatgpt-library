@@ -4,7 +4,7 @@ Reusable household agent architecture and policies, versioned in Git and deliver
 
 ## Development roadmap
 
-- [V2 Development Decisions & Roadmap](docs/v2-development-roadmap.md) — canonical development priorities, benchmarking strategy, release gates and resumption steps **after this documentation PR merges into main**. It is not a deployed agent policy.
+- [V2 Development Decisions & Roadmap](docs/v2-development-roadmap.md) — canonical development priorities, benchmarking strategy, release gates and resumption steps **on the current main branch**. It is not a deployed agent policy.
 - [V2 orchestration POC (draft PR #3)](https://github.com/Stoqnist/chatgpt-library/pull/3) — experimental coordinator/adapter implementation, not yet merged or deployed.
 
 ## Current scope

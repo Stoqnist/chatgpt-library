@@ -2,7 +2,7 @@
 
 **Purpose:** Canonical *development* record for V2 priorities, course corrections, test strategy and resumable next steps. This is not an agent system prompt, runtime policy, source of personal facts, or a replacement for the [V2 orchestration contract](https://github.com/Stoqnist/chatgpt-library/pull/3).
 
-**Status:** Benchmark-first strategy accepted on 2026-10-13. Priority 1 is implemented on experimental PR #3, with final CI/review pending; remaining priorities are tracked below. This file on `main` is the canonical development roadmap. V1 is unchanged; V2 has **not** been deployed.
+**Status:** Benchmark-first strategy accepted on 2026-10-13. Priorities 1 and 2 are implemented on experimental PR #3; review remains pending and CI evidence is recorded below. This file on `main` is the canonical development roadmap. V1 is unchanged; V2 has **not** been deployed.
 
 ## Development north star
 
@@ -49,8 +49,8 @@ These are **agreed design decisions**, not claims that the corresponding benchma
 
 | Order | Work item | State | Completion evidence |
 | --- | --- | --- | --- |
-| **1 — Now** | Build seeded golden-journey generator (~20–30 cases), independent oracle and metamorphic assertions. | **Implemented in draft PR #3; review/final CI pending** | 24 fixed seeds and three metamorphic variants per case; regression tests passed on Python 3.11 and 3.13. Explicit CLI CI step awaiting verification. |
-| **2 — Now** | Implement/organize four core adversarial scenarios and cross-domain safety invariants. Reuse existing tests; do not delete useful coverage merely to shrink the suite. | **Not started** | Explicit failure-mode cases pass and can be shown to fail under controlled regressions. |
+| **1 — Now** | Build seeded golden-journey generator (~20–30 cases), independent oracle and metamorphic assertions. | **Implemented in draft PR #3; review pending** | 24 fixed seeds and 72 metamorphic checks; both Python 3.11 and 3.13 CI jobs, including the explicit benchmark CLI step, passed at `631f1ea846196bf5184c3ccb8fa2644598fb9af1` ([run](https://github.com/Stoqnist/chatgpt-library/actions/runs/38378556940)). |
+| **2 — Now** | Implement/organize four core adversarial scenarios and cross-domain safety invariants. Reuse existing tests; do not delete useful coverage merely to shrink the suite. | **Implemented in draft PR #3; review pending** | Four focused adversarial families; existing coverage retained; 9/9 isolated source mutations detected locally at `f417b87d98c66337f4a21e7d917d378e2445f165`. CI passed on Python 3.11 and 3.13, including the installed-SDK, benchmark and mutation steps ([run](https://github.com/Stoqnist/chatgpt-library/actions/runs/38399801680)). |
 | **3 — Next** | Add JSON report, stored comparison baseline, and version-to-version comparison summary. | **Not started** | Reports identify commit, seeds, outcomes, timing and applicable usage/cost fields. |
 | **4 — Next** | Optimize CI: fast offline benchmark per PR, optional SDK compatibility on a controlled schedule/change trigger, dependency caching as justified. | **Not started** | Measured improvement in CI wall time with unchanged safety coverage; no model charges on PRs. |
 | **5 — Next** | Run controlled ablations to test whether one/three AI specialists provide additional value over deterministic logic. | **Not started** | Quality vs. calls, latency and measured cost comparison across identical scenarios. |
@@ -61,7 +61,7 @@ These are **agreed design decisions**, not claims that the corresponding benchma
 
 - [V2 POC / orchestration draft, PR #3](https://github.com/Stoqnist/chatgpt-library/pull/3) remains separate from this documentation proposal. Its deterministic coordinator, specialist adapter, evidence gate and offline CI already exist on the draft branch.
 - A user-run synthetic three-specialist API smoke test reported 3/3 completed calls and zero record writes. That **does not** measure the full system's factual accuracy, incremental AI value or actual API billing.
-- The preexisting regression suite covers key behaviors. A 24-seed independent-oracle benchmark is now implemented **in draft PR #3** and passed regression tests; explicit CLI CI verification is pending. Version-to-version comparison and persistent baseline reports remain **not implemented**.
+- The preexisting regression suite covers key behaviors. A 24-seed independent-oracle benchmark is now implemented **in draft PR #3** and passed regression tests and the explicit CLI CI step on Python 3.11 and 3.13 (run linked above). Version-to-version comparison and persistent baseline reports remain **not implemented**.
 
 ## Risks to revisit at every release review
 
@@ -87,3 +87,5 @@ These are **agreed design decisions**, not claims that the corresponding benchma
 - **2026-10-13 — Benchmark-first strategy accepted:** small and fast seeded golden journey, limited focused adversarial tests, independent oracle, release safety gates, version metrics, controlled paid canary, and 0/1/3-agent ablation. Prioritize implementation before VPS staging. This file is proposed as the project's single development decision/roadmap record.
 
 - **2026-10-13 — Priority 1 implementation proposed in draft PR #3:** added reproducible 24-seed fixture generation, an independent oracle, three metamorphic invariants per case, zero-API JSON reporting and regression tests. Both Python 3.11 and 3.13 regression jobs passed for the initial code. A newer commit added a dedicated benchmark command to PR CI; its run still requires verification. No merge, production deployment or personal-data access is implied.
+
+- **2026-10-13 — Priority 2 implementation proposed in draft PR #3:** [commit f417b87](https://github.com/Stoqnist/chatgpt-library/commit/f417b87d98c66337f4a21e7d917d378e2445f165) adds four focused safety families and an offline mutation gate without changing runtime behavior. Existing tests remain. Nine isolated regressions cover missing transaction identity, conflicting values, account-scoped identity, action authority, domain write ownership, fabricated execution, evidence scope, unsupported prose, and invented evidence. Each must cause assertion failures; test errors and surviving mutations fail the gate. Local verification: 46 tests passed, one optional installed-SDK test skipped; golden journey 24/24 with 72 metamorphic checks; mutations 9/9 detected. [CI run 38399801680](https://github.com/Stoqnist/chatgpt-library/actions/runs/38399801680) passed on Python 3.11 and 3.13, including the installed-SDK, benchmark, mutation and preflight steps. Prior Priority 1 CI is now verified rather than inferred. No merge, paid model calls, production writes, or deployment.
