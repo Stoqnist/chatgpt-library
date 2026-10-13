@@ -33,8 +33,8 @@ class MockJourneyIntegration:
         self.executor = SimulatedExecutor(self.store, self.approvals)
         self.turn = 0
         self.triage = None
-        self.operations = []
-        self.previews = []
+        self._operations = []
+        self._previews = []
 
     def advance(self, turn):
         if type(turn) is not int or turn != self.turn + 1 or turn > len(self.fixture["turns"]):
@@ -92,20 +92,22 @@ class MockJourneyIntegration:
         elif any(a["status"] == "proposed" for a in actions):
             raise InvalidOperation("non-routine proposal")
         previews = [self.approvals.preview(op) for op in ops]
-        withdrawn = [op["operation_id"] for op in self.operations]
-        self.operations, self.previews = ops, previews
+        withdrawn = [op["operation_id"] for op in self._operations]
+        self._operations, self._previews = ops, previews
         self.turn, self.triage = turn, triage
         return {"simulation": True, "turn": turn, "triage": triage,
                 "withdrawn_operation_ids": withdrawn, "previews": deepcopy(previews),
                 "approval_inferred": False, "external_actions": 0}
 
     def decide(self, preview, decision):
-        if not isinstance(preview, dict) or preview not in self.previews:
+        if not isinstance(preview, dict) or preview not in self._previews:
             raise ValueError("stale or unregistered preview")
         self.approvals.decide(preview, decision)
 
     def execute(self):
-        result = self.executor.execute(deepcopy(self.operations))
+        if self.turn == 0:
+            raise ValueError("must plan a turn before execution")
+        result = self.executor.execute(deepcopy(self._operations))
         status = result["status"] if self.triage == "routine" else (
             "urgent_escalated" if self.triage == "urgent" else "clarification_needed")
         return {"simulation": True, "mode": "disposable_mock_only",
