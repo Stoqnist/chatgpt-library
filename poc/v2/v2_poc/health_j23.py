@@ -90,7 +90,7 @@ def run(s, boundary):
                 boundary.event("read", "home", n, ["need"])
                 if t["stock"] in {"unknown", "expired", "unavailable"}:
                     lines.append("Supplies cannot be confirmed usable or available; do not assume inventory.")
-                elif t["stock"] == "short" and t["suitable"]:
+                elif t["stock"] == "short":
                     boundary.event("read", "finance", n, ["cost"])
                     if t["budget"] == "adequate":
                         boundary.event("read", "purchase", n, ["cost"])
