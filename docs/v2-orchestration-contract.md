@@ -83,3 +83,25 @@ Output: one report, a single owner per proposed record update, and one consolida
 ## Implementation gate
 
 This contract is an agreed target only after review. The next engineering step is to select the actual orchestration runtime/adapter, implement a small dispatcher and specialist-result schema, and run the synthetic POC. Integrate validated shared rules into the Git-managed family-agent architecture via a separate reviewed PR; do not auto-publish this draft or modify specialist prompts as a substitute for orchestration.
+
+## Proposed V2 factual-output acceptance gate
+
+- Successful specialist execution and factual validation are distinct. Model
+  prose is untrusted advice, even when it cites an existing evidence ID.
+- The coordinator must independently validate machine-readable issue codes
+  against domain-scoped source evidence and explicit prerequisites. Only a
+  policy-owned rendering of accepted issue codes may enter the user-visible
+  answer; never relabel free-form AI claims as source-verified.
+- Preserve deterministic facts and the domain owner's decisions. Quarantine
+  unsupported or ambiguous claims for review, without promoting them to
+  canonical-record writes or quietly accepting their conclusions.
+- A source link, matching amounts, a completed receipt, or a model confidence
+  statement does not on its own establish payment linkage, delivery, or
+  household possession.
+- Report accepted and rejected counts without publishing raw sensitive
+  evidence or untrusted model prose. Validation failures require review,
+  not an automatically fabricated resolution.
+
+The draft POC currently supports only a fixed set of synthetic issue codes.
+Expanding that allowlist or using personal data requires a separately reviewed
+schema, supporting evidence rules and regression fixtures.
