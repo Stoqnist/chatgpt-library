@@ -217,5 +217,17 @@
     "python": "3.11",
     "record_type": "observed CI stdout",
     "notes": "GITHUB_SHA identifies the temporary PR merge commit, not the PR head; p50 is environment-dependent."
+  },
+  "benchmark_contract": {
+    "contract_version": "v2-golden-1",
+    "fixture_revision": "seeded-purchase-v1",
+    "oracle_revision": "golden-oracle-v1",
+    "metamorphic_revision": "rename-reorder-duplicate-v1",
+    "checks_per_case": 3
+  },
+  "source_provenance": {
+    "pr_head_sha": "f417b87d98c66337f4a21e7d917d378e2445f165",
+    "tested_merge_sha": "5b3a87a803a5af8d1d69612dc6a8c6830885ca16",
+    "base_sha": "7cd295fbe435590971df9881cf7106599e0502ab"
   }
 }
