@@ -153,6 +153,24 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["model_calls_attempted"], 0)
         self.assertEqual(mock.calls, [])
 
+    def test_semantically_duplicate_home_question_is_removed(self):
+        repeated = "Was the desk-lamp actually received and physically located within the household?"
+        mock = FakeSdk(AIAssessment(findings=[], questions=[repeated]))
+        result = run_live_fixture(copy.deepcopy(BASE), sdk=mock, allow_api_calls=True)
+        self.assertEqual(result["model_calls_completed"], 3)
+        self.assertEqual(len(result["specialist_results"]["home"]["unresolved_questions"]), 1)
+        self.assertEqual(len(result["unresolved_questions"]), 1)
+        self.assertEqual(result["unresolved_questions"][0], repeated)
+
+    def test_specialist_instructions_prohibit_unproven_transaction_linkage(self):
+        mock = FakeSdk()
+        run_live_fixture(copy.deepcopy(BASE), sdk=mock, allow_api_calls=True)
+        agents = [entry for entry in mock.calls if entry["event"] == "agent"]
+        self.assertEqual(len(agents), 3)
+        for agent in agents:
+            self.assertIn("Matching amounts alone do not prove", agent["instructions"])
+            self.assertIn("Do not paraphrase", agent["instructions"])
+
     def test_no_model_key_or_sdk_required_for_offline_simulation(self):
         from v2_poc.coordinator import run
         self.assertTrue(run(BASE)["simulation"])
