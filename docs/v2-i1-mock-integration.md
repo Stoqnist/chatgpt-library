@@ -33,8 +33,21 @@ previews only. It does not retroactively withdraw actions already attempted.
 `prior_outcomes`, `cumulative_outcomes`, and `cumulative_status`.
 The historical snapshots keep their original `verified`, `failed`, or
 `unknown` status and attempt history after a later urgent/changed turn.
-An unknown mock effect is not marked cancelled or verified by revocation;
-it still needs deliberate provider-specific inspection, not a blind retry.
+An unknown mock effect is not marked cancelled or verified by revocation.
+The mock now supports explicit `reconcile(operation_id)` **after a later
+turn supersedes it**. The bridge retains the exact prior attempted operation,
+and P3's separate `inspect_only(operation)` checks the registered intent,
+a prior `write_attempt`, and an ambiguous-outcome marker before inspecting.
+These APIs do not consult or restore approval, do not call `apply`, and cannot
+create a new write. Matching applied markers plus successful readback can
+change historical `unknown` to `verified` with the original unknown/attempt
+trace retained; missing or inaccessible evidence remains `unknown`.
+Current-turn `execute()` continues to block stale consent.
+
+This is a deterministic in-memory repair demonstration, **not** a safe real
+provider reconciliation protocol. In particular, a missing mock marker is
+not evidence that an external write did not happen, and real provider lookup
+identity, persistence and later conflicting changes remain unverified.
 
 One mock store is scoped to one simulated session and does not persist consent
 or operation markers across restarts. Clinical validity, semantic quality,
