@@ -34,5 +34,7 @@ jobs:
         run: python -c "from agents import Agent, AgentOutputSchema, ModelSettings, RunConfig; print('SDK import and schema interfaces available')"
       - name: Run all offline regression tests
         run: PYTHONPATH=. python -m unittest discover -s tests -v
+      - name: Run seeded golden journey (24 cases; no API calls)
+        run: PYTHONPATH=. python -m v2_poc.benchmark --cases 24 --seed-start 100
       - name: Run zero-cost CLI preflight
         run: PYTHONPATH=. python -m v2_poc.live fixtures/purchase.json --check-only
