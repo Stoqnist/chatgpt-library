@@ -68,8 +68,9 @@ def validate_operation(operation):
                 not _valid_id(change["event_id"]) or change["title"] != "Personal follow-up"):
             raise InvalidOperation("invalid calendar metadata")
     else:
-        if set(change) != {"type", "code"} or change["code"] not in {
-                "followup_needed", "routine_review", "user_report_logged"}:
+        if (set(change) != {"type", "code"} or
+                not isinstance(change["code"], str) or change["code"] not in {
+                    "followup_needed", "routine_review", "user_report_logged"}):
             raise InvalidOperation("invalid owner-scoped code")
     return True
 
@@ -88,6 +89,7 @@ class SimulatedApprovals:
     """Explicit fixture decisions, never inferred from a candidate result."""
     def __init__(self):
         self._previews = {}
+        self._preview_details = {}
         self._decisions = {}
 
     def preview(self, operation):
@@ -96,19 +98,24 @@ class SimulatedApprovals:
         if key in self._previews and self._previews[key] != digest:
             raise InvalidOperation("operation ID reused with changed intent")
         self._previews[key] = digest
-        return {"request_id": key[0], "operation_id": key[1],
-                "owner": operation["owner"], "destination": operation["destination"],
-                "expected_revision": operation["expected_revision"],
-                "change": deepcopy(operation["change"]), "fingerprint": digest,
-                "approval_required": True}
+        preview = {"request_id": key[0], "operation_id": key[1],
+                   "owner": operation["owner"], "destination": operation["destination"],
+                   "expected_revision": operation["expected_revision"],
+                   "change": deepcopy(operation["change"]), "fingerprint": digest,
+                   "approval_required": True}
+        self._preview_details[key] = deepcopy(preview)
+        return preview
 
     def decide(self, preview, decision):
         """Called only by the *simulated user* in test setup; not by executor."""
-        if decision not in {"approve", "deny"} or not isinstance(preview, dict):
+        if not isinstance(decision, str) or decision not in {"approve", "deny"} or not isinstance(preview, dict):
             raise ValueError("invalid simulated decision")
-        key = (preview.get("request_id"), preview.get("operation_id"))
+        request_id, operation_id = preview.get("request_id"), preview.get("operation_id")
+        if not _valid_id(request_id) or not _valid_id(operation_id):
+            raise ValueError("invalid preview identifiers")
+        key = (request_id, operation_id)
         digest = self._previews.get(key)
-        if not digest or preview.get("fingerprint") != digest:
+        if not digest or preview != self._preview_details.get(key):
             raise ValueError("unregistered or mismatched preview")
         if key in self._decisions:
             if self._decisions[key] != (digest, decision):
