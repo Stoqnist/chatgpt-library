@@ -62,6 +62,34 @@ class EvidenceTests(unittest.TestCase):
         events[3]["turn"] = 2
         self.assertIn("missing scenario assessment", self.assess(events))
 
+    def test_rejects_prose_in_permitted_metadata(self):
+        events = self.boundary.events
+        events[2]["outcome"] = "Private mental-health narrative disclosed to Home"
+        failures = self.assess(events)
+        self.assertIn("invalid event schema", failures)
+        self.assertIn("unreviewed cross-domain payload", failures)
+        events = self.boundary.events
+        events[2]["operation_id"] = "patient reports feeling desperate"
+        self.assertIn("invalid operation ID", self.assess(events))
+        events = self.boundary.events
+        events[2]["evidence_ids"] = ["mental health narrative"]
+        self.assertIn("invalid disclosure identifier", self.assess(events))
+
+    def test_rejects_stale_proposal_after_urgent_escalation(self):
+        events = self.boundary.events
+        events.append(events.pop(2))
+        self.assertIn("stale-turn activity", self.assess(events))
+
+    def test_rejects_wrong_kind_fields_and_invalid_outcomes(self):
+        events = self.boundary.events
+        events[2]["outcome"] = "denied_read_only"
+        self.assertIn("invalid event schema", self.assess(events))
+        with self.assertRaises(PermissionError):
+            self.boundary.call("write", "home", turn=3, evidence_ids=["need"])
+        events = self.boundary.events
+        events[-1]["outcome"] = "patient is struggling"
+        self.assertIn("invalid event outcome", self.assess(events))
+
 
 class JudgeContractTests(unittest.TestCase):
     def report(self):
@@ -100,3 +128,25 @@ class JudgeContractTests(unittest.TestCase):
         failures = validate_judge_report(report, answers={}, event_ids=set())
         self.assertIn("missing or duplicate criterion", failures)
         self.assertIn("missing rubric_version", failures)
+
+    def test_malformed_citations_return_errors_not_exceptions(self):
+        bad = [None, 42, "citation", {}, {"event_id": []},
+               {"passage_id": [], "quote": "text"},
+               {"passage_id": "answer-1", "quote": []},
+               {"event_id": "event-1", "quote": "private information"}]
+        for citation in bad:
+            with self.subTest(citation=citation):
+                report = self.report()
+                report["judgments"][0].update(
+                    status="assessed", score=4, citations=[citation])
+                self.assertIn(
+                    "invalid evidence citation",
+                    validate_judge_report(report, answers={}, event_ids=set()))
+        for malformed in (None, "citations", {"event_id": "event-1"}, 1):
+            with self.subTest(container=malformed):
+                report = self.report()
+                report["judgments"][0].update(
+                    status="assessed", score=4, citations=malformed)
+                self.assertIn(
+                    "invalid citations",
+                    validate_judge_report(report, answers={}, event_ids=set()))
