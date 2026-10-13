@@ -7,6 +7,7 @@ synthetic evidence, and are replaceable with real adapters after approval.
 from __future__ import annotations
 
 import json
+import re
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable
 
@@ -17,6 +18,22 @@ DESTINATIONS = {
     "home": "/Home & Possessions/home-possessions-record.md",
 }
 STATUSES = {"completed", "partial", "blocked", "failed"}
+
+# Preserve action/object words so questions about different unknowns remain distinct.
+_QUESTION_FILLER = frozenset({
+    "a", "an", "and", "are", "actually", "did", "do", "does", "in",
+    "into", "is", "it", "of", "the", "to", "was", "were", "within",
+})
+
+
+def _same_question(left: str, right: str) -> bool:
+    """Merge strongly overlapping follow-ups while retaining distinct topics."""
+    def terms(value: str) -> set[str]:
+        return {t for t in re.findall(r"[a-z0-9]+", value.lower()) if t not in _QUESTION_FILLER}
+
+    left_terms, right_terms = terms(left), terms(right)
+    return bool(left_terms and right_terms
+                and len(left_terms & right_terms) / min(len(left_terms), len(right_terms)) >= 0.8)
 
 
 def _amount(value: Any) -> Decimal:
@@ -211,7 +228,11 @@ def run(request: dict, handlers: dict[str, Callable] | None = None) -> dict:
             if key not in seen_claims:
                 seen_claims.add(key)
                 all_findings.append({"domain_owner": domain, **entry})
-    questions = list(dict.fromkeys(q for x in results.values() for q in x["unresolved_questions"]))
+    questions: list[str] = []
+    for result in results.values():
+        for question in result["unresolved_questions"]:
+            if not any(_same_question(question, existing) for existing in questions):
+                questions.append(question)
     failures = [d for d, x in results.items() if x["status"] != "completed"]
     return {"run_id": request["run_id"], "request_id": request["request_id"],
             "simulation": True, "read_only": True, "status": "partial" if failures else "completed",
