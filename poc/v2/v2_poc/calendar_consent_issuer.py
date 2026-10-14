@@ -13,16 +13,20 @@ import hashlib
 import hmac
 import json
 import secrets
+import re
 import sqlite3
 import time
 
-from .calendar_approval import (
-    APPROVAL_ACTION, APPROVAL_DENIED, OfflineApprovalVerifier, plan_digest,
-)
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+from .calendar_approval import APPROVAL_ACTION, APPROVAL_DENIED, plan_digest
 
 _SESSION_AUDIENCE = "agency-calendar-consent-session"
 _UI_AUDIENCE = "agency-calendar-consent-confirmation"
 _APPROVAL_AUDIENCE = "agency-calendar-approval"
+_APPROVAL_TYPE = "agency-calendar-approval-v1"
+_KEY_ID = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
 
 
 def _encode(payload: dict, key: bytes) -> str:
@@ -72,17 +76,21 @@ class OfflineConsentIssuer:
     """
 
     def __init__(self, path, *, session_key: bytes, ui_key: bytes,
-                 approval_key: bytes, clock=time.time):
+                 approval_private_key: Ed25519PrivateKey, approval_key_id: str,
+                 clock=time.time):
         if any(not isinstance(k, bytes) or len(k) < 32
-               for k in (session_key, ui_key, approval_key)):
-            raise ValueError("three independently provisioned keys are required")
-        if len({session_key, ui_key, approval_key}) != 3:
-            raise ValueError("trust-root keys must differ")
-        self.path, self._session, self._ui, self._approval = (
-            str(path), session_key, ui_key, approval_key)
+               for k in (session_key, ui_key)):
+            raise ValueError("independent session and UI signing keys required")
+        if session_key == ui_key:
+            raise ValueError("session and UI trust keys must differ")
+        if not isinstance(approval_private_key, Ed25519PrivateKey):
+            raise ValueError("issuer must hold Ed25519 private signing key")
+        if not isinstance(approval_key_id, str) or not _KEY_ID.fullmatch(approval_key_id):
+            raise ValueError("explicit bounded approval key ID required")
+        self.path, self._session, self._ui = str(path), session_key, ui_key
+        self._approval_private = approval_private_key
+        self._approval_kid = approval_key_id
         self._clock = clock
-        self._verifier = OfflineApprovalVerifier(
-            verification_key=approval_key, clock=clock)
         with self._db() as db:
             db.execute("""CREATE TABLE IF NOT EXISTS consent_challenges (
                 challenge_id TEXT PRIMARY KEY,
@@ -99,9 +107,25 @@ class OfflineConsentIssuer:
                 calendar_id TEXT NOT NULL, operation_id TEXT NOT NULL,
                 event_id TEXT NOT NULL, plan_sha256 TEXT NOT NULL,
                 expires_at REAL NOT NULL,
+                key_id TEXT NOT NULL,
                 state TEXT NOT NULL CHECK (state IN
                     ('issued','consumed','revoked'))
             )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS consent_signing_keys (
+                key_id TEXT PRIMARY KEY, public_key BLOB NOT NULL,
+                state TEXT NOT NULL CHECK (state IN
+                    ('active','retired','compromised'))
+            )""")
+            public_bytes = approval_private_key.public_key().public_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PublicFormat.Raw)
+            db.execute("""INSERT OR IGNORE INTO consent_signing_keys
+                (key_id,public_key,state) VALUES (?,?,'active')""",
+                (approval_key_id, public_bytes))
+            saved = db.execute("""SELECT public_key FROM consent_signing_keys
+                WHERE key_id=?""", (approval_key_id,)).fetchone()
+            if saved is None or saved[0] != public_bytes:
+                raise ValueError("key ID already registered to a different public key")
 
     @contextmanager
     def _db(self):
@@ -167,6 +191,8 @@ class OfflineConsentIssuer:
         if not isinstance(challenge_id, str):
             raise PermissionError(APPROVAL_DENIED)
         with self._db() as db:
+            # Prevent simultaneous confirmations from both observing pending.
+            db.execute("BEGIN IMMEDIATE")
             challenge = db.execute("""SELECT subject,session_id,calendar_id,
                 operation_id,event_id,plan_sha256,expires_at,state
                 FROM consent_challenges WHERE challenge_id=?""",
@@ -176,6 +202,11 @@ class OfflineConsentIssuer:
                     or not now < challenge[6] or challenge[7] != "pending"):
                 raise PermissionError(APPROVAL_DENIED)
             approved = choice["decision"] == "approved"
+            if approved:
+                state = db.execute("""SELECT state FROM consent_signing_keys
+                    WHERE key_id=?""", (self._approval_kid,)).fetchone()
+                if state != ("active",):
+                    raise PermissionError(APPROVAL_DENIED)
             db.execute("UPDATE consent_challenges SET state=? WHERE challenge_id=?",
                        ("issued" if approved else "declined", challenge_id))
             if not approved:
@@ -183,31 +214,48 @@ class OfflineConsentIssuer:
             approval_id = secrets.token_urlsafe(24)
             expiry = min(now + 60, challenge[6])
             db.execute("""INSERT INTO consent_receipts VALUES
-                (?,?,?,?,?,?,?,?,?, 'issued')""",
+                (?,?,?,?,?,?,?,?,?,?, 'issued')""",
                 (approval_id, challenge_id, subject, sid, challenge[2],
-                 challenge[3], challenge[4], challenge[5], expiry))
-        proof = _encode({
+                 challenge[3], challenge[4], challenge[5], expiry,
+                 self._approval_kid))
+        claims = {
             "iss": "agency-calendar-consent", "aud": _APPROVAL_AUDIENCE,
+            "typ": _APPROVAL_TYPE, "alg": "EdDSA", "kid": self._approval_kid,
             "sub": subject, "jti": approval_id, "action": APPROVAL_ACTION,
             "decision": "approved", "calendar_id": challenge[2],
             "operation_id": challenge[3], "event_id": challenge[4],
             "plan_sha256": challenge[5], "exp": expiry,
-        }, self._approval)
+        }
+        encoded = base64.urlsafe_b64encode(json.dumps(
+            claims, sort_keys=True, separators=(",", ":")).encode()
+        ).decode("ascii").rstrip("=")
+        signature = self._approval_private.sign(encoded.encode("ascii"))
+        proof = encoded + "." + base64.urlsafe_b64encode(
+            signature).decode("ascii").rstrip("=")
         return {"status": "issued", "approval_id": approval_id,
                 "approval_proof": proof, "expires_at": expiry}
 
-    def verify(self, proof, *, expected_row):
-        approval_id = self._verifier.verify(proof, expected_row=expected_row)
+    def set_key_state(self, key_id: str, *, state: str):
+        """Simulated operator action: retire or quarantine a signing key.
+
+        NOT a remotely callable admin API. Production requires separately
+        authenticated operator authority and public-key trust distribution.
+        """
+        if state not in ("retired", "compromised"):
+            raise ValueError("only retirement and compromise are supported")
         with self._db() as db:
-            row = db.execute("""SELECT calendar_id,operation_id,event_id,
-                plan_sha256,expires_at,state FROM consent_receipts
-                WHERE approval_id=?""", (approval_id,)).fetchone()
-        if (row is None or row[:4] != (
-                expected_row["calendar_id"], expected_row["operation_id"],
-                expected_row["event_id"], plan_digest(expected_row["plan"]))
-                or row[5] != "issued" or not self._clock() < row[4]):
-            raise PermissionError(APPROVAL_DENIED)
-        return approval_id
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("""SELECT state FROM consent_signing_keys
+                WHERE key_id=?""", (key_id,)).fetchone()
+            if (row is None or row[0] == "compromised"
+                    or row[0] == "retired" and state != "compromised"):
+                raise PermissionError(APPROVAL_DENIED)
+            db.execute("""UPDATE consent_signing_keys SET state=?
+                WHERE key_id=?""", (state, key_id))
+            if state == "compromised":
+                db.execute("""UPDATE consent_receipts SET state='revoked'
+                    WHERE key_id=? AND state='issued'""", (key_id,))
+        return {"status": state}
 
     def revoke(self, *, session_proof, approval_id):
         """Revoke a still-unconsumed approval; cannot undo attempted actions."""

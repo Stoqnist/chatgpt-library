@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from urllib.parse import parse_qs, urlsplit
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
 from v2_poc.calendar_gateway_oauth import OfflineOAuth, ReauthorizationRequired
 from v2_poc.calendar_approval import OfflineApprovalVerifier, plan_digest, APPROVAL_ACTION
 from v2_poc.calendar_gateway import (
@@ -116,7 +118,9 @@ class OAuthTests(unittest.TestCase):
 
 KEY = b"gateway-unit-test-key-material-at-least-32"
 INTENT_KEY = b"distinct-offline-calendar-identity-secret-32"
-APPROVAL_KEY = b"independent-synthetic-approval-key-32bytes"
+APPROVAL_PRIVATE = Ed25519PrivateKey.from_private_bytes(
+    hashlib.sha256(b"obviously-fictional-approval-signing-fixture").digest())
+APPROVAL_KID = "fictional-approval-k1"
 CLOCK = 1_000_000
 CALENDAR = "fictional-disposable-calendar"
 REQUEST = "test-request-1"
@@ -168,7 +172,8 @@ class GatewayTests(unittest.TestCase):
             verifier=VerifiedAgent(signing_key=KEY, clock=lambda: CLOCK),
             ledger=self.ledger, oauth=self.oauth, read_event=read_event,
             approval_verifier=OfflineApprovalVerifier(
-                verification_key=APPROVAL_KEY, clock=lambda: CLOCK),
+                verification_keys={APPROVAL_KID: APPROVAL_PRIVATE.public_key()},
+                clock=lambda: CLOCK),
             approve_intent=lambda row: self.approved)
 
     def prepare(self, op_id="test-op-1", request_id=REQUEST, start=START):
@@ -182,6 +187,8 @@ class GatewayTests(unittest.TestCase):
         row = self.ledger.get(operation_id)
         claims = {
             "iss": "agency-calendar-consent", "aud": "agency-calendar-approval",
+            "typ": "agency-calendar-approval-v1", "alg": "EdDSA",
+            "kid": APPROVAL_KID,
             "action": APPROVAL_ACTION, "decision": "approved",
             "sub": "fictional-user", "jti": "synthetic-approval-identifier-0001",
             "calendar_id": row["calendar_id"], "operation_id": row["operation_id"],
@@ -193,7 +200,7 @@ class GatewayTests(unittest.TestCase):
             json.dumps(claims, sort_keys=True, separators=(",", ":")).encode()
         ).decode().rstrip("=")
         sig = base64.urlsafe_b64encode(
-            hmac.new(APPROVAL_KEY, body.encode(), hashlib.sha256).digest()
+            APPROVAL_PRIVATE.sign(body.encode())
         ).decode().rstrip("=")
         return body + "." + sig
 
