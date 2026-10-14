@@ -59,6 +59,23 @@ class BrowserConsentTests(unittest.TestCase):
         }
         return self.store.decide(**(defaults | changes))
 
+    def test_configured_origin_and_cookie_validation(self):
+        for origin in (
+            "http://agency.example.invalid",
+            "https://user:pass@agency.example.invalid",
+            "https://agency.example.invalid/path",
+            "https://agency.example.invalid?next=x",
+            "https://agency.example.invalid#frag",
+            "https://agency.example.invalid:443",
+            "https://agency.example.invalid\\n",
+        ):
+            with self.subTest(origin=origin), self.assertRaises(ValueError):
+                OfflineBrowserConsent(
+                    self.db, oidc_client_id=CLIENT, trusted_origin=origin)
+        for cookie in ("A" * 40 + "\\u200b", "A" * 40 + "\\n"):
+            with self.assertRaises(ValueError):
+                session_cookie(cookie)
+
     def test_session_cookie_is_host_only_secure_and_non_revealing_in_db(self):
         cookie = session_cookie(self.token)
         self.assertTrue(cookie.startswith("__Host-agency_session="))
