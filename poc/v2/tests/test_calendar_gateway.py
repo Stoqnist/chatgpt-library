@@ -285,7 +285,8 @@ class GatewayTests(unittest.TestCase):
             self.consent_proof(changes={"exp": CLOCK + 301}),
         ]
         good = self.consent_proof()
-        invalid.append(good[:-1] + ("a" if good[-1] != "a" else "b"))
+        body, sig = good.split(".")
+        invalid.append(body + "." + ("a" if sig[0] != "a" else "b") + sig[1:])
         for token in invalid:
             with self.subTest(token=str(token)[:48]):
                 with self.assertRaises(PermissionError) as denied:
