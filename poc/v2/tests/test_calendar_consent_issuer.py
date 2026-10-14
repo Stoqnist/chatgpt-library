@@ -2,6 +2,7 @@
 import tempfile
 from contextlib import contextmanager
 import hashlib
+import hmac
 import json
 import base64
 
@@ -457,6 +458,40 @@ class ConsentIssuerTests(unittest.TestCase):
             confirmation_proof=self.confirmation(challenge))
         self.assertEqual(result["status"], "issued")
         self.assertEqual(observed, ["locked-before-decision"])
+
+
+    def test_legacy_hmac_approval_is_not_accepted(self):
+        row, _, issued = self.prepare_approval()
+        body = issued["approval_proof"].split(".")[0]
+        claims = json.loads(base64.urlsafe_b64decode(
+            body + "=" * (-len(body) % 4)))
+        claims["alg"] = "HS256"
+        altered = base64.urlsafe_b64encode(json.dumps(
+            claims, sort_keys=True, separators=(",", ":")).encode()
+        ).decode().rstrip("=")
+        old_hmac = base64.urlsafe_b64encode(hmac.new(
+            b"synthetic-retired-hmac-approval-secret",
+            altered.encode(), hashlib.sha256).digest()).decode().rstrip("=")
+        with self.assertRaises(PermissionError):
+            self.public_verifier.verify(
+                altered + "." + old_hmac, expected_row=row)
+
+    def test_compromise_after_consumption_cannot_undo_attempt_history(self):
+        _, _, issued = self.prepare_approval()
+        self.gateway.record_attempt(
+            "synthetic-executor", operation_id="fictional-operation-a",
+            approval_evidence=issued["approval_proof"])
+        self.issuer.set_key_state(KID1, state="compromised")
+        self.assertEqual(self.ledger.get("fictional-operation-a")["status"],
+                         "unknown")
+        with self.issuer._db() as db:
+            self.assertEqual(db.execute(
+                "SELECT state FROM consent_receipts WHERE approval_id=?",
+                (issued["approval_id"],)).fetchone(), ("consumed",))
+        with self.assertRaises(PermissionError):
+            self.gateway.record_attempt(
+                "synthetic-executor", operation_id="fictional-operation-a",
+                approval_evidence=issued["approval_proof"])
 
 
 if __name__ == "__main__":
