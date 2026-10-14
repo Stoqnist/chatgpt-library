@@ -1,21 +1,26 @@
-"""Offline-only exact-intent approval proof verification.
+"""Offline-only Ed25519 verification of exact Calendar approval proofs.
 
-A separate trusted consent/identity service would have to authenticate the
-actual user and issue these approvals. This module cannot obtain consent or
-sign a proof, and MUST NOT be treated as deployed user authorization.
+The Gateway receives only a configured public verification-key ring. Real
+authenticated user consent and the trust distribution of public keys remain
+external deployment requirements. HMAC approval proofs are not accepted.
 """
 from __future__ import annotations
 
 import base64
 import binascii
 import hashlib
-import hmac
 import json
+import re
 import time
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 APPROVAL_DENIED = "calendar approval unavailable"
 APPROVAL_ACTION = "calendar.event.create"
 _APPROVAL_AUDIENCE = "agency-calendar-approval"
+_APPROVAL_TYPE = "agency-calendar-approval-v1"
+_KEY_ID = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
 
 
 def _canonical(value) -> bytes:
@@ -23,7 +28,13 @@ def _canonical(value) -> bytes:
 
 
 def _decode(text: str) -> bytes:
-    return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
+    if not isinstance(text, str) or not text or not text.isascii():
+        raise ValueError()
+    data = base64.b64decode(text + "=" * (-len(text) % 4),
+                            altchars=b"-_", validate=True)
+    if base64.urlsafe_b64encode(data).decode("ascii").rstrip("=") != text:
+        raise ValueError()
+    return data
 
 
 def plan_digest(plan: dict) -> str:
@@ -32,35 +43,42 @@ def plan_digest(plan: dict) -> str:
 
 
 class OfflineApprovalVerifier:
-    """Verify independent signed consent evidence for one exact prepared plan.
+    """Public-key-only verifier for one externally authorized Calendar intent.
 
-    Signing is deliberately NOT implemented. Only a separately trusted issuer
-    possessing an independent key may sign. A valid signature proves key
-    possession, not that a real human approved the operation.
+    Key IDs are explicit and pinned in a trusted local configuration. This
+    cannot fetch signing keys from tokens, mint approval signatures, or prove
+    a real human approved an event.
     """
 
-    def __init__(self, *, verification_key: bytes,
+    def __init__(self, *, verification_keys: dict,
                  issuer="agency-calendar-consent", clock=time.time):
-        if not isinstance(verification_key, bytes) or len(verification_key) < 32:
-            raise ValueError("approval verification key must be >=32 bytes")
+        if not isinstance(verification_keys, dict) or not verification_keys:
+            raise ValueError("nonempty public verification key ring required")
+        for kid, public in verification_keys.items():
+            if (not isinstance(kid, str) or not _KEY_ID.fullmatch(kid)
+                    or not isinstance(public, Ed25519PublicKey)):
+                raise ValueError("approval keys must be Ed25519 public keys")
         if not isinstance(issuer, str) or not issuer:
             raise ValueError("approval issuer is required")
-        self._key = verification_key
+        self._keys = dict(verification_keys)
         self._issuer = issuer
         self._clock = clock
 
     def verify(self, proof: str, *, expected_row: dict) -> str:
-        """Return a one-use opaque approval ID, or uniformly deny."""
+        """Return the receipt ID for one valid signed exact-plan proof."""
         try:
             if not isinstance(proof, str) or len(proof) > 4096:
                 raise ValueError()
             body, signature = proof.split(".")
-            expected = hmac.new(self._key, body.encode("ascii"), hashlib.sha256).digest()
-            if not hmac.compare_digest(_decode(signature), expected):
-                raise ValueError()
             claims = json.loads(_decode(body))
             if not isinstance(claims, dict):
                 raise ValueError()
+            kid = claims.get("kid")
+            if not isinstance(kid, str) or kid not in self._keys:
+                raise ValueError()
+            if claims.get("alg") != "EdDSA" or claims.get("typ") != _APPROVAL_TYPE:
+                raise ValueError()
+            self._keys[kid].verify(_decode(signature), body.encode("ascii"))
             now = self._clock()
             approval_id = claims.get("jti")
             subject = claims.get("sub")
@@ -83,5 +101,5 @@ class OfflineApprovalVerifier:
                 raise ValueError()
             return approval_id
         except (ValueError, TypeError, KeyError, UnicodeError, binascii.Error,
-                UnicodeEncodeError, OverflowError):
+                OverflowError, InvalidSignature):
             raise PermissionError(APPROVAL_DENIED) from None
