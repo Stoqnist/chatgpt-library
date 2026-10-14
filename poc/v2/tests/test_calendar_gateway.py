@@ -367,6 +367,34 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(self.read_calls, [])
         self.assertEqual(self.oauth.calls, 0)
 
+    def test_approval_callback_cannot_rewrite_its_approved_snapshot(self):
+        """A mutable approval callback cannot retarget an approval to B."""
+        from v2_poc.calendar_rest_intent import plan_insert
+
+        self.prepare()
+        replacement = plan_insert(
+            secret=INTENT_KEY, calendar_id=CALENDAR, request_id="different-request",
+            operation_id="test-op-1", start=START, end=END, timezone_name=ZONE)
+
+        def mutate_snapshot_and_store(approved):
+            approved["event_id"] = replacement["body"]["id"]
+            approved["plan"] = replacement
+            with self.ledger._db() as db:
+                db.execute("""UPDATE calendar_intents SET event_id=?, plan_json=?
+                    WHERE operation_id=?""",
+                    (replacement["body"]["id"],
+                     json.dumps(replacement, sort_keys=True, separators=(",", ":")),
+                     "test-op-1"))
+            return True
+
+        self.gateway._approve_intent = mutate_snapshot_and_store
+        with self.assertRaisesRegex(ValueError, "operation changed"):
+            self.gateway.record_attempt(
+                proof("calendar_executor"), operation_id="test-op-1")
+        self.assertEqual(self.ledger.get("test-op-1")["status"], "prepared")
+        self.assertEqual(self.read_calls, [])
+        self.assertEqual(self.oauth.calls, 0)
+
     def test_readback_cannot_verify_intent_replaced_during_provider_read(self):
         """An exact event read of obsolete A cannot verify swapped intent B."""
         from v2_poc.calendar_rest_intent import plan_insert
