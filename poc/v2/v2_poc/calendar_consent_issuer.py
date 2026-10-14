@@ -191,6 +191,8 @@ class OfflineConsentIssuer:
         if not isinstance(challenge_id, str):
             raise PermissionError(APPROVAL_DENIED)
         with self._db() as db:
+            # Prevent simultaneous confirmations from both observing pending.
+            db.execute("BEGIN IMMEDIATE")
             challenge = db.execute("""SELECT subject,session_id,calendar_id,
                 operation_id,event_id,plan_sha256,expires_at,state
                 FROM consent_challenges WHERE challenge_id=?""",
@@ -242,6 +244,7 @@ class OfflineConsentIssuer:
         if state not in ("retired", "compromised"):
             raise ValueError("only retirement and compromise are supported")
         with self._db() as db:
+            db.execute("BEGIN IMMEDIATE")
             row = db.execute("""SELECT state FROM consent_signing_keys
                 WHERE key_id=?""", (key_id,)).fetchone()
             if (row is None or row[0] == "compromised"
