@@ -7,6 +7,8 @@ calendar, verify user approval, and supply the official HTTPS API transport.
 from __future__ import annotations
 
 import base64
+import binascii
+from contextlib import contextmanager
 from datetime import datetime
 import hashlib
 import hmac
@@ -46,6 +48,8 @@ class VerifiedAgent:
             if not hmac.compare_digest(_unb64(signature), expected):
                 raise ValueError()
             claims = json.loads(_unb64(body))
+            if not isinstance(claims, dict):
+                raise ValueError()
             now = self._clock()
             if (claims.get("aud") != self._audience
                     or claims.get("calendar") != calendar_id
@@ -54,7 +58,7 @@ class VerifiedAgent:
                     or not now < claims["exp"] <= now + 300):
                 raise ValueError()
             return claims["role"]
-        except (ValueError, TypeError, KeyError, UnicodeError, json.JSONDecodeError):
+        except (ValueError, TypeError, KeyError, UnicodeError, binascii.Error):
             raise PermissionError(DENIED) from None
 
 
@@ -91,10 +95,15 @@ class IntentLedger:
                 status TEXT NOT NULL CHECK (status IN ('prepared','unknown','verified'))
             )""")
 
+    @contextmanager
     def _db(self):
         db = sqlite3.connect(self.path, timeout=10)
-        db.execute("PRAGMA synchronous=FULL")
-        return db
+        try:
+            db.execute("PRAGMA synchronous=FULL")
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def prepare(self, operation_id, calendar_id, start_at, end_at):
         if (not isinstance(operation_id, str) or not operation_id
@@ -202,14 +211,15 @@ class CalendarGateway:
         except Exception:
             return {"status": "unknown", "external_actions": 0}
         expected = self._preview(row)
+        props = result.get("extendedProperties") if isinstance(result, dict) else None
+        private = props.get("private") if isinstance(props, dict) else None
         if (not isinstance(result, dict)
                 or result.get("id") != row["event_id"]
                 or result.get("status") != "confirmed"
                 or result.get("start") != expected["start"]
                 or result.get("end") != expected["end"]
-                or not isinstance(result.get("extendedProperties"), dict)
-                or result["extendedProperties"].get("private", {}).get("agencyOp")
-                != row["marker"]):
+                or not isinstance(private, dict)
+                or private.get("agencyOp") != row["marker"]):
             return {"status": "unknown", "external_actions": 0}
         self._ledger.verified(operation_id)
         return {"status": "verified", "external_actions": 0}
