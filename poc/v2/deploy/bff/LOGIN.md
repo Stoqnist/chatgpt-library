@@ -46,7 +46,7 @@ CI builds the image, validates Compose, runs signed fictional-provider HTTP
 regressions inside the non-root/read-only image, and starts the default inert
 container to verify its response and isolation configuration. This is not a
 live Google login, browser-cookie interoperability test, image vulnerability
-scan, pinned-base-image release, or deployment proof.
+scan or deployment proof. The base digest is pinned to the image resolved by CI.
 
 Private live acceptance still requires: open the login route in a real browser,
 complete Google sign-in with the allowed account, confirm the protected page,
