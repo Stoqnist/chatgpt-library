@@ -87,6 +87,15 @@ class OfflineConsentIssuer:
                 state TEXT NOT NULL CHECK (state IN
                     ('active','retired','compromised'))
             )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS consent_authority_revocations (
+                scope TEXT NOT NULL CHECK (scope IN ('session','principal','calendar')),
+                subject TEXT NOT NULL, target TEXT NOT NULL,
+                PRIMARY KEY(scope,subject,target)
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS consent_revocation_events (
+                event_id TEXT PRIMARY KEY, scope TEXT NOT NULL,
+                subject TEXT NOT NULL, target TEXT NOT NULL
+            )""")
             public_bytes = approval_private_key.public_key().public_bytes(
                 encoding=serialization.Encoding.Raw,
                 format=serialization.PublicFormat.Raw)
@@ -149,6 +158,9 @@ class OfflineConsentIssuer:
         display_digest = hashlib.sha256(json.dumps(
             display, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         with self._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if self._revoked(db, subject, sid, row["calendar_id"]):
+                raise PermissionError(APPROVAL_DENIED)
             db.execute("""INSERT INTO consent_challenges VALUES
                 (?,?,?,?,?,?,?,?,?, 'pending')""",
                 (ident, subject, sid, row["calendar_id"],
@@ -182,7 +194,8 @@ class OfflineConsentIssuer:
                     or choice.get("display_sha256") != challenge[6]
                     or not now < challenge[7] or challenge[8] != "pending"
                     or self._session_active(subject, sid) is not True
-                    or self._calendar_access(subject, sid, challenge[2]) is not True):
+                    or self._calendar_access(subject, sid, challenge[2]) is not True
+                    or self._revoked(db, subject, sid, challenge[2])):
                 raise PermissionError(APPROVAL_DENIED)
             approved = choice["decision"] == "approved"
             if approved:
@@ -217,6 +230,62 @@ class OfflineConsentIssuer:
             signature).decode("ascii").rstrip("=")
         return {"status": "issued", "approval_id": approval_id,
                 "approval_proof": proof, "expires_at": expiry}
+
+    @staticmethod
+    def _revoked(db, subject, sid, calendar_id):
+        return db.execute("""SELECT 1 FROM consent_authority_revocations
+            WHERE subject=? AND (scope='principal' OR
+                (scope='session' AND target=?) OR
+                (scope='calendar' AND target=?)) LIMIT 1""",
+            (subject, sid, calendar_id)).fetchone() is not None
+
+    def apply_verified_revocation(self, *, event_id, scope, subject, target=""):
+        """Apply an already-authenticated external revocation event, offline.
+
+        The caller MUST verify event issuer, signature, audience, ownership
+        and freshness BEFORE calling. This method does NOT authenticate the
+        caller; it is not a webhook or a production authorization API.
+        'principal' revokes every session of the configured issuer's subject.
+        'session' revokes one subject/session; 'calendar' revokes one grant.
+        All states are monotonic here: reauthorization needs fresh identity,
+        grant evidence, new consent and an explicit future policy design.
+        """
+        if (scope not in ("session", "principal", "calendar")
+                or not isinstance(event_id, str)
+                or not 16 <= len(event_id) <= 128
+                or not re.fullmatch(r"[A-Za-z0-9_-]+", event_id)
+                or not isinstance(subject, str) or not subject.strip()
+                or len(subject) > 128
+                or not isinstance(target, str) or len(target) > 512
+                or (scope == "principal" and target != "")
+                or (scope != "principal" and not target.strip())):
+            raise ValueError("invalid normalized authority revocation")
+        with self._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            previous = db.execute("""SELECT scope,subject,target
+                FROM consent_revocation_events WHERE event_id=?""",
+                (event_id,)).fetchone()
+            if previous is not None:
+                if previous != (scope, subject, target):
+                    raise ValueError("reused event ID with conflicting revocation")
+                return {"status": "already_applied"}
+            db.execute("""INSERT INTO consent_revocation_events
+                (event_id,scope,subject,target) VALUES (?,?,?,?)""",
+                (event_id, scope, subject, target))
+            db.execute("""INSERT OR IGNORE INTO consent_authority_revocations
+                (scope,subject,target) VALUES (?,?,?)""",
+                (scope, subject, target))
+            where = {
+                "session": ("subject=? AND session_id=?", (subject, target)),
+                "principal": ("subject=?", (subject,)),
+                "calendar": ("subject=? AND calendar_id=?", (subject, target)),
+            }
+            clause, params = where[scope]
+            db.execute("UPDATE consent_receipts SET state='revoked' WHERE "
+                       + clause + " AND state='issued'", params)
+            db.execute("UPDATE consent_challenges SET state='revoked' WHERE "
+                       + clause + " AND state='pending'", params)
+        return {"status": "revoked"}
 
     def set_key_state(self, key_id: str, *, state: str):
         """Simulated operator action: retire or quarantine a signing key.
