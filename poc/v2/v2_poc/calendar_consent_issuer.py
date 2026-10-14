@@ -9,7 +9,6 @@ from __future__ import annotations
 import base64
 from contextlib import contextmanager
 import hashlib
-import hmac
 import json
 import secrets
 import re
@@ -21,19 +20,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from .calendar_approval import APPROVAL_ACTION, APPROVAL_DENIED, plan_digest
 
-_SESSION_AUDIENCE = "agency-calendar-consent-session"
-_UI_AUDIENCE = "agency-calendar-consent-confirmation"
 _APPROVAL_AUDIENCE = "agency-calendar-approval"
 _APPROVAL_TYPE = "agency-calendar-approval-v1"
 _KEY_ID = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
-
-
-def _encode(payload: dict, key: bytes) -> str:
-    body = base64.urlsafe_b64encode(json.dumps(
-        payload, sort_keys=True, separators=(",", ":")).encode()).decode().rstrip("=")
-    sig = base64.urlsafe_b64encode(hmac.new(
-        key, body.encode("ascii"), hashlib.sha256).digest()).decode().rstrip("=")
-    return body + "." + sig
 
 
 def _identity(claims):
