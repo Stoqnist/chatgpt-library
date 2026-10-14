@@ -12,6 +12,7 @@ import hmac
 from html import escape
 from urllib.parse import urlsplit
 import json
+import re
 import secrets
 import sqlite3
 import time
@@ -54,6 +55,8 @@ class OfflineBrowserConsent:
         if (parsed.scheme != "https" or not parsed.hostname or parsed.username
                 or parsed.password or parsed.query or parsed.fragment
                 or parsed.path or parsed.port is not None
+                or not re.fullmatch(r"[A-Za-z0-9.-]+", parsed.netloc)
+                or ".." in parsed.netloc
                 or trusted_origin != "https://" + parsed.netloc):
             raise ValueError("exact HTTPS origin and client required")
         self.path = str(path)
