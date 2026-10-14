@@ -261,5 +261,137 @@ class ConsentIssuerTests(unittest.TestCase):
                          "prepared")
 
 
+    def test_issuer_rotation_retains_old_receipts_and_requires_new_public_trust(self):
+        row, _, old = self.prepare_approval()
+        new_issuer = self.make_issuer(private=APPROVAL_PRIVATE_NEW, kid=KID2)
+        self.assertEqual(self.issuer.set_key_state(KID1, state="retired"),
+                         {"status": "retired"})
+        self.assertEqual(self.public_verifier.verify(
+            old["approval_proof"], expected_row=row), (old["approval_id"], KID1))
+        # A retired key can verify preexisting short-lived receipts, but
+        # cannot issue new approvals.
+        pending = self.issuer.begin(session_proof=self.session(), row=row)
+        with self.assertRaises(PermissionError):
+            self.issuer.decide(
+                session_proof=self.session(),
+                confirmation_proof=self.confirmation(pending))
+
+        other = plan_insert(
+            secret=INTENT_KEY, calendar_id=CALENDAR, request_id="fictional-request-b",
+            operation_id="fictional-operation-b",
+            start=START, end=END, timezone_name=ZONE)
+        self.ledger.prepare("fictional-operation-b", other)
+        new_row = self.ledger.get("fictional-operation-b")
+        challenge = new_issuer.begin(session_proof=self.session(), row=new_row)
+        new = new_issuer.decide(
+            session_proof=self.session(),
+            confirmation_proof=self.confirmation(challenge))
+        with self.assertRaises(PermissionError):
+            self.public_verifier.verify(
+                new["approval_proof"], expected_row=new_row)
+        self.gateway._approval_verifier = self.make_verifier(include_second=True)
+        self.assertEqual(self.gateway.record_attempt(
+            "synthetic-executor", operation_id="fictional-operation-b",
+            approval_evidence=new["approval_proof"])["status"], "unknown")
+        self.assertEqual(self.gateway.record_attempt(
+            "synthetic-executor", operation_id="fictional-operation-a",
+            approval_evidence=old["approval_proof"])["status"], "unknown")
+        with new_issuer._db() as db:
+            rows = dict(db.execute(
+                "SELECT key_id,state FROM consent_signing_keys").fetchall())
+        self.assertEqual(rows, {KID1: "retired", KID2: "active"})
+
+    def test_compromised_key_quarantines_unconsumed_approval(self):
+        row, _, issued = self.prepare_approval()
+        self.assertEqual(self.public_verifier.verify(
+            issued["approval_proof"], expected_row=row),
+            (issued["approval_id"], KID1))
+        self.assertEqual(self.issuer.set_key_state(KID1, state="compromised"),
+                         {"status": "compromised"})
+        with self.issuer._db() as db:
+            self.assertEqual(db.execute(
+                "SELECT state FROM consent_receipts WHERE approval_id=?",
+                (issued["approval_id"],)).fetchone(), ("revoked",))
+        with self.assertRaises(PermissionError):
+            self.gateway.record_attempt(
+                "synthetic-executor", operation_id="fictional-operation-a",
+                approval_evidence=issued["approval_proof"])
+        self.assertEqual(self.ledger.get("fictional-operation-a")["status"],
+                         "prepared")
+        with self.assertRaises(PermissionError):
+            self.issuer.set_key_state(KID1, state="retired")
+        with self.assertRaises(PermissionError):
+            self.issuer.set_key_state(KID1, state="compromised")
+        with self.assertRaises(PermissionError):
+            self.issuer.decide(
+                session_proof=self.session(), confirmation_proof=self.confirmation(
+                    self.issuer.begin(
+                        session_proof=self.session(),
+                        row=self.ledger.get("fictional-operation-a"))))
+
+    def test_compromise_between_verification_and_cas_fails_closed(self):
+        _, _, issued = self.prepare_approval()
+        public, issuer = self.public_verifier, self.issuer
+
+        class CompromiseBetweenReads:
+            def verify(self, proof, *, expected_row):
+                validated = public.verify(proof, expected_row=expected_row)
+                issuer.set_key_state(KID1, state="compromised")
+                return validated
+
+        self.gateway._approval_verifier = CompromiseBetweenReads()
+        with self.assertRaises(PermissionError):
+            self.gateway.record_attempt(
+                "synthetic-executor", operation_id="fictional-operation-a",
+                approval_evidence=issued["approval_proof"])
+        self.assertEqual(self.ledger.get("fictional-operation-a")["status"],
+                         "prepared")
+
+    def test_signer_spoof_and_key_id_receipt_mismatch_denied(self):
+        row, _, issued = self.prepare_approval()
+        body, sig = issued["approval_proof"].split(".")
+        claims = json.loads(base64.urlsafe_b64decode(
+            body + "=" * (-len(body) % 4)))
+        for changes in ({"kid": KID2}, {"alg": "HS256"},
+                        {"typ": "unexpected"}, {"plan_sha256": "0" * 64}):
+            altered = dict(claims, **changes)
+            encoded = base64.urlsafe_b64encode(json.dumps(
+                altered, sort_keys=True, separators=(",", ":")).encode()
+            ).decode().rstrip("=")
+            with self.subTest(changes=changes):
+                with self.assertRaises(PermissionError):
+                    self.make_verifier(include_second=True).verify(
+                        encoded + "." + sig, expected_row=row)
+        with self.assertRaises(ValueError):
+            OfflineApprovalVerifier(
+                verification_keys={KID1: APPROVAL_PRIVATE})
+        with self.assertRaises(ValueError):
+            self.make_issuer(private=APPROVAL_PRIVATE_NEW, kid=KID1)
+
+        # An old signing key cannot claim a receipt whose provenance is
+        # registered to the new signing key, even when all intent fields match.
+        newer = self.make_issuer(private=APPROVAL_PRIVATE_NEW, kid=KID2)
+        second = newer.decide(
+            session_proof=self.session(),
+            confirmation_proof=self.confirmation(newer.begin(
+                session_proof=self.session(), row=row)))
+        new_body = second["approval_proof"].split(".")[0]
+        new_claims = json.loads(base64.urlsafe_b64decode(
+            new_body + "=" * (-len(new_body) % 4)))
+        new_claims["kid"] = KID1
+        old_body = base64.urlsafe_b64encode(json.dumps(
+            new_claims, sort_keys=True, separators=(",", ":")).encode()
+        ).decode().rstrip("=")
+        old_sig = base64.urlsafe_b64encode(
+            APPROVAL_PRIVATE.sign(old_body.encode())).decode().rstrip("=")
+        self.gateway._approval_verifier = self.make_verifier(include_second=True)
+        with self.assertRaises(PermissionError):
+            self.gateway.record_attempt(
+                "synthetic-executor", operation_id="fictional-operation-a",
+                approval_evidence=old_body + "." + old_sig)
+        self.assertEqual(self.ledger.get("fictional-operation-a")["status"],
+                         "prepared")
+
+
 if __name__ == "__main__":
     unittest.main()
