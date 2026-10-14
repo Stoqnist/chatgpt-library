@@ -337,5 +337,108 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(self.ledger.get("test-op-1")["event_id"], first["id"])
 
 
+    def test_approval_cannot_mark_replaced_intent_during_callback(self):
+        """Trusted approval of A must never advance substituted intent B."""
+        from v2_poc.calendar_rest_intent import plan_insert
+
+        original = self.prepare()
+        replacement = plan_insert(
+            secret=INTENT_KEY, calendar_id=CALENDAR, request_id="different-request",
+            operation_id="test-op-1", start=START, end=END, timezone_name=ZONE)
+        self.assertNotEqual(original["id"], replacement["body"]["id"])
+
+        def replace_during_approval(approved_row):
+            self.assertEqual(approved_row["event_id"], original["id"])
+            with self.ledger._db() as db:
+                db.execute("""UPDATE calendar_intents SET event_id=?, plan_json=?
+                    WHERE operation_id=?""",
+                    (replacement["body"]["id"],
+                     json.dumps(replacement, sort_keys=True, separators=(",", ":")),
+                     "test-op-1"))
+            return True
+
+        self.gateway._approve_intent = replace_during_approval
+        with self.assertRaisesRegex(ValueError, "operation changed"):
+            self.gateway.record_attempt(
+                proof("calendar_executor"), operation_id="test-op-1")
+        current = self.ledger.get("test-op-1")
+        self.assertEqual(current["event_id"], replacement["body"]["id"])
+        self.assertEqual(current["status"], "prepared")
+        self.assertEqual(self.read_calls, [])
+        self.assertEqual(self.oauth.calls, 0)
+
+    def test_approval_callback_cannot_rewrite_its_approved_snapshot(self):
+        """A mutable approval callback cannot retarget an approval to B."""
+        from v2_poc.calendar_rest_intent import plan_insert
+
+        self.prepare()
+        replacement = plan_insert(
+            secret=INTENT_KEY, calendar_id=CALENDAR, request_id="different-request",
+            operation_id="test-op-1", start=START, end=END, timezone_name=ZONE)
+
+        def mutate_snapshot_and_store(approved):
+            approved["event_id"] = replacement["body"]["id"]
+            approved["plan"] = replacement
+            with self.ledger._db() as db:
+                db.execute("""UPDATE calendar_intents SET event_id=?, plan_json=?
+                    WHERE operation_id=?""",
+                    (replacement["body"]["id"],
+                     json.dumps(replacement, sort_keys=True, separators=(",", ":")),
+                     "test-op-1"))
+            return True
+
+        self.gateway._approve_intent = mutate_snapshot_and_store
+        with self.assertRaisesRegex(ValueError, "operation changed"):
+            self.gateway.record_attempt(
+                proof("calendar_executor"), operation_id="test-op-1")
+        self.assertEqual(self.ledger.get("test-op-1")["status"], "prepared")
+        self.assertEqual(self.read_calls, [])
+        self.assertEqual(self.oauth.calls, 0)
+
+    def test_readback_cannot_verify_intent_replaced_during_provider_read(self):
+        """An exact event read of obsolete A cannot verify swapped intent B."""
+        from v2_poc.calendar_rest_intent import plan_insert
+
+        original = self.prepare()
+        self.attempt()
+        replacement = plan_insert(
+            secret=INTENT_KEY, calendar_id=CALENDAR, request_id="different-request",
+            operation_id="test-op-1", start=START, end=END, timezone_name=ZONE)
+
+        def replace_during_read(**kwargs):
+            self.assertEqual(kwargs["event_id"], original["id"])
+            with self.ledger._db() as db:
+                db.execute("""UPDATE calendar_intents SET event_id=?, plan_json=?
+                    WHERE operation_id=?""",
+                    (replacement["body"]["id"],
+                     json.dumps(replacement, sort_keys=True, separators=(",", ":")),
+                     "test-op-1"))
+            return {**original, "status": "confirmed"}
+
+        self.gateway._read_event = replace_during_read
+        result = self.gateway.recover(proof(), operation_id="test-op-1")
+        self.assertEqual(result, {"status": "unknown", "external_actions": 0})
+        self.assertEqual(self.ledger.get("test-op-1")["status"], "unknown")
+        self.assertEqual(self.ledger.get("test-op-1")["event_id"],
+                         replacement["body"]["id"])
+        self.assertEqual(self.oauth.calls, 1)
+
+    def test_readback_cannot_verify_intent_deleted_during_provider_read(self):
+        original = self.prepare()
+        self.attempt()
+
+        def delete_during_read(**kwargs):
+            with self.ledger._db() as db:
+                db.execute("DELETE FROM calendar_intents WHERE operation_id=?",
+                           ("test-op-1",))
+            return {**original, "status": "confirmed"}
+
+        self.gateway._read_event = delete_during_read
+        self.assertEqual(self.gateway.recover(proof(), operation_id="test-op-1"),
+                         {"status": "unknown", "external_actions": 0})
+        self.assertIsNone(self.ledger.get("test-op-1"))
+        self.assertEqual(self.oauth.calls, 1)
+
+
 if __name__ == "__main__":
     unittest.main()
