@@ -56,6 +56,7 @@ class ConsentIssuerTests(unittest.TestCase):
         self.path = Path(tmp.name) / "synthetic.sqlite"
         self.now = [NOW]
         self.active_sessions = {(SUBJECT, SID)}
+        self.allowed_calendars = {(SUBJECT, CALENDAR)}
         self.ledger = IntentLedger(
             self.path, require_approval_registry=True, clock=lambda: self.now[0])
         self.issuer = self.make_issuer()
@@ -81,6 +82,7 @@ class ConsentIssuerTests(unittest.TestCase):
                 public_keys={UI_KID: UI_PRIVATE.public_key()},
                 clock=lambda: self.now[0]),
             session_active=lambda sub, sid: (sub, sid) in self.active_sessions,
+            calendar_access=lambda sub, sid, cid: (sub, cid) in self.allowed_calendars,
             approval_private_key=private, approval_key_id=kid,
             clock=lambda: self.now[0])
 
@@ -519,6 +521,74 @@ class ConsentIssuerTests(unittest.TestCase):
             self.gateway.record_attempt(
                 "synthetic-executor", operation_id="fictional-operation-a",
                 approval_evidence=issued["approval_proof"])
+
+
+    def test_revoked_session_and_resource_grant_deny_fresh_consent(self):
+        row = self.ledger.get("fictional-operation-a")
+        challenge = self.issuer.begin(session_proof=self.session(), row=row)
+        decision = self.confirmation(challenge)
+        self.active_sessions.clear()
+        with self.assertRaises(PermissionError):
+            self.issuer.begin(session_proof=self.session(), row=row)
+        with self.assertRaises(PermissionError):
+            self.issuer.decide(
+                session_proof=self.session(), confirmation_proof=decision)
+        self.active_sessions.add((SUBJECT, SID))
+        self.allowed_calendars.clear()
+        with self.assertRaises(PermissionError):
+            self.issuer.begin(session_proof=self.session(), row=row)
+        with self.assertRaises(PermissionError):
+            self.issuer.decide(
+                session_proof=self.session(), confirmation_proof=decision)
+        self.assertEqual(self.ledger.get("fictional-operation-a")["status"],
+                         "prepared")
+
+    def test_signed_ui_claim_must_match_exact_preview_display_hash(self):
+        row = self.ledger.get("fictional-operation-a")
+        challenge = self.issuer.begin(session_proof=self.session(), row=row)
+        self.assertEqual(challenge["display_sha256"], hashlib.sha256(
+            json.dumps(challenge["display"], sort_keys=True,
+                       separators=(",", ":")).encode()).hexdigest())
+        for changes in (
+                {"display_sha256": "0" * 64},
+                {"plan_sha256": "0" * 64},
+                {"challenge_id": "another-challenge"},
+                {"decision": "maybe"},
+                {"sid": "different-session-id-1234"},
+                {"iat": self.now[0] + 60},
+                {"exp": self.now[0] + 120},
+                {"kid": "unknown-ui-key"},
+                {"typ": "agency-session-attestation-v1"}):
+            with self.subTest(changes=changes):
+                with self.assertRaises(PermissionError):
+                    self.issuer.decide(
+                        session_proof=self.session(),
+                        confirmation_proof=self.confirmation(
+                            challenge, changes=changes))
+        with self.assertRaises(PermissionError):
+            self.issuer.decide(
+                session_proof=self.session(),
+                confirmation_proof=self.confirmation(
+                    challenge, key=SESSION_PRIVATE))
+        accepted = self.issuer.decide(
+            session_proof=self.session(),
+            confirmation_proof=self.confirmation(challenge))
+        self.assertEqual(accepted["status"], "issued")
+
+    def test_idp_forgery_and_valid_but_inactive_session_fail_closed(self):
+        row = self.ledger.get("fictional-operation-a")
+        with self.assertRaises(PermissionError):
+            self.issuer.begin(
+                session_proof=self.session(key=UI_PRIVATE), row=row)
+        with self.assertRaises(PermissionError):
+            self.issuer.begin(
+                session_proof=self.session(exp=self.now[0] + 901), row=row)
+        with self.assertRaises(PermissionError):
+            self.issuer.begin(
+                session_proof=self.session(sid="fictional-nonactive-session-2"),
+                row=row)
+        self.assertEqual(self.ledger.get("fictional-operation-a")["status"],
+                         "prepared")
 
 
 if __name__ == "__main__":
