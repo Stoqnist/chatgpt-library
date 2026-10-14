@@ -644,19 +644,44 @@ class ConsentIssuerTests(unittest.TestCase):
 
     def test_subject_only_logout_revokes_all_sessions_but_not_other_subject(self):
         row, _, issued = self.prepare_approval()
+        alternate_sid = "fictional-session-identifier-b"
+        self.active_sessions.add((SUBJECT, alternate_sid))
+        proof_b = self.session(sid=alternate_sid)
+        challenge_b = self.issuer.begin(session_proof=proof_b, row=row)
+        issued_b = self.issuer.decide(
+            session_proof=proof_b,
+            confirmation_proof=self.confirmation(
+                challenge_b, session=(SUBJECT, alternate_sid)))
+        # An unrelated subject with independently granted access is not
+        # invalidated by this subject-scoped logout event.
+        other = "fictional-other-subject"
+        self.active_sessions.add((other, SID))
+        self.allowed_calendars.add((other, CALENDAR))
+        proof_other = self.session(sub=other)
+        challenge_other = self.issuer.begin(session_proof=proof_other, row=row)
+        issued_other = self.issuer.decide(
+            session_proof=proof_other,
+            confirmation_proof=self.confirmation(
+                challenge_other, session=(other, SID)))
         self.issuer.apply_verified_revocation(
             event_id="synthetic-subject-logout-0001", scope="principal",
             subject=SUBJECT)
         with self.assertRaises(PermissionError):
             self.make_issuer().begin(session_proof=self.session(), row=row)
         with self.assertRaises(PermissionError):
+            self.make_issuer().begin(session_proof=proof_b, row=row)
+        with self.assertRaises(PermissionError):
             self.gateway.record_attempt(
                 "synthetic-executor", operation_id="fictional-operation-a",
                 approval_evidence=issued["approval_proof"])
         with self.issuer._db() as db:
+            for approval_id in (issued["approval_id"], issued_b["approval_id"]):
+                self.assertEqual(db.execute(
+                    "SELECT state FROM consent_receipts WHERE approval_id=?",
+                    (approval_id,)).fetchone(), ("revoked",))
             self.assertEqual(db.execute(
                 "SELECT state FROM consent_receipts WHERE approval_id=?",
-                (issued["approval_id"],)).fetchone(), ("revoked",))
+                (issued_other["approval_id"],)).fetchone(), ("issued",))
 
     def test_authority_revocation_between_proof_and_attempt_cas(self):
         _, _, issued = self.prepare_approval()
