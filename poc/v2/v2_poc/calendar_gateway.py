@@ -18,7 +18,9 @@ import sqlite3
 import time
 
 
-READ_FIELDS = "id,status,start(dateTime),end(dateTime),extendedProperties(private)"
+READ_FIELDS = ("id,status,summary,visibility,transparency,attendees(email),"
+               "reminders(useDefault,overrides),conferenceData,hangoutLink,"
+               "start(dateTime),end(dateTime),extendedProperties(private)")
 DENIED = "calendar recovery not authorized"
 
 
@@ -39,7 +41,7 @@ class VerifiedAgent:
             raise ValueError("signing key must be at least 32 bytes")
         self._key, self._audience, self._clock = signing_key, audience, clock
 
-    def verify(self, proof, *, calendar_id, allowed_roles):
+    def verify(self, proof, *, calendar_id, allowed_roles, operation_id):
         try:
             if not isinstance(proof, str) or len(proof) > 2048:
                 raise ValueError()
@@ -53,6 +55,7 @@ class VerifiedAgent:
             now = self._clock()
             if (claims.get("aud") != self._audience
                     or claims.get("calendar") != calendar_id
+                    or claims.get("operation_id") != operation_id
                     or claims.get("role") not in allowed_roles
                     or type(claims.get("exp")) not in (int, float)
                     or not now < claims["exp"] <= now + 300):
@@ -168,7 +171,7 @@ class CalendarGateway:
 
     def prepare(self, proof, *, operation_id, start_at, end_at):
         self._verify(proof, calendar_id=self._calendar_id,
-                     allowed_roles={"calendar_executor"})
+                     allowed_roles={"calendar_executor"}, operation_id=operation_id)
         row = self._ledger.prepare(operation_id, self._calendar_id,
                                    start_at, end_at)
         return self._preview(row)
@@ -180,6 +183,7 @@ class CalendarGateway:
             "start": {"dateTime": row["start_at"]},
             "end": {"dateTime": row["end_at"]},
             "attendees": [], "visibility": "private",
+            "transparency": "transparent",
             "reminders": {"useDefault": False, "overrides": []},
             "extendedProperties": {"private": {"agencyOp": row["marker"]}},
         }
@@ -190,7 +194,7 @@ class CalendarGateway:
         This method performs NO provider write. Real insertion remains disabled.
         """
         self._verify(proof, calendar_id=self._calendar_id,
-                     allowed_roles={"calendar_executor"})
+                     allowed_roles={"calendar_executor"}, operation_id=operation_id)
         row = self._ledger.get(operation_id)
         if row is None or row["calendar_id"] != self._calendar_id:
             raise PermissionError(DENIED)
@@ -203,13 +207,11 @@ class CalendarGateway:
     def recover(self, proof, *, operation_id):
         """Exact-ID, read-only recovery; unknown is never proof of nonapplication."""
         self._verify(proof, calendar_id=self._calendar_id,
-                     allowed_roles={"calendar_recovery"})
+                     allowed_roles={"calendar_recovery"}, operation_id=operation_id)
         row = self._ledger.get(operation_id)
         if (row is None or row["calendar_id"] != self._calendar_id
                 or row["owner"] != "calendar" or row["status"] == "prepared"):
             raise PermissionError(DENIED)
-        if row["status"] == "verified":
-            return {"status": "verified", "external_actions": 0}
         try:
             token = self._oauth.access_token()
             result = self._read_event(
@@ -219,10 +221,20 @@ class CalendarGateway:
             return {"status": "unknown", "external_actions": 0}
         expected = self._preview(row)
         props = result.get("extendedProperties") if isinstance(result, dict) else None
+        reminders = result.get("reminders") if isinstance(result, dict) else None
         private = props.get("private") if isinstance(props, dict) else None
         if (not isinstance(result, dict)
                 or result.get("id") != row["event_id"]
                 or result.get("status") != "confirmed"
+                or result.get("summary") != expected["summary"]
+                or result.get("visibility") != expected["visibility"]
+                or result.get("transparency") != "transparent"
+                or result.get("attendees", []) != []
+                or not isinstance(reminders, dict)
+                or reminders.get("useDefault") is not False
+                or reminders.get("overrides", []) != []
+                or result.get("conferenceData")
+                or result.get("hangoutLink")
                 or not isinstance(result.get("start"), dict)
                 or not isinstance(result.get("end"), dict)
                 or not _same_instant(result["start"].get("dateTime"),
