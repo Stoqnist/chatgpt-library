@@ -153,7 +153,7 @@ class GatewayTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.db = Path(self.tmp.name) / "intents.sqlite"
-        self.ledger = IntentLedger(self.db)
+        self.ledger = IntentLedger(self.db, require_approval_registry=False)
         self.oauth = TokenForTests()
         self.read_calls = []
         self.event = None
@@ -303,7 +303,7 @@ class GatewayTests(unittest.TestCase):
         self.prepare()
         self.attempt()
         first = self.ledger.get("test-op-1")
-        reopened = IntentLedger(self.db)
+        reopened = IntentLedger(self.db, require_approval_registry=False)
         with reopened._db() as db:
             approval_id = db.execute(
                 "SELECT approval_id FROM calendar_intents WHERE operation_id=?",
@@ -413,7 +413,7 @@ class GatewayTests(unittest.TestCase):
 
     def test_prepared_retry_restart_identity_and_changed_intent_rejection(self):
         first = self.prepare()
-        reopened = IntentLedger(self.db)
+        reopened = IntentLedger(self.db, require_approval_registry=False)
         self.gateway._ledger = reopened
         self.assertEqual(self.prepare(), first)
         self.assertEqual(reopened.get("test-op-1")["event_id"], first["id"])
