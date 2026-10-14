@@ -18,7 +18,7 @@ import sqlite3
 import time
 
 
-READ_FIELDS = "id,status,start,end,extendedProperties/private"
+READ_FIELDS = "id,status,start(dateTime),end(dateTime),extendedProperties(private)"
 DENIED = "calendar recovery not authorized"
 
 
@@ -72,6 +72,13 @@ def _utc_time(value):
         return dt
     except (ValueError, OverflowError):
         raise ValueError("invalid event time") from None
+
+
+def _same_instant(observed, expected):
+    try:
+        return _utc_time(observed) == _utc_time(expected)
+    except ValueError:
+        return False
 
 
 class IntentLedger:
@@ -216,8 +223,12 @@ class CalendarGateway:
         if (not isinstance(result, dict)
                 or result.get("id") != row["event_id"]
                 or result.get("status") != "confirmed"
-                or result.get("start") != expected["start"]
-                or result.get("end") != expected["end"]
+                or not isinstance(result.get("start"), dict)
+                or not isinstance(result.get("end"), dict)
+                or not _same_instant(result["start"].get("dateTime"),
+                                     row["start_at"])
+                or not _same_instant(result["end"].get("dateTime"),
+                                     row["end_at"])
                 or not isinstance(private, dict)
                 or private.get("agencyOp") != row["marker"]):
             return {"status": "unknown", "external_actions": 0}
