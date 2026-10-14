@@ -77,6 +77,7 @@ class IntentLedger:
                 calendar_id TEXT NOT NULL,
                 event_id TEXT NOT NULL UNIQUE,
                 plan_json TEXT NOT NULL,
+                approval_id TEXT UNIQUE,
                 status TEXT NOT NULL CHECK (status IN ('prepared','unknown','verified'))
             )""")
 
@@ -129,14 +130,18 @@ class IntentLedger:
             json.dumps(row["plan"], sort_keys=True, separators=(",", ":")),
         )
 
-    def mark_attempt(self, expected_row):
-        """Atomically refuse an intent change between approval and attempt."""
+    def mark_attempt(self, expected_row, *, approval_id):
+        """Atomically bind one approval receipt to the exact attempted plan."""
+        if not isinstance(approval_id, str) or not approval_id:
+            raise ValueError("approval evidence missing")
         # Committed BEFORE any real provider call. No provider call exists here.
         with self._db() as db:
-            result = db.execute("""UPDATE calendar_intents SET status='unknown'
+            result = db.execute("""UPDATE calendar_intents
+                SET status='unknown', approval_id=?
                 WHERE operation_id=? AND owner=? AND calendar_id=?
-                  AND event_id=? AND plan_json=? AND status='prepared'""",
-                self._row_identity(expected_row))
+                  AND event_id=? AND plan_json=? AND status='prepared'
+                  AND approval_id IS NULL""",
+                (approval_id, *self._row_identity(expected_row)))
             if result.rowcount != 1:
                 raise ValueError("operation changed, attempted or missing")
 
@@ -156,7 +161,7 @@ class CalendarGateway:
     """Bounded offline preflight/recovery; no provider insert or other writes."""
 
     def __init__(self, *, calendar_id, intent_key, verifier, ledger, oauth, read_event,
-                 approve_intent=None):
+                 approval_verifier, approve_intent=None):
         if not isinstance(calendar_id, str) or not calendar_id:
             raise ValueError("calendar ID must be configured privately")
         if not isinstance(intent_key, bytes) or len(intent_key) < 32:
@@ -167,6 +172,9 @@ class CalendarGateway:
         self._ledger = ledger
         self._oauth = oauth
         self._read_event = read_event
+        if approval_verifier is None or not callable(getattr(approval_verifier, "verify", None)):
+            raise ValueError("independent approval verifier required")
+        self._approval_verifier = approval_verifier
         self._approve_intent = approve_intent
 
     def prepare(self, proof, *, operation_id, request_id, start_at, end_at,
@@ -180,18 +188,22 @@ class CalendarGateway:
         row = self._ledger.prepare(operation_id, plan)
         return row["plan"]["body"]
 
-    def record_attempt(self, proof, *, operation_id):
-        """Only record an approved attempt; NEVER create a provider event."""
+    def record_attempt(self, proof, *, operation_id, approval_evidence):
+        """Verify exact, independent approval before a synthetic attempt."""
         self._verify(proof, calendar_id=self._calendar_id,
                      allowed_roles={"calendar_executor"}, operation_id=operation_id)
         row = self._ledger.get(operation_id)
         if (row is None or row["calendar_id"] != self._calendar_id
                 or row["owner"] != "calendar"):
             raise PermissionError(DENIED)
-        # The approval callback must not mutate the snapshot used by CAS.
-        if self._approve_intent is None or self._approve_intent(deepcopy(row)) is not True:
+        # Optional external policy can veto; it can never replace a signed proof.
+        if self._approve_intent is not None and self._approve_intent(deepcopy(row)) is not True:
             raise PermissionError("write approval unavailable")
-        self._ledger.mark_attempt(row)
+        # Verify expiry and exact intent immediately before the conditional write.
+        # The signer must authenticate real user consent outside this POC.
+        approval_id = self._approval_verifier.verify(
+            approval_evidence, expected_row=deepcopy(row))
+        self._ledger.mark_attempt(row, approval_id=approval_id)
         return {"status": "unknown", "external_actions": 0}
 
     def recover(self, proof, *, operation_id):
