@@ -56,7 +56,8 @@ def main():
     port = int(os.environ.get("AGENCY_BFF_PORT", "8000"))
     if bind not in ("127.0.0.1", "0.0.0.0") or not 1024 <= port <= 65535:
         raise ValueError("unsupported staging listener")
-    with make_server(bind, port, application, handler_class=_NoAccessLog) as server:
+    from .bff_http import configured_application
+    with make_server(bind, port, configured_application(), handler_class=_NoAccessLog) as server:
         server.serve_forever()
 
 

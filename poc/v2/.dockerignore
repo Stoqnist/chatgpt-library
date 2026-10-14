@@ -3,4 +3,5 @@
 *
 !v2_poc/
 !v2_poc/__init__.py
-!v2_poc/bff_offline.py
+!v2_poc/bff_*.py
+!requirements-gateway.txt
