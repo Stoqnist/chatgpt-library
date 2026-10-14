@@ -12,16 +12,21 @@ import sqlite3
 import unittest
 
 from v2_poc.calendar_approval import APPROVAL_ACTION, plan_digest, OfflineApprovalVerifier
-from v2_poc.calendar_consent_issuer import (
-    OfflineConsentIssuer, _encode, _SESSION_AUDIENCE, _UI_AUDIENCE,
+from v2_poc.calendar_consent_issuer import OfflineConsentIssuer
+from v2_poc.calendar_identity_contract import (
+    session_verifier, consent_display_verifier,
 )
 from v2_poc.calendar_gateway import CalendarGateway, IntentLedger
 from v2_poc.calendar_rest_intent import plan_insert
 
 
 NOW = 1_000_000
-SESSION_KEY = b"synthetic-independent-session-root-32"
-UI_KEY = b"synthetic-independent-ui-consent-root-32"
+SESSION_PRIVATE = Ed25519PrivateKey.from_private_bytes(
+    hashlib.sha256(b"fictional-external-idp-only-test-private").digest())
+UI_PRIVATE = Ed25519PrivateKey.from_private_bytes(
+    hashlib.sha256(b"fictional-external-consent-ui-only-test-private").digest())
+IDP_KID = "idp-fixture-key"
+UI_KID = "ui-fixture-key"
 APPROVAL_PRIVATE = Ed25519PrivateKey.from_private_bytes(
     hashlib.sha256(b"fictional-consent-signing-key-one").digest())
 APPROVAL_PRIVATE_NEW = Ed25519PrivateKey.from_private_bytes(
@@ -50,6 +55,7 @@ class ConsentIssuerTests(unittest.TestCase):
         self.addCleanup(tmp.cleanup)
         self.path = Path(tmp.name) / "synthetic.sqlite"
         self.now = [NOW]
+        self.active_sessions = {(SUBJECT, SID)}
         self.ledger = IntentLedger(
             self.path, require_approval_registry=True, clock=lambda: self.now[0])
         self.issuer = self.make_issuer()
@@ -67,7 +73,14 @@ class ConsentIssuerTests(unittest.TestCase):
 
     def make_issuer(self, *, private=APPROVAL_PRIVATE, kid=KID1):
         return OfflineConsentIssuer(
-            self.path, session_key=SESSION_KEY, ui_key=UI_KEY,
+            self.path,
+            session_verifier=session_verifier(
+                public_keys={IDP_KID: SESSION_PRIVATE.public_key()},
+                clock=lambda: self.now[0]),
+            ui_verifier=consent_display_verifier(
+                public_keys={UI_KID: UI_PRIVATE.public_key()},
+                clock=lambda: self.now[0]),
+            session_active=lambda sub, sid: (sub, sid) in self.active_sessions,
             approval_private_key=private, approval_key_id=kid,
             clock=lambda: self.now[0])
 
@@ -78,25 +91,39 @@ class ConsentIssuerTests(unittest.TestCase):
         return OfflineApprovalVerifier(
             verification_keys=ring, clock=lambda: self.now[0])
 
-    def session(self, *, sub=SUBJECT, sid=SID, key=SESSION_KEY, exp=None):
-        return _encode({
-            "iss": "agency-session", "aud": _SESSION_AUDIENCE, "sub": sub,
-            "sid": sid, "exp": exp if exp is not None else self.now[0] + 600,
+    @staticmethod
+    def sign_fixture(claims, private):
+        """TEST-ONLY fake external signer. Never part of runtime identity code."""
+        body = base64.urlsafe_b64encode(json.dumps(
+            claims, sort_keys=True, separators=(",", ":")).encode()
+        ).decode().rstrip("=")
+        signature = private.sign(body.encode("ascii"))
+        return body + "." + base64.urlsafe_b64encode(
+            signature).decode().rstrip("=")
+
+    def session(self, *, sub=SUBJECT, sid=SID, key=SESSION_PRIVATE, exp=None):
+        return self.sign_fixture({
+            "iss": "agency-idp-fixture", "aud": "agency-calendar-consent-session",
+            "typ": "agency-session-attestation-v1", "alg": "EdDSA",
+            "kid": IDP_KID, "sub": sub, "sid": sid,
+            "iat": self.now[0], "exp": exp if exp is not None else self.now[0] + 600,
         }, key)
 
     def confirmation(self, challenge, *, session=None, decision="approved",
-                     changes=None, key=UI_KEY):
-        session = session or (SUBJECT, SID)
+                     changes=None, key=UI_PRIVATE):
+        subject, sid = session or (SUBJECT, SID)
         claims = {
-            "iss": "agency-consent-ui", "aud": _UI_AUDIENCE,
-            "sub": session[0], "sid": session[1],
+            "iss": "agency-ui-fixture", "aud": "agency-calendar-consent-confirmation",
+            "typ": "agency-consent-display-attestation-v1", "alg": "EdDSA",
+            "kid": UI_KID, "sub": subject, "sid": sid,
             "action": APPROVAL_ACTION, "decision": decision,
             "challenge_id": challenge["challenge_id"],
             "plan_sha256": challenge["plan_sha256"],
-            "exp": self.now[0] + 60,
+            "display_sha256": challenge["display_sha256"],
+            "iat": self.now[0], "exp": self.now[0] + 60,
         }
         claims.update(changes or {})
-        return _encode(claims, key)
+        return self.sign_fixture(claims, key)
 
     def prepare_approval(self):
         row = self.ledger.get("fictional-operation-a")
@@ -134,7 +161,7 @@ class ConsentIssuerTests(unittest.TestCase):
     def test_untrusted_session_wrong_ui_session_and_decline_fail_closed(self):
         row = self.ledger.get("fictional-operation-a")
         with self.assertRaises(PermissionError):
-            self.issuer.begin(session_proof=self.session(key=UI_KEY), row=row)
+            self.issuer.begin(session_proof=self.session(key=UI_PRIVATE), row=row)
         with self.assertRaises(PermissionError):
             self.issuer.begin(session_proof=self.session(sid="bad"), row=row)
         ch = self.issuer.begin(session_proof=self.session(), row=row)
@@ -153,7 +180,7 @@ class ConsentIssuerTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.issuer.decide(
                 session_proof=self.session(),
-                confirmation_proof=self.confirmation(ch, key=SESSION_KEY))
+                confirmation_proof=self.confirmation(ch, key=SESSION_PRIVATE))
         declined = self.issuer.decide(
             session_proof=self.session(),
             confirmation_proof=self.confirmation(ch, decision="declined"))
