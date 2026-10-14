@@ -64,7 +64,7 @@ class OfflineApprovalVerifier:
         self._issuer = issuer
         self._clock = clock
 
-    def verify(self, proof: str, *, expected_row: dict) -> str:
+    def verify(self, proof: str, *, expected_row: dict) -> tuple[str, str]:
         """Return (receipt ID, signing key ID) for a valid exact-plan proof."""
         try:
             if not isinstance(proof, str) or len(proof) > 4096:
