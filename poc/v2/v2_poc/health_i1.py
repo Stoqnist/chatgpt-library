@@ -146,19 +146,28 @@ class MockJourneyIntegration:
 
     def reconcile(self, operation_id, *, requester_owner=None):
         """Inspect with separately scoped fictional read permission, never approval."""
-        if not isinstance(operation_id, str) or operation_id not in self._prior_uncertain:
-            raise ValueError("no superseded unknown attempt available to inspect")
-        operation = self._prior_uncertain[operation_id]
+        # This narrow mock grant index precedes all operation/history lookups.
+        # No grant, missing ID, or inaccessible history have one outward denial.
+        # The executor subsequently checks the full owner/request/ID/resource
+        # binding before inspecting any mock provider evidence.
+        denied = "recovery read not authorized"
+        if (not isinstance(operation_id, str)
+                or not any(owner == requester_owner and op_id == operation_id
+                           for owner, _, op_id, _ in self._recovery_read_permissions)):
+            raise PermissionError(denied)
+        operation = self._prior_uncertain.get(operation_id)
+        if operation is None:
+            raise PermissionError(denied)
         prior = next((o for o in self._prior_outcomes
                       if o["operation_id"] == operation_id
                       and o["request_id"] == operation["request_id"]
                       and o["status"] == "unknown"), None)
         if prior is None:
-            raise ValueError("historical unknown outcome is unavailable")
+            raise PermissionError(denied)
         inspected = self.executor.inspect_only(
             deepcopy(operation), requester_owner=requester_owner)
         if inspected.get("reason") == "recovery_read_not_authorized":
-            raise PermissionError("recovery read not authorized")
+            raise PermissionError(denied)
         if inspected["status"] not in {"verified", "unknown"}:
             raise InvalidOperation("inspection did not match an ambiguous attempt")
         # Preserve the original attempt and unknown state in the history.
