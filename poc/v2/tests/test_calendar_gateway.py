@@ -236,6 +236,10 @@ class GatewayTests(unittest.TestCase):
                 {"status": "unknown", "external_actions": 0})
             self.assertEqual(self.ledger.get("test-op-1")["status"], "unknown")
         self.event = {**event, "status": "confirmed"}
+        # Provider may normalize the original +02:00 times to UTC.
+        self.event = {**event, "status": "confirmed",
+                      "start": {"dateTime": "2026-10-20T08:00:00Z"},
+                      "end": {"dateTime": "2026-10-20T08:30:00Z"}}
         self.assertEqual(self.gateway.recover(
             proof(), operation_id="test-op-1")["status"], "verified")
         self.assertEqual(self.read_calls[-1]["fields"], READ_FIELDS)
