@@ -16,6 +16,7 @@ import sqlite3
 import time
 
 from .calendar_rest_intent import READ_FIELDS, plan_insert, verify_exact_readback
+from .calendar_approval import plan_digest
 
 DENIED = "calendar recovery not authorized"
 
@@ -68,8 +69,10 @@ class IntentLedger:
     prototype DB schemas are intentionally not migrated or accepted for use.
     """
 
-    def __init__(self, path):
+    def __init__(self, path, *, require_approval_registry=True, clock=time.time):
         self.path = str(path)
+        self._require_registry = require_approval_registry
+        self._clock = clock
         with self._db() as db:
             db.execute("""CREATE TABLE IF NOT EXISTS calendar_intents (
                 operation_id TEXT PRIMARY KEY,
@@ -134,8 +137,20 @@ class IntentLedger:
         """Atomically bind one approval receipt to the exact attempted plan."""
         if not isinstance(approval_id, str) or not approval_id:
             raise ValueError("approval evidence missing")
-        # Committed BEFORE any real provider call. No provider call exists here.
+        # The receipt check and attempt CAS occur in one SQLite transaction.
+        # A revocation racing after proof verification but before this lock
+        # must prevent marking the operation as attempted.
         with self._db() as db:
+            if self._require_registry:
+                details = db.execute("""SELECT state,expires_at,calendar_id,
+                    operation_id,event_id,plan_sha256 FROM consent_receipts
+                    WHERE approval_id=?""", (approval_id,)).fetchone()
+                if (details is None or details[0] != "issued"
+                        or not self._clock() < details[1]
+                        or details[2:] != (
+                            expected_row["calendar_id"], expected_row["operation_id"],
+                            expected_row["event_id"], plan_digest(expected_row["plan"]))):
+                    raise PermissionError("calendar approval unavailable")
             result = db.execute("""UPDATE calendar_intents
                 SET status='unknown', approval_id=?
                 WHERE operation_id=? AND owner=? AND calendar_id=?
@@ -144,6 +159,12 @@ class IntentLedger:
                 (approval_id, *self._row_identity(expected_row)))
             if result.rowcount != 1:
                 raise ValueError("operation changed, attempted or missing")
+            if self._require_registry:
+                consumed = db.execute("""UPDATE consent_receipts
+                    SET state='consumed' WHERE approval_id=? AND state='issued'
+                    AND expires_at>?""", (approval_id, self._clock()))
+                if consumed.rowcount != 1:
+                    raise PermissionError("calendar approval unavailable")
 
     def verified(self, expected_row):
         """Only confirm the exact row inspected before fresh event readback."""
