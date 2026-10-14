@@ -147,7 +147,10 @@ class OfflineConsentIssuer:
                     "operation_id": row["operation_id"], "event_id": row["event_id"],
                     "summary": summary, "start": start, "end": end,
                     "visibility": event["visibility"],
-                    "reminders": event["reminders"]}}
+                    "transparency": event["transparency"],
+                    "attendees": [], "conference_data": None,
+                    "reminders": event["reminders"],
+                    "insert_params": plan["insert_params"]}}
 
     def decide(self, *, session_proof, confirmation_proof):
         """Consume one separately signed explicit UI decision; no self-approval."""
