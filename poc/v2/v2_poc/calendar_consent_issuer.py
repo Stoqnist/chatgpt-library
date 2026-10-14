@@ -7,6 +7,7 @@ No endpoints, OAuth, network, event writes or production credential handling.
 from __future__ import annotations
 
 import base64
+from contextlib import contextmanager
 import binascii
 import hashlib
 import hmac
@@ -102,10 +103,15 @@ class OfflineConsentIssuer:
                     ('issued','consumed','revoked'))
             )""")
 
+    @contextmanager
     def _db(self):
         db = sqlite3.connect(self.path, timeout=10)
-        db.execute("PRAGMA synchronous=FULL")
-        return db
+        try:
+            db.execute("PRAGMA synchronous=FULL")
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def _user(self, session_proof):
         claims = _verified(session_proof, self._session,
