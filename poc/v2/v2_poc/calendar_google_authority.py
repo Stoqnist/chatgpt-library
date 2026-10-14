@@ -47,7 +47,8 @@ def evaluate_google_owned_calendar_preflight(
             or not isinstance(session, Mapping) or not isinstance(grant, Mapping)
             or not all(isinstance(x, str) and x for x in (
                 expected_oidc_client_id, expected_calendar_oauth_client_id,
-                expected_subject, expected_calendar_id))):
+                expected_subject, expected_calendar_id))
+            or expected_oidc_client_id == expected_calendar_oauth_client_id):
         return {"status": "denied", "reason": "invalid_trusted_inputs"}
 
     # Google OIDC is verified by a separately configured OIDC verifier that
