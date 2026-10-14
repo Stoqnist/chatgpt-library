@@ -10,6 +10,7 @@ import unittest
 from urllib.parse import parse_qs, urlsplit
 
 from v2_poc.calendar_gateway_oauth import OfflineOAuth, ReauthorizationRequired
+from v2_poc.calendar_approval import OfflineApprovalVerifier, plan_digest, APPROVAL_ACTION
 from v2_poc.calendar_gateway import (
     CalendarGateway, IntentLedger, READ_FIELDS, VerifiedAgent,
 )
@@ -115,6 +116,7 @@ class OAuthTests(unittest.TestCase):
 
 KEY = b"gateway-unit-test-key-material-at-least-32"
 INTENT_KEY = b"distinct-offline-calendar-identity-secret-32"
+APPROVAL_KEY = b"independent-synthetic-approval-key-32bytes"
 CLOCK = 1_000_000
 CALENDAR = "fictional-disposable-calendar"
 REQUEST = "test-request-1"
@@ -165,6 +167,8 @@ class GatewayTests(unittest.TestCase):
             calendar_id=CALENDAR, intent_key=INTENT_KEY,
             verifier=VerifiedAgent(signing_key=KEY, clock=lambda: CLOCK),
             ledger=self.ledger, oauth=self.oauth, read_event=read_event,
+            approval_verifier=OfflineApprovalVerifier(
+                verification_key=APPROVAL_KEY, clock=lambda: CLOCK),
             approve_intent=lambda row: self.approved)
 
     def prepare(self, op_id="test-op-1", request_id=REQUEST, start=START):
@@ -173,10 +177,31 @@ class GatewayTests(unittest.TestCase):
             request_id=request_id, start_at=start, end_at=END,
             timezone_name=ZONE)
 
+    def consent_proof(self, operation_id="test-op-1", *, changes=None):
+        """A test-only fictional signing fixture, NEVER a runtime issuer."""
+        row = self.ledger.get(operation_id)
+        claims = {
+            "iss": "agency-calendar-consent", "aud": "agency-calendar-approval",
+            "action": APPROVAL_ACTION, "decision": "approved",
+            "sub": "fictional-user", "jti": "synthetic-approval-identifier-0001",
+            "calendar_id": row["calendar_id"], "operation_id": row["operation_id"],
+            "event_id": row["event_id"], "plan_sha256": plan_digest(row["plan"]),
+            "exp": CLOCK + 120,
+        }
+        claims.update(changes or {})
+        body = base64.urlsafe_b64encode(
+            json.dumps(claims, sort_keys=True, separators=(",", ":")).encode()
+        ).decode().rstrip("=")
+        sig = base64.urlsafe_b64encode(
+            hmac.new(APPROVAL_KEY, body.encode(), hashlib.sha256).digest()
+        ).decode().rstrip("=")
+        return body + "." + sig
+
     def attempt(self):
         self.approved = True
         self.gateway.record_attempt(
-            proof("calendar_executor"), operation_id="test-op-1")
+            proof("calendar_executor"), operation_id="test-op-1",
+            approval_evidence=self.consent_proof())
 
     def test_single_planner_owns_id_and_safe_body(self):
         from v2_poc.calendar_rest_intent import plan_insert
@@ -227,14 +252,18 @@ class GatewayTests(unittest.TestCase):
         self.prepare()
         with self.assertRaises(PermissionError):
             self.gateway.record_attempt(
-                proof("calendar_executor"), operation_id="test-op-1")
+                proof("calendar_executor"), operation_id="test-op-1",
+                approval_evidence=self.consent_proof())
         with self.assertRaises(PermissionError):
-            self.gateway.record_attempt(proof("health"), operation_id="test-op-1")
+            self.gateway.record_attempt(
+                proof("health"), operation_id="test-op-1",
+                approval_evidence=self.consent_proof())
         self.assertEqual(self.ledger.get("test-op-1")["status"], "prepared")
         self.attempt()
         with self.assertRaises(ValueError):
             self.gateway.record_attempt(
-                proof("calendar_executor"), operation_id="test-op-1")
+                proof("calendar_executor"), operation_id="test-op-1",
+                approval_evidence=self.consent_proof())
         self.assertEqual(self.ledger.get("test-op-1")["status"], "unknown")
 
     def test_exact_identity_and_planner_comparator_are_required(self):
@@ -280,7 +309,7 @@ class GatewayTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.gateway.record_attempt(
                 proof("calendar_executor", operation_id="test-op-1"),
-                operation_id="test-op-2")
+                operation_id="test-op-2", approval_evidence="invalid-proof")
 
     def test_recovery_denies_changed_privacy_or_notifications(self):
         event = self.prepare()
@@ -360,7 +389,8 @@ class GatewayTests(unittest.TestCase):
         self.gateway._approve_intent = replace_during_approval
         with self.assertRaisesRegex(ValueError, "operation changed"):
             self.gateway.record_attempt(
-                proof("calendar_executor"), operation_id="test-op-1")
+                proof("calendar_executor"), operation_id="test-op-1",
+                approval_evidence=self.consent_proof())
         current = self.ledger.get("test-op-1")
         self.assertEqual(current["event_id"], replacement["body"]["id"])
         self.assertEqual(current["status"], "prepared")
@@ -390,7 +420,8 @@ class GatewayTests(unittest.TestCase):
         self.gateway._approve_intent = mutate_snapshot_and_store
         with self.assertRaisesRegex(ValueError, "operation changed"):
             self.gateway.record_attempt(
-                proof("calendar_executor"), operation_id="test-op-1")
+                proof("calendar_executor"), operation_id="test-op-1",
+                approval_evidence=self.consent_proof())
         self.assertEqual(self.ledger.get("test-op-1")["status"], "prepared")
         self.assertEqual(self.read_calls, [])
         self.assertEqual(self.oauth.calls, 0)
