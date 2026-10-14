@@ -118,10 +118,11 @@ CLOCK = 1_000_000
 CALENDAR = "fictional-disposable-calendar"
 
 
-def proof(role="calendar_recovery", calendar=CALENDAR, exp=CLOCK + 120, key=KEY):
+def proof(role="calendar_recovery", calendar=CALENDAR, exp=CLOCK + 120, key=KEY,
+          operation_id="test-op-1"):
     claims = {"sub": "trusted-broker", "role": role,
               "aud": "agency-calendar-gateway",
-              "calendar": calendar, "exp": exp}
+              "calendar": calendar, "operation_id": operation_id, "exp": exp}
     body = base64.urlsafe_b64encode(
         json.dumps(claims, sort_keys=True).encode()).decode().rstrip("=")
     sig = hmac.new(key, body.encode(), hashlib.sha256).digest()
@@ -163,7 +164,7 @@ class GatewayTests(unittest.TestCase):
 
     def prepare(self, op_id="test-op-1"):
         return self.gateway.prepare(
-            proof("calendar_executor"), operation_id=op_id,
+            proof("calendar_executor", operation_id=op_id), operation_id=op_id,
             start_at="2026-10-20T10:00:00+02:00",
             end_at="2026-10-20T10:30:00+02:00")
 
@@ -246,8 +247,48 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(self.read_calls[-1]["event_id"], event["id"])
         self.assertEqual(self.read_calls[-1]["calendar_id"], CALENDAR)
         self.assertEqual(self.ledger.get("test-op-1")["status"], "verified")
+        # A historical verified marker is not a new current-state verification.
+        self.event = None
         self.assertEqual(self.gateway.recover(
-            proof(), operation_id="test-op-1")["status"], "verified")
+            proof(), operation_id="test-op-1")["status"], "unknown")
+        self.assertEqual(self.ledger.get("test-op-1")["status"], "verified")
+
+    def test_assertion_is_scoped_to_exact_operation_before_record_lookup(self):
+        """Even a valid recovery proof for operation A cannot query operation B."""
+        class NeverReadLedger:
+            def get(self, *_):
+                raise AssertionError("cross-operation lookup occurred")
+        self.gateway._ledger = NeverReadLedger()
+        with self.assertRaises(PermissionError) as denied:
+            self.gateway.recover(proof(operation_id="test-op-1"),
+                                 operation_id="test-op-2")
+        self.assertEqual(str(denied.exception), "calendar recovery not authorized")
+        self.assertEqual(self.oauth.calls, 0)
+        with self.assertRaises(PermissionError):
+            self.gateway.record_attempt(
+                proof("calendar_executor", operation_id="test-op-1"),
+                operation_id="test-op-2")
+
+    def test_recovery_denies_changed_privacy_or_notifications(self):
+        expected = self.prepare()
+        self.approved = True
+        self.gateway.record_attempt(
+            proof("calendar_executor"), operation_id="test-op-1")
+        for key, changed in (
+                ("summary", "Patient follow-up"),
+                ("visibility", "public"),
+                ("transparency", "opaque"),
+                ("attendees", [{"email": "synthetic@example.invalid"}]),
+                ("reminders", {"useDefault": True}),
+                ("reminders", {"useDefault": False, "overrides": [{"minutes": 5, "method": "email"}]}),
+                ("conferenceData", {"entryPoints": [{"entryPointType": "video"}]}),
+                ("hangoutLink", "https://example.invalid/meeting")):
+            with self.subTest(key=key, changed=changed):
+                self.event = {**expected, "status": "confirmed", key: changed}
+                self.assertEqual(
+                    self.gateway.recover(proof(), operation_id="test-op-1"),
+                    {"status": "unknown", "external_actions": 0})
+                self.assertEqual(self.ledger.get("test-op-1")["status"], "unknown")
 
     def test_token_or_provider_failure_remains_unknown_and_no_retry(self):
         self.prepare()
