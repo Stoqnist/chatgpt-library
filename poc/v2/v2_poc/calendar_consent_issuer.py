@@ -54,13 +54,13 @@ class OfflineConsentIssuer:
     """
 
     def __init__(self, path, *, session_verifier, ui_verifier, session_active,
-                 approval_private_key: Ed25519PrivateKey, approval_key_id: str,
+                 calendar_access, approval_private_key: Ed25519PrivateKey, approval_key_id: str,
                  clock=time.time):
         if any(not callable(getattr(v, "verify", None))
                for v in (session_verifier, ui_verifier)):
             raise ValueError("two independent verification-only trust sources required")
-        if not callable(session_active):
-            raise ValueError("explicit active-session check required")
+        if not callable(session_active) or not callable(calendar_access):
+            raise ValueError("explicit live session and calendar-access checks required")
         if not isinstance(approval_private_key, Ed25519PrivateKey):
             raise ValueError("issuer must hold Ed25519 private signing key")
         if not isinstance(approval_key_id, str) or not _KEY_ID.fullmatch(approval_key_id):
@@ -69,6 +69,7 @@ class OfflineConsentIssuer:
         self._session_verify = session_verifier.verify
         self._ui_verify = ui_verifier.verify
         self._session_active = session_active
+        self._calendar_access = calendar_access
         self._approval_private = approval_private_key
         self._approval_kid = approval_key_id
         self._clock = clock
@@ -130,6 +131,8 @@ class OfflineConsentIssuer:
     def begin(self, *, session_proof, row: dict):
         """Create a short-lived challenge and the exact display representation."""
         subject, sid = self._user(session_proof)
+        if self._calendar_access(subject, sid, row.get("calendar_id")) is not True:
+            raise PermissionError(APPROVAL_DENIED)
         try:
             plan = row["plan"]
             event = plan["body"]
@@ -189,7 +192,8 @@ class OfflineConsentIssuer:
                     or choice.get("plan_sha256") != challenge[5]
                     or choice.get("display_sha256") != challenge[6]
                     or not now < challenge[7] or challenge[8] != "pending"
-                    or self._session_active(subject, sid) is not True):
+                    or self._session_active(subject, sid) is not True
+                    or self._calendar_access(subject, sid, challenge[2]) is not True):
                 raise PermissionError(APPROVAL_DENIED)
             approved = choice["decision"] == "approved"
             if approved:
