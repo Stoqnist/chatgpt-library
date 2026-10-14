@@ -1,14 +1,13 @@
 """Offline, fictional session-bound consent issuer for Calendar I1.
 
-Two *external* trust roots must sign session and UI-consent assertions. Real
-authentication and an actual user-facing confirmation UI are NOT implemented.
+Two *external* Ed25519 issuers must attest session and displayed consent.
+Real authentication and user-facing confirmation remain NOT implemented.
 No endpoints, OAuth, network, event writes or production credential handling.
 """
 from __future__ import annotations
 
 import base64
 from contextlib import contextmanager
-import binascii
 import hashlib
 import hmac
 import json
@@ -37,27 +36,6 @@ def _encode(payload: dict, key: bytes) -> str:
     return body + "." + sig
 
 
-def _verified(token, key, *, issuer, audience, now, ttl):
-    try:
-        if not isinstance(token, str) or len(token) > 4096:
-            raise ValueError()
-        b64, sig = token.split(".")
-        body = base64.urlsafe_b64decode(b64 + "=" * (-len(b64) % 4))
-        supplied = base64.urlsafe_b64decode(sig + "=" * (-len(sig) % 4))
-        expected = hmac.new(key, b64.encode("ascii"), hashlib.sha256).digest()
-        if not hmac.compare_digest(supplied, expected):
-            raise ValueError()
-        data = json.loads(body)
-        if (not isinstance(data, dict) or data.get("iss") != issuer
-                or data.get("aud") != audience
-                or type(data.get("exp")) not in (int, float)
-                or not now < data["exp"] <= now + ttl):
-            raise ValueError()
-        return data
-    except (ValueError, TypeError, UnicodeError, binascii.Error, KeyError):
-        raise PermissionError(APPROVAL_DENIED) from None
-
-
 def _identity(claims):
     sub, sid = claims.get("sub"), claims.get("sid")
     if (not isinstance(sub, str) or not 1 <= len(sub) <= 128 or not sub.strip()
@@ -75,19 +53,22 @@ class OfflineConsentIssuer:
     one database transaction. Do not use as a deployed authentication service.
     """
 
-    def __init__(self, path, *, session_key: bytes, ui_key: bytes,
+    def __init__(self, path, *, session_verifier, ui_verifier, session_active,
                  approval_private_key: Ed25519PrivateKey, approval_key_id: str,
                  clock=time.time):
-        if any(not isinstance(k, bytes) or len(k) < 32
-               for k in (session_key, ui_key)):
-            raise ValueError("independent session and UI signing keys required")
-        if session_key == ui_key:
-            raise ValueError("session and UI trust keys must differ")
+        if any(not callable(getattr(v, "verify", None))
+               for v in (session_verifier, ui_verifier)):
+            raise ValueError("two independent verification-only trust sources required")
+        if not callable(session_active):
+            raise ValueError("explicit active-session check required")
         if not isinstance(approval_private_key, Ed25519PrivateKey):
             raise ValueError("issuer must hold Ed25519 private signing key")
         if not isinstance(approval_key_id, str) or not _KEY_ID.fullmatch(approval_key_id):
             raise ValueError("explicit bounded approval key ID required")
-        self.path, self._session, self._ui = str(path), session_key, ui_key
+        self.path = str(path)
+        self._session_verify = session_verifier.verify
+        self._ui_verify = ui_verifier.verify
+        self._session_active = session_active
         self._approval_private = approval_private_key
         self._approval_kid = approval_key_id
         self._clock = clock
@@ -97,7 +78,7 @@ class OfflineConsentIssuer:
                 subject TEXT NOT NULL, session_id TEXT NOT NULL,
                 calendar_id TEXT NOT NULL, operation_id TEXT NOT NULL,
                 event_id TEXT NOT NULL, plan_sha256 TEXT NOT NULL,
-                expires_at REAL NOT NULL,
+                display_sha256 TEXT NOT NULL, expires_at REAL NOT NULL,
                 state TEXT NOT NULL CHECK (state IN
                     ('pending','issued','declined','revoked'))
             )""")
@@ -138,10 +119,13 @@ class OfflineConsentIssuer:
             db.close()
 
     def _user(self, session_proof):
-        claims = _verified(session_proof, self._session,
-                           issuer="agency-session", audience=_SESSION_AUDIENCE,
-                           now=self._clock(), ttl=3600)
-        return _identity(claims)
+        claims = self._session_verify(session_proof)
+        subject, sid = _identity(claims)
+        # Signature validation is not a revocation check: the caller must
+        # supply fresh active-session evidence. Offline tests use a fixture.
+        if self._session_active(subject, sid) is not True:
+            raise PermissionError(APPROVAL_DENIED)
+        return subject, sid
 
     def begin(self, *, session_proof, row: dict):
         """Create a short-lived challenge and the exact display representation."""
@@ -160,29 +144,33 @@ class OfflineConsentIssuer:
         now = self._clock()
         ident = secrets.token_urlsafe(24)
         digest = plan_digest(plan)
+        display = {
+            "action": APPROVAL_ACTION, "calendar_id": row["calendar_id"],
+            "operation_id": row["operation_id"], "event_id": row["event_id"],
+            "summary": summary, "start": start, "end": end,
+            "visibility": event["visibility"],
+            "transparency": event["transparency"],
+            "attendees": [], "conference_data": None,
+            "reminders": event["reminders"],
+            "insert_params": plan["insert_params"],
+        }
+        display_digest = hashlib.sha256(json.dumps(
+            display, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         with self._db() as db:
             db.execute("""INSERT INTO consent_challenges VALUES
-                (?,?,?,?,?,?,?,?, 'pending')""",
+                (?,?,?,?,?,?,?,?,?, 'pending')""",
                 (ident, subject, sid, row["calendar_id"],
-                 row["operation_id"], row["event_id"], digest, now + 120))
+                 row["operation_id"], row["event_id"], digest,
+                 display_digest, now + 120))
         return {"challenge_id": ident, "plan_sha256": digest,
-                "expires_at": now + 120, "display": {
-                    "action": APPROVAL_ACTION, "calendar_id": row["calendar_id"],
-                    "operation_id": row["operation_id"], "event_id": row["event_id"],
-                    "summary": summary, "start": start, "end": end,
-                    "visibility": event["visibility"],
-                    "transparency": event["transparency"],
-                    "attendees": [], "conference_data": None,
-                    "reminders": event["reminders"],
-                    "insert_params": plan["insert_params"]}}
+                "display_sha256": display_digest,
+                "expires_at": now + 120, "display": display}
 
     def decide(self, *, session_proof, confirmation_proof):
         """Consume one separately signed explicit UI decision; no self-approval."""
         subject, sid = self._user(session_proof)
         now = self._clock()
-        choice = _verified(confirmation_proof, self._ui,
-                           issuer="agency-consent-ui", audience=_UI_AUDIENCE,
-                           now=now, ttl=120)
+        choice = self._ui_verify(confirmation_proof)
         if (choice.get("sub") != subject or choice.get("sid") != sid
                 or choice.get("action") != APPROVAL_ACTION
                 or choice.get("decision") not in ("approved", "declined")):
@@ -194,12 +182,14 @@ class OfflineConsentIssuer:
             # Prevent simultaneous confirmations from both observing pending.
             db.execute("BEGIN IMMEDIATE")
             challenge = db.execute("""SELECT subject,session_id,calendar_id,
-                operation_id,event_id,plan_sha256,expires_at,state
+                operation_id,event_id,plan_sha256,display_sha256,expires_at,state
                 FROM consent_challenges WHERE challenge_id=?""",
                 (challenge_id,)).fetchone()
             if (challenge is None or challenge[0] != subject or challenge[1] != sid
                     or choice.get("plan_sha256") != challenge[5]
-                    or not now < challenge[6] or challenge[7] != "pending"):
+                    or choice.get("display_sha256") != challenge[6]
+                    or not now < challenge[7] or challenge[8] != "pending"
+                    or self._session_active(subject, sid) is not True):
                 raise PermissionError(APPROVAL_DENIED)
             approved = choice["decision"] == "approved"
             if approved:
@@ -212,7 +202,7 @@ class OfflineConsentIssuer:
             if not approved:
                 return {"status": "declined"}
             approval_id = secrets.token_urlsafe(24)
-            expiry = min(now + 60, challenge[6])
+            expiry = min(now + 60, challenge[7])
             db.execute("""INSERT INTO consent_receipts VALUES
                 (?,?,?,?,?,?,?,?,?,?, 'issued')""",
                 (approval_id, challenge_id, subject, sid, challenge[2],
