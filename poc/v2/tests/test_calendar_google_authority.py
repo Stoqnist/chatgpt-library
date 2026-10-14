@@ -40,9 +40,9 @@ def evidence():
     return session, grant
 
 
-def evaluate(session, grant, **overrides):
+def evaluate(original_session, original_grant, **overrides):
     args = {
-        "session": session, "grant": grant,
+        "session": original_session, "grant": original_grant,
         "expected_oidc_client_id": OIDC_CLIENT,
         "expected_calendar_oauth_client_id": CALENDAR_CLIENT,
         "expected_subject": SUBJECT,
