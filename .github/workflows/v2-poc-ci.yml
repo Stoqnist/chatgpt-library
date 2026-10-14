@@ -82,3 +82,44 @@ jobs:
         run: python scripts/check_adversarial_mutations.py
       - name: Run zero-cost CLI preflight
         run: PYTHONPATH=. python -m v2_poc.live fixtures/purchase.json --check-only
+
+  bff-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Validate Compose and build the BFF image
+        run: |
+          docker compose -f poc/v2/deploy/bff/compose.yaml config --quiet
+          docker compose -f poc/v2/deploy/bff/compose.yaml build
+      - name: Run signed-provider HTTP regressions inside the restricted image
+        run: |
+          docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,size=32m -v "$PWD/poc/v2/tests:/tests:ro" agency-bff-offline:local python -m unittest discover -s /tests -p test_bff_http.py -v
+      - name: Start Compose and verify inert default and container restrictions
+        run: |
+          docker compose -f poc/v2/deploy/bff/compose.yaml up -d --wait --wait-timeout 60
+          python - <<'PY'
+          import json, urllib.request, urllib.error
+          health = json.load(urllib.request.urlopen('http://127.0.0.1:18000/_internal/live'))
+          assert health['authentication_ready'] is False
+          assert health['calendar_writes_enabled'] is False
+          try:
+              urllib.request.urlopen('http://127.0.0.1:18000/auth/google/login')
+          except urllib.error.HTTPError as e:
+              assert e.code == 503
+          else:
+              raise AssertionError('unconfigured login accepted')
+          PY
+          container=$(docker compose -f poc/v2/deploy/bff/compose.yaml ps -q bff)
+          docker inspect "$container" > /tmp/bff-inspect.json
+          python - <<'PY'
+          import json
+          c = json.load(open('/tmp/bff-inspect.json'))[0]
+          assert c['Config']['User'] == '10001:10001'
+          assert c['HostConfig']['ReadonlyRootfs']
+          assert 'ALL' in c['HostConfig']['CapDrop']
+          assert c['HostConfig']['PortBindings']['8000/tcp'][0]['HostIp'] == '127.0.0.1'
+          PY
+      - name: Stop staging containers
+        if: always()
+        run: docker compose -f poc/v2/deploy/bff/compose.yaml down

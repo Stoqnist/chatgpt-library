@@ -6,7 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
-COPY v2_poc/__init__.py v2_poc/bff_offline.py /app/v2_poc/
+COPY requirements-gateway.txt /app/requirements-gateway.txt
+RUN pip install --no-cache-dir -r requirements-gateway.txt
+COPY v2_poc/__init__.py v2_poc/bff_*.py /app/v2_poc/
 
 USER 10001:10001
 EXPOSE 8000

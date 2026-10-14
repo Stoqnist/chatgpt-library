@@ -121,6 +121,12 @@ class OfflineBrowserConsent:
                        (_digest(token), verified_identity.subject, sid, expires))
         return {"session_token": token, "expires_at": expires, "sid": sid}
 
+    def authenticate(self, *, session_token: str):
+        """Read only the current server-owned session; never trust HTTP claims."""
+        with self._db() as db:
+            row = self._active(db, session_token)
+        return {"subject": row[0], "sid": row[1], "expires_at": row[2]}
+
     def logout(self, *, session_token: str):
         with self._db() as db:
             db.execute("BEGIN IMMEDIATE")
