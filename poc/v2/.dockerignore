@@ -1,0 +1,6 @@
+# Keep unrelated experimental fixtures, configs, secrets, Git metadata,
+# environment files and personal records out of the Docker build context.
+*
+!v2_poc/
+!v2_poc/__init__.py
+!v2_poc/bff_offline.py

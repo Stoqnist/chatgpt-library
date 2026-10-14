@@ -1,0 +1,36 @@
+# Staging only. No authenticated pages, OAuth grants, or Calendar writes.
+# DO NOT add a public Cloudflare hostname while the BFF is inert.
+name: agency-bff
+
+services:
+  bff:
+    build:
+      context: ../..
+      dockerfile: deploy/bff/Dockerfile
+    image: agency-bff-offline:local
+    # Local host access only; separate from MCP internal Docker port 8000.
+    ports:
+      - "127.0.0.1:18000:8000"
+    environment:
+      AGENCY_BFF_BIND: "0.0.0.0"
+      AGENCY_BFF_PORT: "8000"
+    init: true
+    user: "10001:10001"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.5
+    restart: "no"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/_internal/live', timeout=2).read()"
+      interval: 30s
+      timeout: 3s
+      retries: 3

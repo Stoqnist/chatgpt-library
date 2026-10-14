@@ -40,6 +40,32 @@ The consent challenge now stores the SHA-256 digest of the **exact canonical pre
 
 **Official documentation:** [Google OIDC](https://developers.google.com/identity/openid-connect/reference), [Google ID token verification](https://developers.google.com/identity/sign-in/web/backend-auth), [Calendar OAuth scopes](https://developers.google.com/workspace/calendar/api/auth), [CalendarList roles](https://developers.google.com/workspace/calendar/api/v3/reference/calendarList), [Cloudflare origin protection](https://developers.cloudflare.com/fundamentals/security/protect-your-origin-server/), [OIDC back-channel logout standard](https://openid.net/specs/openid-connect-backchannel-1_0.html) (not a claim Google sends logout tokens to Agency).
 
+## Dedicated VPS staging backend — implementation, not authenticated or deployed
+
+A minimal **inert BFF shell** is prepared at \`poc/v2/v2_poc/bff_offline.py\` with an isolated Docker Compose configuration at \`poc/v2/deploy/bff/compose.yaml\`. It is **not** the real authenticated Agency application: \`/_internal/live\` returns process liveness with \`authentication_ready=false\` and \`calendar_writes_enabled=false\`; every other route returns HTTP 503, regardless of spoofed cookies/authorization headers. It cannot create sessions, receive Google callbacks, record consent, read Calendar data or produce provider effects. No live credentials, personal identifiers or domain values are part of this code.
+
+The proposed Compose application uses a dedicated \`agency-bff\` project, **host-loopback-only** \`127.0.0.1:18000:8000\` publication, non-root numeric container user, read-only filesystem, all Linux capabilities dropped, no-new-privileges, a 256 MB memory ceiling, a 0.5 CPU limit, and no host mounts or Cloudflare/Docker control-plane credentials. The existing MCP stack and its internal Docker port are independent; neither its Compose configuration nor its tunnel is changed. An isolated shell does not yet implement authenticated access, Google token verification, CSRF-protected consent, private service communication or production logging/audit.
+
+**Review-first local validation (no VPS changes):**
+
+~~~sh
+cd poc/v2
+PYTHONPATH=. python3 -m unittest discover -s tests -v
+docker compose -f deploy/bff/compose.yaml config
+docker compose -f deploy/bff/compose.yaml build
+~~~
+
+These commands check/test/build artifacts but do not run the container or publish a route. Only after reviewed exact-head CI, a private-vault image/version check, server conflict check and **separate deployment authorization** should an operator consider:
+
+~~~sh
+cd poc/v2
+docker compose -f deploy/bff/compose.yaml up -d --no-build
+curl --silent --show-error http://127.0.0.1:18000/_internal/live
+curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' http://127.0.0.1:18000/consent
+~~~
+
+Expected outcomes would be liveness \`200\` with \`authentication_ready=false\` and consent \`503\`; no OAuth endpoints exist and **no Cloudflare public route must be added**. The Compose healthcheck verifies process liveness, **not authentication readiness**. Run commands on the actual VPS only after explicit deployment approval; do not change existing \`stoq-infrastructure\` resources. A production release still requires pinned base-image digest, registry/provenance review, service-owner restrictions, real Google sign-in and private session storage, consent UI, key custody, revocation delivery, audited provider permissions, and provider readback/recovery.
+
 ## Proposed real identity-provider and trusted consent UI integration — contract only
 
 **Architecture ownership:** A single user-facing backend-for-frontend (BFF) owns browser sessions, OIDC login and the consent screen. A separate Consent Issuer owns the short-lived challenge/receipt record and Ed25519 approval **private** key. The Calendar Gateway has only the public verifier and reads the same protected attempt/receipt registry; AI agents receive no login cookies, OAuth tokens, signing keys, or direct approval capability. The actual IdP and deployment origin are **not selected or connected**. Require an issuer supporting an adequate logout/revocation profile; do not presume every IdP supports OIDC back-channel logout or `sid`.
