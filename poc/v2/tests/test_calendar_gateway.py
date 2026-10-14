@@ -266,6 +266,77 @@ class GatewayTests(unittest.TestCase):
                 approval_evidence=self.consent_proof())
         self.assertEqual(self.ledger.get("test-op-1")["status"], "unknown")
 
+    def test_signed_approval_is_required_and_bound_to_exact_plan(self):
+        self.prepare()
+        self.approved = True
+        invalid = [
+            None, "", "not-a-proof",
+            self.consent_proof(changes={"decision": "denied"}),
+            self.consent_proof(changes={"action": "calendar.event.delete"}),
+            self.consent_proof(changes={"iss": "untrusted-issuer"}),
+            self.consent_proof(changes={"aud": "other-service"}),
+            self.consent_proof(changes={"sub": ""}),
+            self.consent_proof(changes={"calendar_id": "different-calendar"}),
+            self.consent_proof(changes={"operation_id": "test-op-2"}),
+            self.consent_proof(changes={"event_id": "wrong-event-id"}),
+            self.consent_proof(changes={"plan_sha256": "0" * 64}),
+            self.consent_proof(changes={"jti": "too-short"}),
+            self.consent_proof(changes={"exp": CLOCK - 1}),
+            self.consent_proof(changes={"exp": CLOCK + 301}),
+        ]
+        good = self.consent_proof()
+        invalid.append(good[:-1] + ("a" if good[-1] != "a" else "b"))
+        for token in invalid:
+            with self.subTest(token=str(token)[:48]):
+                with self.assertRaises(PermissionError) as denied:
+                    self.gateway.record_attempt(
+                        proof("calendar_executor"), operation_id="test-op-1",
+                        approval_evidence=token)
+                self.assertEqual(str(denied.exception),
+                                 "calendar approval unavailable")
+                self.assertEqual(self.ledger.get("test-op-1")["status"], "prepared")
+        self.assertEqual(self.oauth.calls, 0)
+        self.assertEqual(self.read_calls, [])
+
+    def test_approval_receipt_persists_and_cannot_reuse_on_other_operation(self):
+        self.prepare()
+        self.attempt()
+        first = self.ledger.get("test-op-1")
+        reopened = IntentLedger(self.db)
+        with reopened._db() as db:
+            approval_id = db.execute(
+                "SELECT approval_id FROM calendar_intents WHERE operation_id=?",
+                ("test-op-1",)).fetchone()[0]
+        self.assertEqual(approval_id, "synthetic-approval-identifier-0001")
+        self.assertEqual(first["status"], "unknown")
+
+        self.gateway._ledger = reopened
+        self.prepare(op_id="test-op-2")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.gateway.record_attempt(
+                proof("calendar_executor", operation_id="test-op-2"),
+                operation_id="test-op-2",
+                approval_evidence=self.consent_proof("test-op-2"))
+        self.assertEqual(reopened.get("test-op-2")["status"], "prepared")
+        self.assertEqual(reopened.get("test-op-1")["status"], "unknown")
+
+    def test_approval_checked_after_policy_callback_delay(self):
+        self.prepare()
+        self.approved = True
+        current = [CLOCK]
+        self.gateway._approval_verifier._clock = lambda: current[0]
+
+        def expired_during_policy(_row):
+            current[0] += 150
+            return True
+
+        self.gateway._approve_intent = expired_during_policy
+        with self.assertRaisesRegex(PermissionError, "approval unavailable"):
+            self.gateway.record_attempt(
+                proof("calendar_executor"), operation_id="test-op-1",
+                approval_evidence=self.consent_proof())
+        self.assertEqual(self.ledger.get("test-op-1")["status"], "prepared")
+
     def test_exact_identity_and_planner_comparator_are_required(self):
         event = self.prepare()
         self.attempt()
