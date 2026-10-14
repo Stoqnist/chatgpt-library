@@ -92,6 +92,9 @@ class ConsentIssuerTests(unittest.TestCase):
         self.assertEqual(challenge["display"]["visibility"], "private")
         self.assertEqual(challenge["display"]["reminders"],
                          {"useDefault": False, "overrides": []})
+        self.assertEqual(challenge["display"]["transparency"], "transparent")
+        self.assertEqual(challenge["display"]["attendees"], [])
+        self.assertEqual(challenge["display"]["insert_params"], self.plan["insert_params"])
         self.assertEqual(challenge["plan_sha256"], plan_digest(self.plan))
         issued = self.issuer.decide(
             session_proof=self.session(),
