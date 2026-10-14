@@ -142,6 +142,10 @@ class IntentLedger:
         # A revocation racing after proof verification but before this lock
         # must prevent marking the operation as attempted.
         with self._db() as db:
+            # sqlite3's context manager does not begin a transaction for
+            # SELECT. Reserve the write lock BEFORE checking key/receipt
+            # status so a quarantine cannot slip between check and CAS.
+            db.execute("BEGIN IMMEDIATE")
             if self._require_registry:
                 details = db.execute("""SELECT r.state,r.expires_at,
                     r.calendar_id,r.operation_id,r.event_id,r.plan_sha256,
