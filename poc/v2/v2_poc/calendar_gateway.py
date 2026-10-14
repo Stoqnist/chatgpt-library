@@ -119,18 +119,36 @@ class IntentLedger:
                 "calendar_id": row[2], "event_id": row[3],
                 "plan": json.loads(row[4]), "status": row[5]}
 
-    def mark_attempt(self, operation_id):
-        # Must be committed BEFORE any real provider call, never after.
+    @staticmethod
+    def _row_identity(row):
+        """Match the entire approved/read intent, not just its operation ID."""
+        return (
+            row["operation_id"], row["owner"], row["calendar_id"],
+            row["event_id"],
+            json.dumps(row["plan"], sort_keys=True, separators=(",", ":")),
+        )
+
+    def mark_attempt(self, expected_row):
+        """Atomically refuse an intent change between approval and attempt."""
+        # Committed BEFORE any real provider call. No provider call exists here.
         with self._db() as db:
             result = db.execute("""UPDATE calendar_intents SET status='unknown'
-                WHERE operation_id=? AND status='prepared'""", (operation_id,))
+                WHERE operation_id=? AND owner=? AND calendar_id=?
+                  AND event_id=? AND plan_json=? AND status='prepared'""",
+                self._row_identity(expected_row))
             if result.rowcount != 1:
-                raise ValueError("operation already attempted or missing")
+                raise ValueError("operation changed, attempted or missing")
 
-    def verified(self, operation_id):
+    def verified(self, expected_row):
+        """Only confirm the exact row inspected before fresh event readback."""
         with self._db() as db:
-            db.execute("""UPDATE calendar_intents SET status='verified'
-                WHERE operation_id=? AND status='unknown'""", (operation_id,))
+            result = db.execute("""UPDATE calendar_intents SET status='verified'
+                WHERE operation_id=? AND owner=? AND calendar_id=?
+                  AND event_id=? AND plan_json=?
+                  AND status IN ('unknown', 'verified')""",
+                self._row_identity(expected_row))
+            if result.rowcount != 1:
+                raise ValueError("operation changed during readback")
 
 
 class CalendarGateway:
@@ -171,7 +189,7 @@ class CalendarGateway:
             raise PermissionError(DENIED)
         if self._approve_intent is None or self._approve_intent(row) is not True:
             raise PermissionError("write approval unavailable")
-        self._ledger.mark_attempt(operation_id)
+        self._ledger.mark_attempt(row)
         return {"status": "unknown", "external_actions": 0}
 
     def recover(self, proof, *, operation_id):
@@ -193,5 +211,10 @@ class CalendarGateway:
             return {"status": "unknown", "external_actions": 0}
         if outcome["status"] != "verified":
             return {"status": "unknown", "external_actions": 0}
-        self._ledger.verified(operation_id)
+        try:
+            self._ledger.verified(row)
+        except (ValueError, sqlite3.Error):
+            # Readback may be valid for an old identity but the stored intent
+            # may have changed or disappeared before the status transition.
+            return {"status": "unknown", "external_actions": 0}
         return {"status": "verified", "external_actions": 0}
