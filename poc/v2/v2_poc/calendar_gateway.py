@@ -149,7 +149,8 @@ class IntentLedger:
             if self._require_registry:
                 details = db.execute("""SELECT r.state,r.expires_at,
                     r.calendar_id,r.operation_id,r.event_id,r.plan_sha256,
-                    r.key_id,k.state FROM consent_receipts AS r
+                    r.key_id,k.state,r.subject,r.session_id
+                    FROM consent_receipts AS r
                     JOIN consent_signing_keys AS k ON k.key_id=r.key_id
                     WHERE r.approval_id=?""", (approval_id,)).fetchone()
                 if (details is None or details[0] != "issued"
@@ -159,6 +160,16 @@ class IntentLedger:
                             expected_row["event_id"], plan_digest(expected_row["plan"]),
                             signing_key_id)
                         or details[7] not in ("active", "retired")):
+                    raise PermissionError("calendar approval unavailable")
+                # A separately verified logout/permission-loss event may
+                # arrive after an approval proof was issued. Tombstones are
+                # checked under the SAME BEGIN IMMEDIATE lock as attempt CAS.
+                revoked = db.execute("""SELECT 1 FROM consent_authority_revocations
+                    WHERE subject=? AND (scope='principal' OR
+                        (scope='session' AND target=?) OR
+                        (scope='calendar' AND target=?)) LIMIT 1""",
+                    (details[8], details[9], expected_row["calendar_id"]))
+                if revoked.fetchone() is not None:
                     raise PermissionError("calendar approval unavailable")
             result = db.execute("""UPDATE calendar_intents
                 SET status='unknown', approval_id=?
