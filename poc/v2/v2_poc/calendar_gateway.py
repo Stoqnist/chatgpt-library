@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import binascii
 from contextlib import contextmanager
+from copy import deepcopy
 import hashlib
 import hmac
 import json
@@ -187,7 +188,8 @@ class CalendarGateway:
         if (row is None or row["calendar_id"] != self._calendar_id
                 or row["owner"] != "calendar"):
             raise PermissionError(DENIED)
-        if self._approve_intent is None or self._approve_intent(row) is not True:
+        # The approval callback must not mutate the snapshot used by CAS.
+        if self._approve_intent is None or self._approve_intent(deepcopy(row)) is not True:
             raise PermissionError("write approval unavailable")
         self._ledger.mark_attempt(row)
         return {"status": "unknown", "external_actions": 0}
