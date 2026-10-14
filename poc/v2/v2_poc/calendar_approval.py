@@ -65,7 +65,7 @@ class OfflineApprovalVerifier:
         self._clock = clock
 
     def verify(self, proof: str, *, expected_row: dict) -> str:
-        """Return the receipt ID for one valid signed exact-plan proof."""
+        """Return (receipt ID, signing key ID) for a valid exact-plan proof."""
         try:
             if not isinstance(proof, str) or len(proof) > 4096:
                 raise ValueError()
@@ -99,7 +99,7 @@ class OfflineApprovalVerifier:
                     or type(claims.get("exp")) not in (int, float)
                     or not now < claims["exp"] <= now + 300):
                 raise ValueError()
-            return approval_id
+            return approval_id, kid
         except (ValueError, TypeError, KeyError, UnicodeError, binascii.Error,
                 OverflowError, InvalidSignature):
             raise PermissionError(APPROVAL_DENIED) from None
