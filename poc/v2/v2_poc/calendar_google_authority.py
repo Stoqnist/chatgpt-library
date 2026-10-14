@@ -55,7 +55,8 @@ def evaluate_google_owned_calendar_preflight(
     # Do not infer current Google global-login state from an old ID token.
     session_checks = (
         session.get("verified_google_id_token") is True,
-        session.get("issuer") in GOOGLE_ISSUERS,
+        isinstance(session.get("issuer"), str)
+        and session.get("issuer") in GOOGLE_ISSUERS,
         session.get("audience") == expected_oidc_client_id,
         session.get("subject") == expected_subject,
         session.get("local_bff_session_active") is True,
@@ -65,7 +66,8 @@ def evaluate_google_owned_calendar_preflight(
         _fresh(session.get("explicit_consent_at"), now=now,
                seconds=MAX_EXPLICIT_CONSENT_AGE_SECONDS),
         type(session.get("session_expires_at")) in (int, float)
-        and session.get("session_expires_at", 0) > now,
+        and math.isfinite(session.get("session_expires_at"))
+        and session.get("session_expires_at") > now,
     )
     if not all(session_checks):
         return {"status": "denied", "reason": "google_session_unverified_or_stale"}
@@ -93,7 +95,8 @@ def evaluate_google_owned_calendar_preflight(
         _fresh(grant.get("calendar_role_checked_at"), now=now,
                seconds=MAX_CALENDAR_ROLE_AGE_SECONDS),
         type(grant.get("token_expires_at")) in (int, float)
-        and grant.get("token_expires_at", 0) > now,
+        and math.isfinite(grant.get("token_expires_at"))
+        and grant.get("token_expires_at") > now,
     )
     if not all(grant_checks):
         return {"status": "denied", "reason": "calendar_grant_unverified_or_stale"}
