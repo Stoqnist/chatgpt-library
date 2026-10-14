@@ -66,7 +66,10 @@ class BrowserBoundGoogleLoginTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.store.consume(state=state, browser_binding=binding)
         for x, y in ((None, binding), ("x", binding), (state, None),
-                     (state, ""), (state, "malformed")):
+                     (state, ""), (state, "malformed"),
+                     (state + "\u200b", binding),
+                     (state, binding + "\u200b"),
+                     (state + "\n", binding)):
             with self.subTest(state=x, cookie=y), self.assertRaises(PermissionError):
                 self.store.consume(state=x, browser_binding=y)
 
