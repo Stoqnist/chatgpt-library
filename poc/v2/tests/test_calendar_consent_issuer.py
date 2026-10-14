@@ -1,5 +1,6 @@
 """Fictional, fully offline consent issuer and registry CAS regression tests."""
 import tempfile
+from contextlib import contextmanager
 import hashlib
 import json
 import base64
@@ -391,6 +392,71 @@ class ConsentIssuerTests(unittest.TestCase):
                 approval_evidence=old_body + "." + old_sig)
         self.assertEqual(self.ledger.get("fictional-operation-a")["status"],
                          "prepared")
+
+
+    def test_key_policy_read_is_under_write_lock_before_attempt_cas(self):
+        """A second connection cannot quarantine after a stale policy SELECT."""
+        _, _, issued = self.prepare_approval()
+        original_db = self.ledger._db
+        testcase, path = self, self.path
+        observed = []
+
+        @contextmanager
+        def guarded_db():
+            with original_db() as db:
+                class ConnectionSpy:
+                    def execute(self, sql, params=()):
+                        if "SELECT r.state,r.expires_at" in sql:
+                            other = sqlite3.connect(path, timeout=0)
+                            try:
+                                with testcase.assertRaises(sqlite3.OperationalError):
+                                    other.execute("""UPDATE consent_signing_keys
+                                        SET state='compromised'
+                                        WHERE key_id=?""", (KID1,))
+                                observed.append("locked-before-read")
+                            finally:
+                                other.close()
+                        return db.execute(sql, params)
+                yield ConnectionSpy()
+
+        self.ledger._db = guarded_db
+        result = self.gateway.record_attempt(
+            "synthetic-executor", operation_id="fictional-operation-a",
+            approval_evidence=issued["approval_proof"])
+        self.assertEqual(result["status"], "unknown")
+        self.assertEqual(observed, ["locked-before-read"])
+
+    def test_challenge_decision_is_serialized_before_pending_read(self):
+        row = self.ledger.get("fictional-operation-a")
+        challenge = self.issuer.begin(session_proof=self.session(), row=row)
+        original_db = self.issuer._db
+        testcase, path = self, self.path
+        observed = []
+
+        @contextmanager
+        def guarded_db():
+            with original_db() as db:
+                class ConnectionSpy:
+                    def execute(self, sql, params=()):
+                        if "SELECT subject,session_id,calendar_id" in sql:
+                            other = sqlite3.connect(path, timeout=0)
+                            try:
+                                with testcase.assertRaises(sqlite3.OperationalError):
+                                    other.execute("""UPDATE consent_challenges
+                                        SET state='declined' WHERE challenge_id=?""",
+                                        (challenge["challenge_id"],))
+                                observed.append("locked-before-decision")
+                            finally:
+                                other.close()
+                        return db.execute(sql, params)
+                yield ConnectionSpy()
+
+        self.issuer._db = guarded_db
+        result = self.issuer.decide(
+            session_proof=self.session(),
+            confirmation_proof=self.confirmation(challenge))
+        self.assertEqual(result["status"], "issued")
+        self.assertEqual(observed, ["locked-before-decision"])
 
 
 if __name__ == "__main__":
