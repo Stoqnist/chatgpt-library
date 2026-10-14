@@ -133,23 +133,28 @@ class IntentLedger:
             json.dumps(row["plan"], sort_keys=True, separators=(",", ":")),
         )
 
-    def mark_attempt(self, expected_row, *, approval_id):
+    def mark_attempt(self, expected_row, *, approval_id, signing_key_id):
         """Atomically bind one approval receipt to the exact attempted plan."""
-        if not isinstance(approval_id, str) or not approval_id:
+        if (not isinstance(approval_id, str) or not approval_id
+                or not isinstance(signing_key_id, str) or not signing_key_id):
             raise ValueError("approval evidence missing")
         # The receipt check and attempt CAS occur in one SQLite transaction.
         # A revocation racing after proof verification but before this lock
         # must prevent marking the operation as attempted.
         with self._db() as db:
             if self._require_registry:
-                details = db.execute("""SELECT state,expires_at,calendar_id,
-                    operation_id,event_id,plan_sha256 FROM consent_receipts
-                    WHERE approval_id=?""", (approval_id,)).fetchone()
+                details = db.execute("""SELECT r.state,r.expires_at,
+                    r.calendar_id,r.operation_id,r.event_id,r.plan_sha256,
+                    r.key_id,k.state FROM consent_receipts AS r
+                    JOIN consent_signing_keys AS k ON k.key_id=r.key_id
+                    WHERE r.approval_id=?""", (approval_id,)).fetchone()
                 if (details is None or details[0] != "issued"
                         or not self._clock() < details[1]
-                        or details[2:] != (
+                        or details[2:7] != (
                             expected_row["calendar_id"], expected_row["operation_id"],
-                            expected_row["event_id"], plan_digest(expected_row["plan"]))):
+                            expected_row["event_id"], plan_digest(expected_row["plan"]),
+                            signing_key_id)
+                        or details[7] not in ("active", "retired")):
                     raise PermissionError("calendar approval unavailable")
             result = db.execute("""UPDATE calendar_intents
                 SET status='unknown', approval_id=?
@@ -161,8 +166,9 @@ class IntentLedger:
                 raise ValueError("operation changed, attempted or missing")
             if self._require_registry:
                 consumed = db.execute("""UPDATE consent_receipts
-                    SET state='consumed' WHERE approval_id=? AND state='issued'
-                    AND expires_at>?""", (approval_id, self._clock()))
+                    SET state='consumed' WHERE approval_id=? AND key_id=?
+                    AND state='issued' AND expires_at>?""",
+                    (approval_id, signing_key_id, self._clock()))
                 if consumed.rowcount != 1:
                     raise PermissionError("calendar approval unavailable")
 
@@ -222,9 +228,10 @@ class CalendarGateway:
             raise PermissionError("write approval unavailable")
         # Verify expiry and exact intent immediately before the conditional write.
         # The signer must authenticate real user consent outside this POC.
-        approval_id = self._approval_verifier.verify(
+        approval_id, signing_key_id = self._approval_verifier.verify(
             approval_evidence, expected_row=deepcopy(row))
-        self._ledger.mark_attempt(row, approval_id=approval_id)
+        self._ledger.mark_attempt(
+            row, approval_id=approval_id, signing_key_id=signing_key_id)
         return {"status": "unknown", "external_actions": 0}
 
     def recover(self, proof, *, operation_id):
