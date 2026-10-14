@@ -67,8 +67,12 @@ class OfflineLoginState:
     def consume(self, *, state, browser_binding):
         """Atomic one-use callback preflight. Must run BEFORE code exchange."""
         if (not isinstance(state, str) or not 30 <= len(state) <= 256
+                or not state.isascii()
+                or not all(c.isalnum() or c in "-_" for c in state)
                 or not isinstance(browser_binding, str)
-                or not 30 <= len(browser_binding) <= 256):
+                or not 30 <= len(browser_binding) <= 256
+                or not browser_binding.isascii()
+                or not all(c.isalnum() or c in "-_" for c in browser_binding)):
             raise PermissionError("OIDC transaction unavailable")
         with self._db() as db:
             db.execute("BEGIN IMMEDIATE")
