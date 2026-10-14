@@ -196,13 +196,13 @@ class CalendarGateway:
         if (row is None or row["calendar_id"] != self._calendar_id
                 or row["owner"] != "calendar"):
             raise PermissionError(DENIED)
-        # Signature verification is distinct from role auth and callback policy.
-        # The issuer must authenticate actual user consent outside this POC.
-        approval_id = self._approval_verifier.verify(
-            approval_evidence, expected_row=deepcopy(row))
         # Optional external policy can veto; it can never replace a signed proof.
         if self._approve_intent is not None and self._approve_intent(deepcopy(row)) is not True:
             raise PermissionError("write approval unavailable")
+        # Verify expiry and exact intent immediately before the conditional write.
+        # The signer must authenticate real user consent outside this POC.
+        approval_id = self._approval_verifier.verify(
+            approval_evidence, expected_row=deepcopy(row))
         self._ledger.mark_attempt(row, approval_id=approval_id)
         return {"status": "unknown", "external_actions": 0}
 
