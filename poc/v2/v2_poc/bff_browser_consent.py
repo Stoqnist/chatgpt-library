@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import hashlib
 import hmac
 from html import escape
+from urllib.parse import urlsplit
 import json
 import secrets
 import sqlite3
@@ -27,6 +28,7 @@ def _digest(value: str) -> str:
 def session_cookie(raw_token: str) -> str:
     """Host-only secure cookie for eventual HTTPS BFF response."""
     if (not isinstance(raw_token, str) or not 32 <= len(raw_token) <= 256
+            or not raw_token.isascii()
             or not all(c.isalnum() or c in "_-" for c in raw_token)):
         raise ValueError("invalid session token")
     return ("__Host-agency_session=" + raw_token +
@@ -45,9 +47,14 @@ class OfflineBrowserConsent:
                  clock=time.time):
         if (not isinstance(oidc_client_id, str) or not oidc_client_id
                 or not isinstance(trusted_origin, str)
-                or not trusted_origin.startswith("https://")
-                or trusted_origin.endswith("/")
-                or "/" in trusted_origin[8:]):
+                or not trusted_origin.isascii()
+                or any(ord(ch) <= 32 or ord(ch) == 127 for ch in trusted_origin)):
+            raise ValueError("exact HTTPS origin and client required")
+        parsed = urlsplit(trusted_origin)
+        if (parsed.scheme != "https" or not parsed.hostname or parsed.username
+                or parsed.password or parsed.query or parsed.fragment
+                or parsed.path or parsed.port is not None
+                or trusted_origin != "https://" + parsed.netloc):
             raise ValueError("exact HTTPS origin and client required")
         self.path = str(path)
         self._client_id = oidc_client_id
