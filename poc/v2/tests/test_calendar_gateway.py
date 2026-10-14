@@ -114,8 +114,13 @@ class OAuthTests(unittest.TestCase):
 
 
 KEY = b"gateway-unit-test-key-material-at-least-32"
+INTENT_KEY = b"distinct-offline-calendar-identity-secret-32"
 CLOCK = 1_000_000
 CALENDAR = "fictional-disposable-calendar"
+REQUEST = "test-request-1"
+START = "2026-10-20T10:00:00+02:00"
+END = "2026-10-20T10:30:00+02:00"
+ZONE = "Europe/Amsterdam"
 
 
 def proof(role="calendar_recovery", calendar=CALENDAR, exp=CLOCK + 120, key=KEY,
@@ -157,26 +162,39 @@ class GatewayTests(unittest.TestCase):
             return self.event
 
         self.gateway = CalendarGateway(
-            calendar_id=CALENDAR,
+            calendar_id=CALENDAR, intent_key=INTENT_KEY,
             verifier=VerifiedAgent(signing_key=KEY, clock=lambda: CLOCK),
             ledger=self.ledger, oauth=self.oauth, read_event=read_event,
             approve_intent=lambda row: self.approved)
 
-    def prepare(self, op_id="test-op-1"):
+    def prepare(self, op_id="test-op-1", request_id=REQUEST, start=START):
         return self.gateway.prepare(
             proof("calendar_executor", operation_id=op_id), operation_id=op_id,
-            start_at="2026-10-20T10:00:00+02:00",
-            end_at="2026-10-20T10:30:00+02:00")
+            request_id=request_id, start_at=start, end_at=END,
+            timezone_name=ZONE)
 
-    def test_plan_event_has_stable_valid_google_id_and_no_notifications(self):
+    def attempt(self):
+        self.approved = True
+        self.gateway.record_attempt(
+            proof("calendar_executor"), operation_id="test-op-1")
+
+    def test_single_planner_owns_id_and_safe_body(self):
+        from v2_poc.calendar_rest_intent import plan_insert
         event = self.prepare()
-        self.assertRegex(event["id"], r"^ag[0-9a-f]{32}$")
+        expected = plan_insert(
+            secret=INTENT_KEY, calendar_id=CALENDAR, request_id=REQUEST,
+            operation_id="test-op-1", start=START, end=END,
+            timezone_name=ZONE)
+        self.assertEqual(event, expected["body"])
+        self.assertRegex(event["id"], r"^[0-9a-v]{32}$")
         self.assertEqual(event["summary"], "Personal follow-up")
-        self.assertEqual(event["attendees"], [])
-        self.assertEqual(event["reminders"], {"useDefault": False,
-                                               "overrides": []})
-        self.assertNotIn("conferenceData", event)
+        self.assertEqual(event["visibility"], "private")
+        self.assertEqual(event["transparency"], "transparent")
+        self.assertEqual(event["reminders"], {"useDefault": False, "overrides": []})
+        self.assertFalse(set(event) & {"attendees", "conferenceData", "description",
+                                       "extendedProperties", "location"})
         self.assertEqual(self.ledger.get("test-op-1")["status"], "prepared")
+        self.assertEqual(self.prepare(), event)
         self.assertEqual(self.read_calls, [])
         self.assertEqual(self.oauth.calls, 0)
 
@@ -201,7 +219,8 @@ class GatewayTests(unittest.TestCase):
         for opid in ("test-op-1", "does-not-exist"):
             with self.subTest(opid=opid):
                 with self.assertRaises(PermissionError):
-                    self.gateway.recover(proof(), operation_id=opid)
+                    self.gateway.recover(proof(operation_id=opid),
+                                         operation_id=opid)
         self.assertEqual(self.oauth.calls, 0)
 
     def test_approval_is_not_inferred_from_plan_or_role(self):
@@ -212,49 +231,43 @@ class GatewayTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.gateway.record_attempt(proof("health"), operation_id="test-op-1")
         self.assertEqual(self.ledger.get("test-op-1")["status"], "prepared")
-        self.approved = True
-        self.gateway.record_attempt(
-            proof("calendar_executor"), operation_id="test-op-1")
+        self.attempt()
         with self.assertRaises(ValueError):
             self.gateway.record_attempt(
                 proof("calendar_executor"), operation_id="test-op-1")
         self.assertEqual(self.ledger.get("test-op-1")["status"], "unknown")
 
-    def test_exact_id_and_marker_are_required_for_recovery(self):
+    def test_exact_identity_and_planner_comparator_are_required(self):
         event = self.prepare()
-        self.approved = True
-        self.gateway.record_attempt(
-            proof("calendar_executor"), operation_id="test-op-1")
-        for candidate in (None, {**event, "status": "cancelled"},
-                          {**event, "id": "different"},
-                          {**event, "extendedProperties": {"private":
-                              {"agencyOp": "wrong"}}},
-                          {**event, "start":
-                              {"dateTime": "2026-10-20T10:15:00+02:00"}}):
+        self.attempt()
+        good = {**event, "status": "confirmed"}
+        for candidate in (None, {**good, "status": "cancelled"},
+                          {**good, "id": "otherid"},
+                          {**good, "start": {**good["start"], "dateTime":
+                                               "2026-10-20T10:15:00+02:00"}},
+                          {**good, "start": {"dateTime": START}}):
             self.event = candidate
-            self.assertEqual(
-                self.gateway.recover(proof(), operation_id="test-op-1"),
+            self.assertEqual(self.gateway.recover(
+                proof(), operation_id="test-op-1"),
                 {"status": "unknown", "external_actions": 0})
             self.assertEqual(self.ledger.get("test-op-1")["status"], "unknown")
-        self.event = {**event, "status": "confirmed"}
-        # Provider may normalize the original +02:00 times to UTC.
-        self.event = {**event, "status": "confirmed",
-                      "start": {"dateTime": "2026-10-20T08:00:00Z"},
-                      "end": {"dateTime": "2026-10-20T08:30:00Z"}}
+        # Provider may convert offsets to UTC, while retaining the IANA zone.
+        self.event = {**good, "start": {**event["start"],
+                                       "dateTime": "2026-10-20T08:00:00Z"},
+                      "end": {**event["end"],
+                              "dateTime": "2026-10-20T08:30:00Z"}}
         self.assertEqual(self.gateway.recover(
             proof(), operation_id="test-op-1")["status"], "verified")
         self.assertEqual(self.read_calls[-1]["fields"], READ_FIELDS)
         self.assertEqual(self.read_calls[-1]["event_id"], event["id"])
         self.assertEqual(self.read_calls[-1]["calendar_id"], CALENDAR)
         self.assertEqual(self.ledger.get("test-op-1")["status"], "verified")
-        # A historical verified marker is not a new current-state verification.
         self.event = None
         self.assertEqual(self.gateway.recover(
             proof(), operation_id="test-op-1")["status"], "unknown")
         self.assertEqual(self.ledger.get("test-op-1")["status"], "verified")
 
     def test_assertion_is_scoped_to_exact_operation_before_record_lookup(self):
-        """Even a valid recovery proof for operation A cannot query operation B."""
         class NeverReadLedger:
             def get(self, *_):
                 raise AssertionError("cross-operation lookup occurred")
@@ -270,49 +283,58 @@ class GatewayTests(unittest.TestCase):
                 operation_id="test-op-2")
 
     def test_recovery_denies_changed_privacy_or_notifications(self):
-        expected = self.prepare()
-        self.approved = True
-        self.gateway.record_attempt(
-            proof("calendar_executor"), operation_id="test-op-1")
+        event = self.prepare()
+        self.attempt()
         for key, changed in (
                 ("summary", "Patient follow-up"),
                 ("visibility", "public"),
                 ("transparency", "opaque"),
                 ("attendees", [{"email": "synthetic@example.invalid"}]),
                 ("reminders", {"useDefault": True}),
-                ("reminders", {"useDefault": False, "overrides": [{"minutes": 5, "method": "email"}]}),
+                ("reminders", {"useDefault": False,
+                               "overrides": [{"minutes": 5, "method": "email"}]}),
                 ("conferenceData", {"entryPoints": [{"entryPointType": "video"}]}),
                 ("hangoutLink", "https://example.invalid/meeting")):
-            with self.subTest(key=key, changed=changed):
-                self.event = {**expected, "status": "confirmed", key: changed}
+            with self.subTest(key=key):
+                self.event = {**event, "status": "confirmed", key: changed}
                 self.assertEqual(
                     self.gateway.recover(proof(), operation_id="test-op-1"),
                     {"status": "unknown", "external_actions": 0})
-                self.assertEqual(self.ledger.get("test-op-1")["status"], "unknown")
 
     def test_token_or_provider_failure_remains_unknown_and_no_retry(self):
         self.prepare()
-        self.approved = True
-        self.gateway.record_attempt(
-            proof("calendar_executor"), operation_id="test-op-1")
+        self.attempt()
         self.oauth.available = False
         self.assertEqual(self.gateway.recover(
             proof(), operation_id="test-op-1")["status"], "unknown")
         self.assertEqual(self.read_calls, [])
         self.assertEqual(self.ledger.get("test-op-1")["status"], "unknown")
 
-    def test_restart_does_not_erase_attempt_identity(self):
-        event = self.prepare()
-        self.approved = True
-        self.gateway.record_attempt(
-            proof("calendar_executor"), operation_id="test-op-1")
+    def test_prepared_retry_restart_identity_and_changed_intent_rejection(self):
+        first = self.prepare()
         reopened = IntentLedger(self.db)
-        self.assertEqual(reopened.get("test-op-1")["event_id"], event["id"])
+        self.gateway._ledger = reopened
+        self.assertEqual(self.prepare(), first)
+        self.assertEqual(reopened.get("test-op-1")["event_id"], first["id"])
+        with self.assertRaisesRegex(ValueError, "conflicting event intent"):
+            self.prepare(request_id="other-request")
+        with self.assertRaisesRegex(ValueError, "conflicting event intent"):
+            self.prepare(start="2026-10-20T10:01:00+02:00")
+        self.assertNotEqual(self.prepare(op_id="test-op-2")["id"], first["id"])
+        self.attempt()
         self.assertEqual(reopened.get("test-op-1")["status"], "unknown")
-        with self.assertRaises(sqlite3.IntegrityError):
-            reopened.prepare("test-op-1", CALENDAR,
-                             "2026-10-20T10:00:00+02:00",
-                             "2026-10-20T10:30:00+02:00")
+        with self.assertRaisesRegex(ValueError, "already attempted"):
+            self.prepare()
+        self.assertEqual(reopened.get("test-op-1")["event_id"], first["id"])
+        self.assertEqual(self.oauth.calls, 0)
+        self.assertEqual(self.read_calls, [])
+
+    def test_secret_change_cannot_replan_same_operation(self):
+        first = self.prepare()
+        self.gateway._intent_key = b"changed-offline-hmac-secret-is-32-bytes"
+        with self.assertRaisesRegex(ValueError, "conflicting event intent"):
+            self.prepare()
+        self.assertEqual(self.ledger.get("test-op-1")["event_id"], first["id"])
 
 
 if __name__ == "__main__":
