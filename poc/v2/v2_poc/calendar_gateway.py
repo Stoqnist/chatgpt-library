@@ -69,7 +69,7 @@ class IntentLedger:
     prototype DB schemas are intentionally not migrated or accepted for use.
     """
 
-    def __init__(self, path, *, require_approval_registry=False, clock=time.time):
+    def __init__(self, path, *, require_approval_registry=True, clock=time.time):
         self.path = str(path)
         self._require_registry = require_approval_registry
         self._clock = clock
