@@ -1,6 +1,4 @@
 """Synthetic provider-specific evidence tests, no credentials or network."""
-import copy
-import math
 import unittest
 
 from v2_poc.calendar_google_authority import (
@@ -129,6 +127,7 @@ class GoogleAuthorityPolicyTests(unittest.TestCase):
             {"session": None},
             {"grant": None},
             {"expected_calendar_id": None},
+            {"expected_calendar_oauth_client_id": OIDC_CLIENT},
         ):
             with self.subTest(kwargs=kwargs):
                 self.assertEqual(evaluate(session, grant, **kwargs)["status"],
