@@ -1,10 +1,15 @@
 """Fictional, fully offline consent issuer and registry CAS regression tests."""
 import tempfile
+import hashlib
+import json
+import base64
+
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from pathlib import Path
 import sqlite3
 import unittest
 
-from v2_poc.calendar_approval import APPROVAL_ACTION, plan_digest
+from v2_poc.calendar_approval import APPROVAL_ACTION, plan_digest, OfflineApprovalVerifier
 from v2_poc.calendar_consent_issuer import (
     OfflineConsentIssuer, _encode, _SESSION_AUDIENCE, _UI_AUDIENCE,
 )
@@ -15,7 +20,12 @@ from v2_poc.calendar_rest_intent import plan_insert
 NOW = 1_000_000
 SESSION_KEY = b"synthetic-independent-session-root-32"
 UI_KEY = b"synthetic-independent-ui-consent-root-32"
-ISSUER_KEY = b"synthetic-independent-approval-root-32"
+APPROVAL_PRIVATE = Ed25519PrivateKey.from_private_bytes(
+    hashlib.sha256(b"fictional-consent-signing-key-one").digest())
+APPROVAL_PRIVATE_NEW = Ed25519PrivateKey.from_private_bytes(
+    hashlib.sha256(b"fictional-consent-signing-key-two").digest())
+KID1 = "fictional-consent-v1"
+KID2 = "fictional-consent-v2"
 INTENT_KEY = b"synthetic-calendar-identity-key-32bytes"
 CALENDAR = "fictional-calendar-for-consent"
 SUBJECT = "fictional-subject"
@@ -41,6 +51,7 @@ class ConsentIssuerTests(unittest.TestCase):
         self.ledger = IntentLedger(
             self.path, require_approval_registry=True, clock=lambda: self.now[0])
         self.issuer = self.make_issuer()
+        self.public_verifier = self.make_verifier()
         self.plan = plan_insert(
             secret=INTENT_KEY, calendar_id=CALENDAR,
             operation_id="fictional-operation-a", request_id="fictional-request-a",
@@ -49,12 +60,21 @@ class ConsentIssuerTests(unittest.TestCase):
         self.gateway = CalendarGateway(
             calendar_id=CALENDAR, intent_key=INTENT_KEY,
             verifier=PermitSyntheticRole(), ledger=self.ledger,
-            oauth=None, read_event=None, approval_verifier=self.issuer)
+            oauth=None, read_event=None,
+            approval_verifier=self.public_verifier)
 
-    def make_issuer(self):
+    def make_issuer(self, *, private=APPROVAL_PRIVATE, kid=KID1):
         return OfflineConsentIssuer(
             self.path, session_key=SESSION_KEY, ui_key=UI_KEY,
-            approval_key=ISSUER_KEY, clock=lambda: self.now[0])
+            approval_private_key=private, approval_key_id=kid,
+            clock=lambda: self.now[0])
+
+    def make_verifier(self, *, include_second=False):
+        ring = {KID1: APPROVAL_PRIVATE.public_key()}
+        if include_second:
+            ring[KID2] = APPROVAL_PRIVATE_NEW.public_key()
+        return OfflineApprovalVerifier(
+            verification_keys=ring, clock=lambda: self.now[0])
 
     def session(self, *, sub=SUBJECT, sid=SID, key=SESSION_KEY, exp=None):
         return _encode({
@@ -100,8 +120,8 @@ class ConsentIssuerTests(unittest.TestCase):
             session_proof=self.session(),
             confirmation_proof=self.confirmation(challenge))
         self.assertEqual(issued["status"], "issued")
-        self.assertEqual(self.issuer.verify(
-            issued["approval_proof"], expected_row=row), issued["approval_id"])
+        self.assertEqual(self.public_verifier.verify(
+            issued["approval_proof"], expected_row=row), (issued["approval_id"], KID1))
         with self.assertRaises(PermissionError):
             self.issuer.decide(
                 session_proof=self.session(),
@@ -154,16 +174,18 @@ class ConsentIssuerTests(unittest.TestCase):
         self.now[0] = NOW
         row, _, issued = self.prepare_approval()
         rebooted = self.make_issuer()
-        self.assertEqual(rebooted.verify(
-            issued["approval_proof"], expected_row=row), issued["approval_id"])
+        self.assertEqual(self.make_verifier().verify(
+            issued["approval_proof"], expected_row=row), (issued["approval_id"], KID1))
         with self.assertRaises(PermissionError):
             rebooted.revoke(session_proof=self.session(
                 sub="another-person"), approval_id=issued["approval_id"])
         self.assertEqual(rebooted.revoke(
             session_proof=self.session(),
             approval_id=issued["approval_id"]), {"status": "revoked"})
-        with self.assertRaises(PermissionError):
-            rebooted.verify(issued["approval_proof"], expected_row=row)
+        # Revocation is registry state, not a signature failure.
+        self.assertEqual(self.public_verifier.verify(
+            issued["approval_proof"], expected_row=row),
+            (issued["approval_id"], KID1))
         with self.assertRaises(PermissionError):
             self.gateway.record_attempt(
                 "synthetic-executor", operation_id="fictional-operation-a",
@@ -193,18 +215,21 @@ class ConsentIssuerTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.issuer.revoke(
                 session_proof=self.session(), approval_id=issued["approval_id"])
-        with self.assertRaises(PermissionError):
-            self.issuer.verify(issued["approval_proof"], expected_row=row)
+        # Consumed receipt cannot authorize a second attempt despite a valid signature.
+        self.assertEqual(self.public_verifier.verify(
+            issued["approval_proof"], expected_row=row),
+            (issued["approval_id"], KID1))
 
     def test_revocation_between_verify_and_cas_never_marks_attempted(self):
         _, _, issued = self.prepare_approval()
         issuer = self.issuer
+        public = self.public_verifier
         class RevokingVerifier:
             def verify(self, proof, *, expected_row):
-                ident = issuer.verify(proof, expected_row=expected_row)
+                ident, kid = public.verify(proof, expected_row=expected_row)
                 issuer.revoke(
                     session_proof=self_outer.session(), approval_id=ident)
-                return ident
+                return ident, kid
         self_outer = self
         self.gateway._approval_verifier = RevokingVerifier()
         with self.assertRaises(PermissionError):
@@ -220,12 +245,12 @@ class ConsentIssuerTests(unittest.TestCase):
 
     def test_receipt_expiry_between_verify_and_cas_fails_closed(self):
         _, _, issued = self.prepare_approval()
-        issuer = self.issuer
+        public = self.public_verifier
         class DelayedVerifier:
             def verify(self, proof, *, expected_row):
-                ident = issuer.verify(proof, expected_row=expected_row)
+                ident, kid = public.verify(proof, expected_row=expected_row)
                 now_ref[0] += 61
-                return ident
+                return ident, kid
         now_ref = self.now
         self.gateway._approval_verifier = DelayedVerifier()
         with self.assertRaises(PermissionError):
