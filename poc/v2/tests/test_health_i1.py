@@ -302,8 +302,8 @@ class I1MockIntegrationTests(TestCase):
         self.assertEqual(inspected["outcome"]["history"][-2:],
                          ["inspection_only", "verified"])
         self.assertEqual(session.approvals.status(old_operation), "revoked")
-        with self.assertRaises(ValueError):
-            session.reconcile("calendar-t1", requester_owner="calendar")  # already reconciled
+        with self.assertRaises(PermissionError):
+            session.reconcile("calendar-t1", requester_owner="calendar")  # no eligible read grant
         cumulative = session.execute()
         self.assertEqual([o["status"] for o in cumulative["cumulative_outcomes"]],
                          ["verified", "verified", "verified"])
@@ -336,9 +336,9 @@ class I1MockIntegrationTests(TestCase):
         self.assertEqual(session.store.state, before_state)
         self.assertEqual(len([e for e in session.store.events
                               if e["kind"] == "write_attempt"]), writes)
-        with self.assertRaises(ValueError):
-            session.reconcile("purchase-t1")  # verified, not ambiguous
-        with self.assertRaises(ValueError):
+        with self.assertRaises(PermissionError):
+            session.reconcile("purchase-t1")  # verified, no recovery read grant
+        with self.assertRaises(PermissionError):
             session.reconcile("arbitrary-id")
 
     def test_foreign_or_unpermitted_requester_cannot_recover_j2_calendar_evidence(self):
@@ -372,6 +372,73 @@ class I1MockIntegrationTests(TestCase):
             key: deepcopy(stage["previews"][2][key]) for key in (
                 "request_id", "operation_id", "owner", "destination",
                 "expected_revision", "change")}), "revoked")
+        self.assertEqual(len([e for e in session.store.events
+                              if e["kind"] == "write_attempt"]), 3)
+
+    def test_unauthorized_known_and_absent_recovery_ids_are_indistinguishable(self):
+        session = make("j2", faults={"calendar-t1": "readback_unavailable"})
+        for preview in session.advance(1)["previews"]:
+            session.decide(preview, "approve")
+        self.assertEqual(session.execute()["outcomes"][2]["status"], "unknown")
+        session.advance(2)  # old operation exists, but its write approval is revoked
+        self.assertIn("calendar-t1", session._prior_uncertain)
+        before_history = deepcopy(session._prior_outcomes)
+        before_state = session.store.state
+        before_events = session.store.events
+        before_grants = set(session._recovery_read_permissions)
+
+        class NoRecordLookup:
+            def get(self, *_):
+                raise AssertionError("unauthorized lookup read recovery record")
+            def __getitem__(self, *_):
+                raise AssertionError("unauthorized lookup read recovery record")
+            def __contains__(self, *_):
+                raise AssertionError("unauthorized lookup checked recovery record")
+            def __iter__(self):
+                raise AssertionError("unauthorized lookup read outcome history")
+
+        def denials(cases):
+            responses = []
+            with (patch.object(session, "_prior_uncertain", NoRecordLookup()),
+                  patch.object(session, "_prior_outcomes", NoRecordLookup()),
+                  patch.object(session.executor, "inspect_only",
+                               side_effect=AssertionError("unauthorized provider inspection")),
+                  patch.object(session.store, "inspect",
+                               side_effect=AssertionError("unauthorized record inspection")),
+                  patch.object(session.store, "readback",
+                               side_effect=AssertionError("unauthorized record readback"))):
+                for requester, operation_id in cases:
+                    with self.subTest(requester=requester, operation_id=operation_id):
+                        with self.assertRaises(PermissionError) as denied:
+                            session.reconcile(operation_id, requester_owner=requester)
+                        responses.append((type(denied.exception), str(denied.exception)))
+            self.assertTrue(responses)
+            self.assertEqual(len(set(responses)), 1)
+            self.assertEqual(responses[0],
+                             (PermissionError, "recovery read not authorized"))
+
+        # A foreign owner, absent requester and unknown operation ID all
+        # produce the same outward failure, with no access to internal records.
+        denials([
+            ("health", "calendar-t1"), ("health", "not-a-real-recovery"),
+            (None, "calendar-t1"), (None, "not-a-real-recovery"),
+            ("calendar", "not-a-real-recovery"),
+        ])
+
+        # Possessing the correct owner name is still insufficient without
+        # independent recovery-read permission, regardless of ID existence.
+        grant = ("calendar", "fictional-i1-j2", "calendar-t1", "mock:calendar")
+        session._recovery_read_permissions.remove(grant)
+        denials([
+            ("calendar", "calendar-t1"), ("calendar", "not-a-real-recovery"),
+            ("health", "calendar-t1"), ("health", "not-a-real-recovery"),
+        ])
+
+        self.assertEqual(session._prior_outcomes, before_history)
+        self.assertEqual(session.store.state, before_state)
+        self.assertEqual(session.store.events, before_events)
+        self.assertEqual(session._prior_uncertain["calendar-t1"]["owner"], "calendar")
+        self.assertEqual(before_grants - session._recovery_read_permissions, {grant})
         self.assertEqual(len([e for e in session.store.events
                               if e["kind"] == "write_attempt"]), 3)
 

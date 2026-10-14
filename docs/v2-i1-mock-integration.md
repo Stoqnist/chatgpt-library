@@ -41,8 +41,12 @@ requester_owner=...)` first requires matching original owner and a trusted
 fixture-backed, exact request/operation/resource **recovery-read permission**,
 then checks the registered intent, prior `write_attempt`, and ambiguous marker
 before inspecting. A missing read permission or foreign owner fails closed
-without inspecting, reading back, or disclosing target metadata. Write
-approvals, including old approvals, never confer recovery-read permission.
+without inspecting, reading back, or disclosing target metadata. At the
+I1 entry point, a narrow mock-grant check runs **before** prior-operation and
+outcome-history lookups; unauthorized probes of existing, missing, or no-longer
+eligible recovery IDs return the same `PermissionError("recovery read not
+authorized")` without inspecting records or changing history. Write approvals,
+including old approvals, never confer recovery-read permission.
 These APIs do not consult or restore approval, do not call `apply`, and cannot
 create a new write. Matching applied markers plus successful readback can
 change historical `unknown` to `verified` with the original unknown/attempt
