@@ -39,3 +39,78 @@ $('review').addEventListener('click',()=>{
 });
 $('reset').addEventListener('click',()=>{select((active+1)%window.DEMO_CASES.length);document.querySelectorAll('.scenario')[active].focus();});
 select(0);
+
+// Recovery is a fictional UI story, not clinical logic or the V2 coordinator.
+let soundOn = false;
+let audioContext;
+function tick() {
+  if (!soundOn || !audioContext) return;
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  oscillator.type = 'sine'; oscillator.frequency.value = 520;
+  gain.gain.setValueAtTime(0, audioContext.currentTime);
+  gain.gain.linearRampToValueAtTime(0.035, audioContext.currentTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.13);
+  oscillator.connect(gain); gain.connect(audioContext.destination);
+  oscillator.start(); oscillator.stop(audioContext.currentTime + 0.14);
+  oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+}
+$('sound').addEventListener('click', async () => {
+  try {
+    if (!soundOn) {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) throw new Error('Audio unavailable');
+      audioContext ||= new Audio();
+      await audioContext.resume();
+    }
+    soundOn = !soundOn;
+    if (!soundOn && audioContext) await audioContext.suspend();
+    $('sound').setAttribute('aria-pressed', String(soundOn));
+    $('sound').textContent = soundOn ? 'Sound on' : 'Sound off';
+    tick();
+  } catch (_) {
+    soundOn = false; $('sound').textContent = 'Sound unavailable';
+    $('sound').setAttribute('aria-pressed', 'false');
+  }
+});
+function moodReset(message = 'One tap is enough. You can skip this.') {
+  document.querySelectorAll('[data-mood]').forEach(b => b.setAttribute('aria-pressed','false'));
+  $('mood-status').textContent = message; $('undo-mood').hidden = true;
+}
+document.querySelectorAll('[data-mood]').forEach(button => button.addEventListener('click', () => {
+  document.querySelectorAll('[data-mood]').forEach(b => b.setAttribute('aria-pressed',String(b === button)));
+  $('mood-status').textContent = 'Demo mood: ' + button.dataset.mood + '. That’s the check-in. No health assessment made.';
+  $('undo-mood').hidden = false; tick();
+}));
+$('skip-mood').addEventListener('click', () => moodReset('Skipped. Nothing to catch up on.'));
+$('undo-mood').addEventListener('click', () => moodReset());
+function energySelect(value) {
+  document.querySelectorAll('[data-energy]').forEach(b => b.setAttribute('aria-pressed',String(b.dataset.energy === value)));
+  const low = value === 'low';
+  $('optional-tasks').open = !low;
+  $('optional-label').textContent = low ? 'Can wait · 2 optional tasks' : 'Optional tasks · 2';
+  $('plan-title').textContent = low ? 'Keep today small.' : 'A few things to hold.';
+  $('plan-status').textContent = low ? 'Optional chores can wait. Your care instructions stay unchanged.' : value ? 'One practical step at a time. The care plan stays unchanged.' : 'Try a lower-energy day to see what can wait.';
+  $('next-task').classList.remove('settle');
+  void $('next-task').offsetWidth;
+  if (value) $('next-task').classList.add('settle');
+}
+document.querySelectorAll('[data-energy]').forEach(b => b.addEventListener('click', () => { energySelect(b.dataset.energy); tick(); }));
+$('prepare-help').addEventListener('click', () => {
+  $('help-draft').hidden = !$('help-draft').hidden;
+  $('prepare-help').setAttribute('aria-expanded', String(!$('help-draft').hidden));
+  $('prepare-help').textContent = $('help-draft').hidden ? 'Preview a help request →' : 'Close draft ↑'; tick();
+});
+$('prepare-help').setAttribute('aria-expanded','false');
+$('prepare-help').setAttribute('aria-controls','help-draft');
+$('recovery-reset').addEventListener('click', () => {
+  moodReset(); energySelect(null); $('help-draft').hidden = true;
+  $('prepare-help').textContent = 'Preview a help request →';
+  $('prepare-help').setAttribute('aria-expanded','false');
+});
+function openAnchor() {
+  const target = document.getElementById(location.hash.slice(1));
+  if (target?.tagName === 'DETAILS') target.open = true;
+  if (target?.closest('.purchase-more')) target.closest('.purchase-more').open = true;
+}
+window.addEventListener('hashchange', openAnchor); openAnchor();

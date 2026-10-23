@@ -1,6 +1,6 @@
 # Agency V2 guided public demo
 
-An isolated static presentation of three fictional purchase cases. `build.py`
+An isolated static recovery walkthrough with three additional fictional purchase cases. `build.py`
 runs the existing V2 deterministic coordinator and exports its results; browser
 interaction selects these precomputed results. No live models, sign-in, provider
 connections, personal records, forms, analytics or persistent browser storage.
@@ -54,3 +54,25 @@ docker compose -f demo/compose.yaml down
 Then remove/restore only its dedicated proxy route. Existing infrastructure is
 unaffected. Docker and public HTTPS verification remain pending until performed
 in an environment with Docker and authorized VPS access.
+
+## Recovery walkthrough
+
+The lead story is now a scripted, entirely fictional recovery-support concept.
+Mood is one tap with Skip/Undo; energy independently changes only optional chores.
+The care-plan card never changes. Help requests are previews, never sent.
+Sound uses a local Web Audio oscillator after opt-in; no audio service is called.
+Selections use page memory only, with no persistence, telemetry or remote AI.
+The existing three coordinator-generated purchase scenarios remain in a disclosure.
+Safety and privacy explanations are on-page. They are not medical-device or GDPR
+certifications. Infrastructure logging/retention and a full operator privacy notice
+remain separate operational work before collecting any real health information.
+
+For a tunnel-connected deployment, retain the local Compose network override and
+include it in all update and rollback commands:
+
+```bash
+docker compose -f demo/compose.yaml -f demo/compose.tunnel.yaml up -d --build --wait
+```
+
+The override is private deployment configuration, not a public repository file.
+Rollback by checking out the previous release commit and running the same command.
