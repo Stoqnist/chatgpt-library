@@ -13,7 +13,7 @@
 | Work | Current evidence / next step |
 | --- | --- |
 | Guided demo | [PR #77](https://github.com/Stoqnist/chatgpt-library/pull/77), head `1799826`, adds static UI, three generated cases and isolated Compose package; unmerged, not deployed. |
-| Verification | Export invariants and 15 coordinator tests passed locally; all three interactions checked in desktop browser, 390px layout and result inspected. Docker/asset-boundary CI started; record its result before release. Real phone/Instagram checks remain open. |
+| Verification | Export invariants and 15 coordinator tests passed locally; all three interactions checked in desktop browser, 390px layout and result inspected. Docker/asset-boundary CI [39992506439](https://github.com/Stoqnist/chatgpt-library/actions/runs/39992506439) passed at exact head `1799826`, including image build, Compose startup, served-asset equality, blocked paths and CSP header. Real phone/Instagram checks remain open. |
 | VPS / HTTPS | No authenticated server connection available in this session. Operator must run the isolated package and confirm dedicated HTTPS route; existing MCP/BFF stack must remain intact. Requested hostname and private topology need operator verification. No DNS/deployment claim is established. |
 | Publicity | Separate `demo/publicity/launch.md` in #77: draft caption, 20–30 second recording outline and launch checklist. No post, recording or bio edit performed. |
 | Existing login | #75 remains draft/unmerged at `8b677d9`; CI `38624842591` passed. Actual Google browser login and VPS verification remain open, independent of the public fictional demo. |
