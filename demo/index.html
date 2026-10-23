@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agency — From scattered evidence to a clear next step</title>
+<meta name="description" content="Explore a guided Agency V2 demo. See how one fictional purchase is checked across spending, purchases and home records.">
+<link rel="stylesheet" href="style.css"><script src="cases.js" defer></script><script src="app.js" defer></script>
+</head>
+<body>
+<header><a class="wordmark" href="#">agency<span> / 02</span></a><span class="edition"><i></i> WORK IN PROGRESS</span></header>
+<main>
+<section class="intro"><p class="eyebrow">LESS ADMIN. MORE CLARITY.</p><h1>One purchase.<br>All the loose ends.</h1><div class="intro-bottom"><p>A receipt in one place. A payment in another. Something still on its way. Agency brings the evidence together, and keeps the unknowns visible.</p><a class="start" href="#demo">Try the guided demo <span>↘</span></a></div></section>
+<section id="demo" aria-labelledby="demo-title">
+<div class="section-top"><div><p class="eyebrow">01 / EXPLORE THE EVIDENCE</p><h2 id="demo-title">Small changes. Different answers.</h2></div><span class="tag">Fictional data · No sign-in</span></div>
+<div class="workspace">
+<aside><p class="eyebrow">CHOOSE A SCENARIO</p><div id="scenarios" class="scenarios"></div><div class="note"><span>↗</span><p>These results come from the existing V2 rules engine. No live AI or connected accounts are used.</p></div></aside>
+<div class="desk"><div class="desk-heading"><span class="eyebrow">THE INPUT</span><span id="count"></span></div><h3 id="case-title"></h3><p id="case-detail"></p><div id="evidence"></div><button id="review" class="primary">Review this purchase <span>→</span></button>
+<section id="result" hidden aria-labelledby="result-heading"><div class="result-top"><div><p class="eyebrow">02 / ONE CONSOLIDATED RESULT</p><h3 id="result-heading" tabindex="-1">Here's what holds up.</h3></div><span class="tag">Demo result</span></div><div id="summary"></div><div id="owners"></div><div class="next"><h4>What still needs an answer</h4><ul id="questions"></ul><p>Matching amounts alone do not prove that a receipt and a bank payment belong together.</p></div><details><summary>Inspect the evidence and proposed changes</summary><p>Proposals only. No records have been changed.</p><pre id="raw"></pre></details><button id="reset" class="secondary">Try another scenario ↑</button></section>
+</div></div>
+</section>
+<section class="closing"><p class="eyebrow">THE IDEA BEHIND AGENCY</p><h2>Help that knows<br>what it knows.</h2><div><p>Different responsibilities. One clear response. Purchase checks the acquisition. Finance checks the spending. Home checks what can be claimed about possession.</p><p class="muted">This is an early, scripted preview of that approach. It doesn't connect to your accounts, run a live assistant, or save your choices.</p></div></section>
+</main><footer><span>agency / v2 preview</span><span>Fictional evidence. Real boundaries.</span><a href="https://github.com/Stoqnist/chatgpt-library" target="_blank" rel="noopener noreferrer">Explore the project ↗</a></footer>
+<noscript><p class="noscript">Enable JavaScript to explore the three fictional scenarios.</p></noscript>
+</body></html>
