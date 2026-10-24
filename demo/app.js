@@ -114,3 +114,50 @@ function openAnchor() {
   if (target?.closest('.purchase-more')) target.closest('.purchase-more').open = true;
 }
 window.addEventListener('hashchange', openAnchor); openAnchor();
+
+// Optional editorial motion: never intercept scrolling or move interactive controls.
+const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+const reveals = [...document.querySelectorAll('.reveal')];
+const sceneNote = document.querySelector('.scene-note');
+let revealObserver;
+let motionFrame = 0;
+function updateSceneDepth() {
+  motionFrame = 0;
+  if (motionPreference.matches || !sceneNote) return;
+  const scene = sceneNote.parentElement.getBoundingClientRect();
+  if (scene.bottom < 0 || scene.top > innerHeight) return;
+  const progress = (innerHeight / 2 - scene.top - scene.height / 2) / innerHeight;
+  sceneNote.style.setProperty('--scene-drift', Math.max(-12, Math.min(12, progress * 28)) + 'px');
+}
+function requestSceneDepth() {
+  if (!motionPreference.matches && !motionFrame) motionFrame = requestAnimationFrame(updateSceneDepth);
+}
+function configureMotion() {
+  revealObserver?.disconnect();
+  document.documentElement.classList.remove('motion-ready');
+  reveals.forEach(el => el.classList.remove('is-waiting'));
+  if (motionFrame) cancelAnimationFrame(motionFrame);
+  motionFrame = 0;
+  sceneNote?.style.removeProperty('--scene-drift');
+  if (motionPreference.matches || !('IntersectionObserver' in window)) return;
+  revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.remove('is-waiting');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, {threshold: 0.08});
+  reveals.forEach(el => {
+    if (el.getBoundingClientRect().top > innerHeight) {
+      el.classList.add('is-waiting');
+      revealObserver.observe(el);
+    }
+  });
+  document.documentElement.classList.add('motion-ready');
+  requestSceneDepth();
+}
+window.addEventListener('scroll', requestSceneDepth, {passive:true});
+window.addEventListener('resize', requestSceneDepth, {passive:true});
+motionPreference.addEventListener('change', configureMotion);
+configureMotion();

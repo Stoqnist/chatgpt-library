@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>stoqnist. — with a little more help. | Agency V2 demo</title>
-<meta name="description" content="Explore a fictional recovery walkthrough: a small check-in, fewer everyday tasks, and one clear next step. No sign-in or personal health records.">
-<link rel="stylesheet" href="style.css"><script src="cases.js" defer></script><script src="app.js" defer></script>
+<title>stoqnist. — a little more help with everyday life</title>
+<meta name="description" content="Discover a calmer way to bring everyday life together. Explore the stoqnist. idea and try a fictional, interactive showcase.">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="journey.css"><script src="cases.js" defer></script><script src="app.js" defer></script>
 </head>
 <body>
+<a class="skip-link" href="#recovery">Skip to the interactive showcase</a>
 <main>
 <section class="brand-signature brand-opening" aria-label="Stoqnist brand signature">
 <picture>
@@ -14,16 +15,30 @@
 <img src="assets/stoqnist-banner.svg" width="1200" height="344" fetchpriority="high" decoding="async" alt="stoqnist. — with a little more help. Translucent peach and lavender ribbons intertwine on deep forest green.">
 </picture>
 </section>
-<section class="closing"><p class="eyebrow">THE IDEA BEHIND AGENCY</p><h2>You don’t have to<br>hold it all.</h2><div><p>Bring the relevant pieces together. Keep uncertainty visible. Make the next practical step smaller.</p><p class="muted">Recovery coordination is a concept preview. The separate purchase examples use precomputed outputs from the V2 rules engine. Neither runs a live assistant.</p></div></section>
-
-<section class="intro"><p class="eyebrow">A LITTLE MORE HELP. A LITTLE LESS TO HOLD.</p><h1>Less to manage.<br>Room to recover.</h1><div class="intro-bottom"><p>When you have less energy, everyday life can ask too much. Explore how Agency could help organise the loose ends, one small step at a time.</p><a class="start" href="#recovery">Try the recovery story <span>↘</span></a></div></section>
+<section class="brand-story reveal" aria-labelledby="brand-title">
+<p class="eyebrow">A LITTLE MORE HELP. A LITTLE MORE ROOM.</p>
+<div class="story-heading"><h1 id="brand-title">Life has a lot<br>of moving pieces.<br><em>Find your next step.</em></h1><div class="story-copy"><p>Plans, paperwork, the things you meant to remember. It can be a lot to hold.</p><p>stoqnist. explores a calmer way to bring those pieces together — so the next small step feels easier to see.</p><a class="text-link" href="#discover">Discover the idea <span aria-hidden="true">↓</span></a></div></div>
+</section>
+<section id="discover" class="discovery" aria-labelledby="discovery-title">
+<div class="scene-wrap reveal"><img class="everyday-scene" src="assets/everyday-room.webp" width="1536" height="1024" loading="lazy" decoding="async" alt="A quiet still life of a smartphone, connected shapes and an olive sprig in soft afternoon light."><div class="scene-note"><span class="small-orbit" aria-hidden="true"></span>Space for what matters.</div></div>
+<div class="discovery-copy reveal"><p class="eyebrow">THE STOQNIST. IDEA</p><h2 id="discovery-title">Less to keep track of.<br>More room to be here.</h2><p>Imagine the useful parts of your day in one place: what’s coming up, what needs a second look, and what can wait.</p><p>Not another list to keep up with. A little perspective, and a practical place to begin.</p><p class="concept-note">A service concept in progress. The stories below show the direction, not a service you can sign up for yet.</p></div>
+</section>
+<section class="journey" aria-labelledby="journey-title">
+<div class="journey-intro reveal"><p class="eyebrow">FROM SCATTERED TO A LITTLE CLEARER</p><h2 id="journey-title">A place for the pieces.<br>A pace that fits you.</h2><p>Three principles behind the experience we’re exploring.</p></div>
+<div class="journey-cards">
+<article class="journey-card reveal"><span class="chapter">01 / BRING IT TOGETHER</span><div class="piece-art" aria-hidden="true"><span>Plans</span><span>Everyday details</span><span>Loose ends</span></div><h3>A little less scattered.</h3><p>The details of life live in different places. Start by seeing how they belong together.</p></article>
+<article class="journey-card reveal"><span class="chapter">02 / FIND SOME CLARITY</span><div class="clarity-art" aria-hidden="true"><i></i><i></i><i></i></div><h3>Make room for the unknown.</h3><p>A missing detail deserves a question. The idea is to make uncertainty visible, not turn a guess into a fact.</p></article>
+<article class="journey-card reveal"><span class="chapter">03 / KEEP IT SMALL</span><div class="step-art" aria-hidden="true"><span>One thing at a time <b>↗</b></span></div><h3>A next step, at your pace.</h3><p>Some days have more room than others. Focus on one useful thing, and let the rest wait.</p></article>
+</div>
+</section>
+<section class="showcase-intro reveal" aria-labelledby="showcase-title"><div><p class="eyebrow">A SMALL WINDOW INTO THE IDEA</p><h2 id="showcase-title">Don’t just read it.<br>Try a quieter day.</h2></div><div><p>Meet Alex, a fictional character coming home after an injury. Explore how everyday support could feel when there’s less energy to spare.</p><a class="start" href="#recovery">Step into the story <span aria-hidden="true">↘</span></a><p class="micro">A scripted showcase. No account. Nothing to connect.</p></div></section>
 <section id="recovery" class="recovery" aria-labelledby="recovery-title">
 <div class="demo-status"><span class="edition"><i></i> WORK IN PROGRESS</span></div>
-<div class="section-top"><div><p class="eyebrow">01 / COMING HOME AFTER AN INJURY</p><h2 id="recovery-title">A little less on your plate.</h2></div><button id="sound" class="pill" aria-pressed="false">Sound off</button></div>
+<div class="section-top"><div><p class="eyebrow">THE SHOWCASE / ALEX’S DAY</p><h2 id="recovery-title">A small check-in. A lighter day.</h2></div><button id="sound" class="pill" aria-pressed="false">Sound off</button></div>
 <p class="boundary">Fictional walkthrough · No live AI · No sign-in. This demo does not assess your health, give medical advice or monitor emergencies. <a href="#safety">Safety &amp; limits</a> · <a href="#privacy">Privacy</a></p>
 <div class="recovery-grid">
 <div class="checkin">
-<p class="eyebrow">DEMO NOTIFICATION</p><h3>A moment to check in?</h3><p>Choose a mood for Alex, our fictional character.</p>
+<p class="eyebrow">A MOMENT FOR YOU</p><h3>A moment to check in?</h3><p>Choose a mood for Alex, our fictional character.</p>
 <fieldset id="mood"><legend>How is your mood?</legend><div class="moods">
 <button data-mood="Very low" aria-pressed="false"><span aria-hidden="true">😞</span>Very low</button><button data-mood="Low" aria-pressed="false"><span aria-hidden="true">🙁</span>Low</button><button data-mood="Neutral" aria-pressed="false"><span aria-hidden="true">😐</span>Neutral</button><button data-mood="Good" aria-pressed="false"><span aria-hidden="true">🙂</span>Good</button><button data-mood="Very good" aria-pressed="false"><span aria-hidden="true">😊</span>Very good</button>
 </div></fieldset>
@@ -40,9 +55,9 @@
 </div></div>
 <p class="micro">A scripted product concept. Choices stay in this page and reset on reload. No notifications are scheduled and no real records change.</p>
 </section>
-<details class="purchase-more"><summary>Explore another idea: one purchase, three evidence checks</summary>
+<details class="purchase-more"><summary>Behind the scenes: one purchase, three perspectives</summary>
 <section id="demo" aria-labelledby="demo-title">
-<div class="section-top"><div><p class="eyebrow">01 / EXPLORE THE EVIDENCE</p><h2 id="demo-title">Small changes. Different answers.</h2></div><span class="tag">Fictional data · No sign-in</span></div>
+<div class="section-top"><div><p class="eyebrow">A SECOND SHOWCASE / THE DETAILS</p><h2 id="demo-title">The details make a difference.</h2></div><span class="tag">Fictional data · No sign-in</span></div>
 <div class="workspace">
 <aside><p class="eyebrow">CHOOSE A SCENARIO</p><div id="scenarios" class="scenarios"></div><div class="note"><span>↗</span><p>These results come from the existing V2 rules engine. No live AI or connected accounts are used.</p></div></aside>
 <div class="desk"><div class="desk-heading"><span class="eyebrow">THE INPUT</span><span id="count"></span></div><h3 id="case-title"></h3><p id="case-detail"></p><div id="evidence"></div><button id="review" class="primary">Review this purchase <span>→</span></button>
@@ -54,6 +69,6 @@
 <details id="safety"><summary>Safety &amp; limits</summary><p>This fictional preview explores organisation and practical support. It does not diagnose, recommend treatment, assess symptoms, change medication, or determine whether you need care. No one monitors your selections.</p><p>Follow your clinician’s instructions. If you think you need urgent care, contact the appropriate local service directly; do not wait for this demo. A mood selection is not a health result. Missing or conflicting medical information needs clarification, not a guess.</p><p>This is not an insurance product or a promise of care. Medical-device status for a future product depends on its intended purpose and functions; no certification is claimed.</p></details>
 <details id="privacy"><summary>Privacy &amp; your choices</summary><p>The walkthrough uses invented information. Mood and energy choices stay in the current page’s memory, are not sent by the application, and reset when you reload. There is no health-record upload, account, analytics or persistent check-in storage in this demo.</p><p>The site is delivered through Cloudflare and hosted on Hetzner. These services process technical connection data, such as IP addresses, to deliver and protect the website. This is not a claim that visiting the site creates no technical records.</p><p>Do not submit personal health information through this demo or the public project repository. Real health tracking and family sharing are not enabled. A future service needs a complete privacy notice and verified data-protection arrangements before collecting health records.</p></details>
 </section>
-</main><footer><span>stoqnist. / Agency V2 preview</span><span><a href="#safety">Safety &amp; limits</a> · <a href="#privacy">Privacy</a></span><a href="https://github.com/Stoqnist/chatgpt-library" target="_blank" rel="noopener noreferrer">Explore the project ↗</a></footer>
+</main><footer><span>stoqnist. — with a little more help.</span><span><a href="#safety">Safety &amp; limits</a> · <a href="#privacy">Privacy</a></span><a href="https://github.com/Stoqnist/chatgpt-library" target="_blank" rel="noopener noreferrer">Explore the project ↗</a></footer>
 <noscript><p class="noscript">Enable JavaScript to explore the fictional recovery and purchase scenarios.</p></noscript>
 </body></html>
