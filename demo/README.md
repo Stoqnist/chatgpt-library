@@ -6,6 +6,12 @@ interaction selects these precomputed results. No live models, sign-in, provider
 connections, personal records, forms, analytics or persistent browser storage.
 This does not promote experimental V2 or expose the private BFF.
 
+## Languages and video production
+
+English (default), Dutch and Bulgarian use shared templates and checked translation
+catalogs. See [LOCALIZATION.md](LOCALIZATION.md) for translation exchange, adding a
+language, and the narration/captions/on-screen-text production workflow.
+
 ## Reproduce and verify
 
 From the repository root:
@@ -14,6 +20,9 @@ From the repository root:
 python3 demo/build.py
 python3 demo/build.py --check
 node --check demo/app.js
+python3 demo/localize.py check
+python3 -m unittest discover -s demo/tests -p 'test_localization.py'
+node demo/tests/test_runtime.mjs
 PYTHONPATH=poc/v2 python3 -m unittest discover -s poc/v2/tests -p 'test_coordinator.py'
 ```
 
