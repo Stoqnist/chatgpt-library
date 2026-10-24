@@ -125,7 +125,7 @@ def render_video(code, film, messages, registry):
         # Without JavaScript, the native player remains usable.
         button=f'<button id="film-play" class="film-play" type="button" hidden aria-label="{esc(messages["video.play"],quote=True)}"><span class="film-play-icon" aria-hidden="true">▶</span><span class="film-play-label">{esc(messages["video.play"])}</span></button>'
         seconds=ready.get('durationSeconds')
-        runtime=f'<span class="film-runtime" aria-hidden="true">{int(seconds)//60}:{int(seconds)%60:02}</span>' if seconds else ''
+        runtime=f'<span id="film-runtime" class="film-runtime" aria-hidden="true">{int(seconds)//60}:{int(seconds)%60:02}</span>' if seconds else ''
         player=f'<div class="film-player">{video}{button}{runtime}</div>'
         status=''
         if audio!=code:
