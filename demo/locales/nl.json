@@ -191,7 +191,16 @@
     "film.ui.step": "Eén volgende stap gezet.",
     "film.scene7.narration": "Niets wordt verstuurd zonder zijn toestemming.",
     "film.scene8.narration": "Wanneer hij eraan toe is, verstuurt hij het bericht.",
-    "film.scene9.narration": "Zo heeft hij wat meer ruimte om van zijn ochtend te genieten."
+    "film.scene9.narration": "Zo heeft hij wat meer ruimte om van zijn ochtend te genieten.",
+    "catalog.label": "VOORBEELDEN",
+    "catalog.heading": "Bekijk de demo’s",
+    "catalog.intro": "Twee fictieve voorbeelden van alledaagse beslissingen, elk met een eigen verhaal.",
+    "catalog.link": "Demo’s",
+    "catalog.gunter": "De dag van Gunter",
+    "catalog.purchase": "Een aankoop",
+    "catalog.open": "Bekijk deze demo",
+    "catalog.back": "Alle demo’s",
+    "catalog.disclosure": "Alleen fictieve voorbeelden. Geen gekoppelde accounts of echte handelingen."
   },
   "sourceHashes": {
     "meta.title": "feb33172a9c2058b",
@@ -383,6 +392,15 @@
     "film.scene7.narration": "d562d4f1f1297aec",
     "film.scene8.narration": "8441239acbb6e16e",
     "film.scene9.narration": "cf0b07347b1e26fa",
-    "video.play": "8c250207ce21fa85"
+    "video.play": "8c250207ce21fa85",
+    "catalog.label": "04a81e6b4883fbf2",
+    "catalog.heading": "a7d4ac8d1a91cf55",
+    "catalog.intro": "60a7b27cb331507b",
+    "catalog.link": "f61ec10d1385dcc0",
+    "catalog.gunter": "b810e47a019d3e39",
+    "catalog.purchase": "4466f4589bcbff1f",
+    "catalog.open": "53d0a756afa50ca3",
+    "catalog.back": "d7dcac20dd154130",
+    "catalog.disclosure": "c068cd5a6857c2c4"
   }
 }
