@@ -127,7 +127,8 @@
       "poster": "/media/gunter-morning-en.webp",
       "timingStatus": "final",
       "sourceRevision": 2,
-      "contentHash": "a1ed1375b844b099"
+      "contentHash": "a1ed1375b844b099",
+      "durationSeconds": 55
     },
     "nl": {
       "status": "planned",
