@@ -54,6 +54,25 @@ Then remove/restore only its dedicated proxy route. Existing infrastructure is
 unaffected. Docker and public HTTPS verification remain pending until performed
 in an environment with Docker and authorized VPS access.
 
+## Mobile framing and public persona
+
+On narrow screens, the brand wordmark and subtitle are **separate from the
+photograph** so they cannot cover the lifted girl's head. The same approved
+panoramic hero image is centred on the four central family members, with the
+young boy toward the middle and a gentle edge fade to avoid a hard cut through
+other relatives. The existing mobile-crop asset remains in the image for
+possible future use, but the hero intentionally uses the panorama on phones.
+
+The original artwork itself ends at the subjects' lower legs. A web crop cannot
+restore those missing feet; a future genuinely full-body version requires a
+separate, approved artwork revision. This change does not regenerate faces or
+change the desktop image.
+
+**Gunter** is the canonical *fictional demo persona* for the public recovery
+walkthrough. Use this spelling consistently in public prose and example labels.
+Gunter is not the visitor and is not presented as a real case, personal record,
+or connected service. The finance cases remain separate fictional fixtures.
+
 ## Recovery walkthrough
 
 The lead story is now a scripted, entirely fictional recovery-support concept.
