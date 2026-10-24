@@ -25,7 +25,7 @@
 .film-play:hover .film-play-icon{transform:scale(1.06);box-shadow:0 10px 28px rgba(0,0,0,.27)}
 .film-play:focus-visible{outline:3px solid #f4b578;outline-offset:-6px}
 .film-runtime{position:absolute;z-index:3;top:15px;right:15px;padding:6px 11px;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(16,47,39,.77);color:#fff;font:600 12px/1.2 system-ui,-apple-system,sans-serif;pointer-events:none}
-.film-runtime[hidden]{display:none}
+.film-runtime[hidden],.film-story #video-status:empty{display:none}
 .film-story details{max-width:760px;font-size:16px;margin-top:22px}
 .film-story summary{min-height:44px;padding:10px 0}
 .film-story ol{padding-left:24px}
