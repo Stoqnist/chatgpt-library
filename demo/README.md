@@ -32,8 +32,7 @@ docker compose -f demo/compose.yaml up -d --build
 curl --fail --head http://127.0.0.1:8092/
 ```
 
-Port 8092 is loopback-only. Before running, confirm it is unused. The image copies
-only four public assets. The existing HTTPS proxy or tunnel must route the
+Port 8092 is loopback-only. Before running, confirm it is unused. The image copies only public assets explicitly allowed by the Nginx configuration. The existing HTTPS proxy or tunnel must route the
 confirmed public demo hostname to this service. For a host proxy that target is
 `http://127.0.0.1:8092`. A containerized proxy has a different network context:
 inspect the existing topology before configuring it; do not assume its localhost
@@ -76,3 +75,51 @@ docker compose -f demo/compose.yaml -f demo/compose.tunnel.yaml up -d --build --
 
 The override is private deployment configuration, not a public repository file.
 Rollback by checking out the previous release commit and running the same command.
+
+
+## Brand-first family homepage
+
+The public demo now begins with the stoqnist. brand, a subdued panoramic family
+illustration, a short bridge into the idea, and the original fictional recovery
+and purchase walkthroughs. `brand-journey.css` is a small, scoped design layer.
+It does not change the V2 coordinator, mock evidence or server infrastructure.
+
+**Before publication:** two approved WebP images still need to be committed
+to this same branch. They are included in the user's guided-discovery V2 ZIP:
+
+- `demo/assets/stoqnist-family-hero.webp` — desktop banner (2172 × 724).
+- `demo/assets/stoqnist-family-mobile.webp` — mobile crop.
+
+The public Docker image automatically includes WebP images in `demo/assets/`.
+The Nginx whitelist only serves these two named images and the existing
+`everyday-room.webp`. Until the image files are committed, desktop falls back
+to the previous branded SVG banner; mobile shows a forest-green branded hero.
+**Do not merge or deploy as the finished family design with assets missing.**
+
+Confirm permission to publicly publish recognizable family members' likenesses,
+especially the images involving children, before publishing. The site remains a
+fictional demo, not a live connected or medical service.
+
+### VPS update after review and branch merge
+
+Use only the existing `agency-guided-demo` checkout and preserve the private
+tunnel override. Do not update the separate `stoq-infrastructure` stack.
+
+```bash
+cd /opt/agency-guided-demo
+git status --short
+git branch --show-current
+git fetch origin
+git switch feat/weekend-guided-demo
+git pull --ff-only origin feat/weekend-guided-demo
+test -f demo/compose.tunnel.yaml
+docker compose -f demo/compose.yaml -f demo/compose.tunnel.yaml config --quiet
+docker compose -f demo/compose.yaml -f demo/compose.tunnel.yaml up -d --build --wait
+docker compose -f demo/compose.yaml -f demo/compose.tunnel.yaml ps
+curl --fail --head http://127.0.0.1:8092/
+curl --fail --head https://stoq.page/
+```
+
+These commands assume a clean local checkout. Do not force-reset or remove
+untracked files, especially `demo/compose.tunnel.yaml`. Record the old release
+commit before switching, and roll back only this demo if validation fails.
