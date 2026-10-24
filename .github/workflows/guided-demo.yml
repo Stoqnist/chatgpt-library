@@ -15,6 +15,12 @@ jobs:
           python-version: '3.11'
       - run: python3 demo/build.py --check
       - run: node --check demo/app.js
+      - name: Verify demo persona and mobile hero
+        run: |
+          grep -q 'Meet Gunter' demo/index.html
+          grep -q 'GUNTER' demo/index.html
+          if grep -iq 'alex' demo/index.html; then echo 'Legacy Alex name remains in public demo'; exit 1; fi
+          grep -q 'background-position:52% center' demo/brand-journey.css
       - run: PYTHONPATH=poc/v2 python3 -m unittest discover -s poc/v2/tests -p 'test_coordinator.py'
       - run: docker compose -f demo/compose.yaml config --quiet
       - run: docker compose -f demo/compose.yaml up -d --build --wait --wait-timeout 60
