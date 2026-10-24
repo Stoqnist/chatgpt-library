@@ -3,7 +3,7 @@
   "revision": 2,
   "sourceLocale": "en",
   "status": "partially-ready",
-  "sourceNote": "Approved 55.083-second English master uploaded to demo/media/gunter-morning-en.mp4; expected SHA-256 5d07a44604861d4258956605f9cf83f6c571cc9e2ca1baf7dac39736147dc815. English speech and WebVTT correspond to the nine finalized cues. Dutch and Bulgarian films remain planned.",
+  "sourceNote": "The approved 55.083-second English master uses a still frame from 00:09 for the player poster. The film and timed English WebVTT are published; Dutch and Bulgarian film variants remain planned.",
   "scenes": [
     {
       "id": "scene1",
@@ -124,10 +124,11 @@
       "audioLocale": "en",
       "video": "/media/gunter-morning-en.mp4",
       "captions": "/media/gunter-morning-en.vtt",
-      "poster": null,
+      "poster": "/media/gunter-morning-en.webp",
       "timingStatus": "final",
       "sourceRevision": 2,
-      "contentHash": "a1ed1375b844b099"
+      "contentHash": "a1ed1375b844b099",
+      "durationSeconds": 55
     },
     "nl": {
       "status": "planned",

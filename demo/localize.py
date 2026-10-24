@@ -120,13 +120,19 @@ def render_video(code, film, messages, registry):
         # The approved English master already burns in English subtitles.
         # Keep optional English CC selectable; default translated fallback CC on.
         default_captions = ' default' if variant['status']=='captioned' else ''
-        player=f'<video id="story-video" controls playsinline preload="none"{poster} aria-label="{esc(messages["video.description"],quote=True)}"><source src="{ready["video"]}" type="video/mp4"><track kind="captions" src="{variant["captions"]}" srclang="{code}" label="{esc(messages["video.captions"],quote=True)}"{default_captions}></video>'
+        video=f'<video id="story-video" controls playsinline preload="none"{poster} aria-label="{esc(messages["video.description"],quote=True)}"><source src="{ready["video"]}" type="video/mp4"><track kind="captions" src="{variant["captions"]}" srclang="{code}" label="{esc(messages["video.captions"],quote=True)}"{default_captions}></video>'
+        # JavaScript reveals this overlay only after binding the click listener.
+        # Without JavaScript, the native player remains usable.
+        button=f'<button id="film-play" class="film-play" type="button" hidden aria-label="{esc(messages["video.play"],quote=True)}"><span class="film-play-icon" aria-hidden="true">▶</span><span class="film-play-label">{esc(messages["video.play"])}</span></button>'
+        seconds=ready.get('durationSeconds')
+        runtime=f'<span id="film-runtime" class="film-runtime" aria-hidden="true">{int(seconds)//60}:{int(seconds)%60:02}</span>' if seconds else ''
+        player=f'<div class="film-player">{video}{button}{runtime}</div>'
         status=''
         if audio!=code:
             name=next(v['name'] for v in registry['locales'] if v['code']==audio)
             status=messages['video.fallback'].replace('{language}',name)
         player+=f'<p id="video-status" role="status" class="micro">{esc(status)}</p>'
-    return f'<section class="film-story" aria-labelledby="film-title"><p class="eyebrow">{esc(messages["video.label"])}</p><h2 id="film-title">{esc(messages["video.title"])}</h2><p>{esc(messages["video.description"])}</p>{player}<details id="film-transcript"><summary>{esc(messages["video.read"])}</summary><ol>{items}</ol></details>'+ (f'<p class="micro">{esc(messages["video.note"])}</p>' if variant['status']=='planned' else '')+'</section>'
+    return f'<section class="film-story" aria-labelledby="film-title"><p class="eyebrow">{esc(messages["video.label"])}</p><h2 id="film-title">{esc(messages["video.title"])}</h2><p class="film-teaser-copy">{esc(messages["video.description"])}</p>{player}<details id="film-transcript"><summary>{esc(messages["video.read"])}</summary><ol>{items}</ol></details>'+ (f'<p class="micro">{esc(messages["video.note"])}</p>' if variant['status']=='planned' else '')+'</section>'
 
 def outputs(root=ROOT):
     registry,catalogs,template,film,source_keys=load(root)

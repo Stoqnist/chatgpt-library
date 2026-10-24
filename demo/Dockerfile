@@ -8,6 +8,7 @@ COPY assets/*.webp /usr/share/nginx/html/assets/
 COPY locales/en.js /usr/share/nginx/html/locales/en.js
 COPY media/gunter-morning-en.mp4 /usr/share/nginx/html/media/gunter-morning-en.mp4
 COPY media/gunter-morning-en.vtt /usr/share/nginx/html/media/gunter-morning-en.vtt
+COPY media/gunter-morning-en.webp /usr/share/nginx/html/media/gunter-morning-en.webp
 COPY locales/nl.js /usr/share/nginx/html/locales/nl.js
 COPY nl/index.html /usr/share/nginx/html/nl/index.html
 COPY locales/bg.js /usr/share/nginx/html/locales/bg.js

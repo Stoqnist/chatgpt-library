@@ -23,6 +23,7 @@ locales/*
 media/*
 !media/gunter-morning-en.mp4
 !media/gunter-morning-en.vtt
+!media/gunter-morning-en.webp
 !locales/nl.js
 !nl/
 nl/*
