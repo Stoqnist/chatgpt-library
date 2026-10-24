@@ -1,6 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const {t, source, money} = window.StoqI18n;
+if ($('scenarios')) {
 let active = 0;
 function node(tag, text, className) { const el=document.createElement(tag); el.textContent=text; if(className) el.className=className; return el; }
 function select(index) {
@@ -39,7 +40,9 @@ $('review').addEventListener('click',()=>{
 });
 $('reset').addEventListener('click',()=>{select((active+1)%window.DEMO_CASES.length);document.querySelectorAll('.scenario')[active].focus();});
 select(0);
+}
 
+if ($('recovery')) {
 // Recovery is a fictional UI story, not clinical logic or the V2 coordinator.
 let soundOn = false;
 let audioContext;
@@ -139,4 +142,6 @@ if (filmVideo && filmPlay) {
     revealPlayer();
     $('video-status').textContent = t('video.unavailable');
   });
+}
+
 }

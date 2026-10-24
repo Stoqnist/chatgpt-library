@@ -33,3 +33,56 @@
 @media(prefers-reduced-motion:reduce){.film-play,.film-play-icon{transition:none}}
 .desk-heading,.owner-head{flex-wrap:wrap;gap:8px}.moods button{overflow-wrap:anywhere}.energy-options{flex-wrap:wrap}.scenario{min-width:0}.evidence-row>div{min-width:0;overflow-wrap:anywhere}
 @media(max-width:760px){.language-nav{padding:8px 16px 0;justify-content:center}.language-nav a{padding:8px 10px}.guided-hero{min-height:0}.guided-hero-text{max-width:none;padding:20px 22px 16px}.guided-hero-accessible{font-size:clamp(48px,13vw,76px)}.guided-hero-subtitle{font-size:clamp(19px,4.7vw,28px);margin-top:3px}.guided-hero-art{background-size:cover;background-position:52% center}.film-story{margin:0 16px;padding:24px 0 32px}.film-teaser-copy{font-size:16px;margin:10px 0 18px}.film-player{border-radius:16px}.film-play{gap:10px}.film-play-icon{width:62px;height:62px;font-size:27px}.film-play-label{padding:9px 15px;font-size:13px}.film-runtime{top:10px;right:10px}.moods{grid-template-columns:repeat(5,minmax(0,1fr))}.recovery .section-top{flex-wrap:wrap}.energy-options button{min-width:70px}.scenarios{flex-wrap:wrap}.scenario{flex:1 1 100px}.tag{white-space:normal}}
+
+
+/* Focused information architecture: idea -> demos -> family signature. */
+.site-main{width:100%}
+.site-top{max-width:1160px;margin:0 auto;padding:20px 40px 10px;border:0;display:flex;justify-content:space-between;align-items:center;gap:24px;background:transparent}
+.site-mark{font:500 27px/1.15 Georgia,'Times New Roman',serif;letter-spacing:-1.3px;text-decoration:none;color:#183e36}
+.site-nav-link,.demo-back a{font:600 13px/1.35 system-ui,-apple-system,sans-serif;text-decoration:none;color:#24564d}
+.site-nav-link{padding:12px 0}
+.site-nav-link:hover,.demo-back a:hover{text-decoration:underline;text-underline-offset:4px}
+.page-home .idea{padding-top:54px;padding-bottom:45px}
+.page-home .idea h1{margin:0;font:500 clamp(40px,5.3vw,66px)/1.07 Georgia,'Times New Roman',serif;letter-spacing:-2.2px;color:#153e36}
+.catalog-home,.catalog-page{margin:0 40px;padding:30px 8px 48px;border-top:1px solid var(--line)}
+.catalog-lead{max-width:700px;margin-bottom:25px}
+.catalog-home h2,.catalog-page h1{font:500 clamp(32px,3.6vw,48px)/1.17 Georgia,'Times New Roman',serif;letter-spacing:-1.4px;color:#183e36;margin:0 0 14px}
+.catalog-lead>p:last-child,.catalog-intro{color:#526a63;line-height:1.65;max-width:64ch;margin:0 0 22px}
+.catalog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.catalog-card{display:flex;flex-direction:column;align-items:flex-start;gap:13px;min-height:212px;padding:30px;border:1px solid #cdd7ca;border-radius:20px;background:#faf9f4;color:#194137;text-decoration:none;transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease}
+.catalog-card:hover{border-color:#8aa99b;box-shadow:0 8px 30px rgba(20,54,44,.07);transform:translateY(-2px)}
+.catalog-card:focus-visible{outline:3px solid #8da98b;outline-offset:3px}
+.catalog-card-label{font:500 clamp(25px,2.7vw,34px)/1.14 Georgia,'Times New Roman',serif;letter-spacing:-.9px}
+.catalog-card-copy{color:#5a6d66;font:15px/1.5 system-ui,-apple-system,sans-serif;flex:1}
+.catalog-card-action{font:600 13px/1.4 system-ui,-apple-system,sans-serif;color:#245d4c;border-bottom:1px solid #7d9988;padding-bottom:6px}
+.catalog-page{padding-top:56px;min-height:54vh}
+.catalog-page>.micro{margin-top:26px}
+.home-banner{margin:25px 40px 65px;min-height:240px;border-radius:24px;overflow:hidden}
+.home-banner .guided-hero-text{padding:45px 48px}
+.home-banner .guided-hero-accessible{font-size:clamp(45px,5.9vw,73px)}
+.home-banner .guided-hero-subtitle{font-size:clamp(18px,2.2vw,25px)}
+.demo-back{max-width:1160px;margin:8px 40px 28px;padding:12px 0}
+.page-gunter .film-story{padding-top:8px;border-top:0;margin-top:0}
+.page-gunter .film-story h1,.page-purchase #demo h1{font:500 clamp(32px,4.4vw,52px)/1.15 Georgia,'Times New Roman',serif;letter-spacing:-1.5px;color:#183e36;margin:0 0 12px}
+.page-purchase .purchase-standalone{border:0;margin-top:0}
+.page-purchase #demo{padding-top:8px}
+.page-purchase .purchase-standalone h1{margin-bottom:0}
+@media(max-width:760px){
+.site-top{padding:14px 20px 10px}
+.site-mark{font-size:23px}
+.page-home .idea{padding-top:40px;padding-bottom:26px}
+.page-home .idea h1{font-size:clamp(37px,9vw,52px);letter-spacing:-1.7px}
+.catalog-home,.catalog-page{margin:0 16px;padding:26px 8px 38px}
+.catalog-home h2,.catalog-page h1{font-size:34px}
+.catalog-grid{grid-template-columns:1fr;gap:12px}
+.catalog-card{min-height:0;padding:24px;gap:10px}
+.catalog-card-label{font-size:29px}
+.catalog-card-copy{font-size:14px}
+.home-banner{margin:14px 16px 38px;min-height:220px}
+.home-banner .guided-hero-text{padding:25px 20px}
+.home-banner .guided-hero-accessible{font-size:49px}
+.demo-back{margin:8px 16px 22px}
+.page-gunter .film-story h1,.page-purchase #demo h1{font-size:35px}
+.page-purchase .purchase-standalone{margin:0 16px 28px}
+}
+@media(prefers-reduced-motion:reduce){.catalog-card{transition:none}.catalog-card:hover{transform:none}}

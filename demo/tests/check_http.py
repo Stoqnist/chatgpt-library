@@ -13,6 +13,12 @@ for config in registry['locales']:
     if not config['enabled']:continue
     code=config['code']
     public[f'/locales/{code}.js']=f'locales/{code}.js'
+    prefix='' if code=='en' else code+'/'
+    for leaf in ('demos','demos/gunter','demos/purchase'):
+        asset=f'{prefix}{leaf}/index.html'
+        public['/'+prefix+leaf+'/']=asset
+        public['/'+prefix+leaf]=asset
+        public['/'+asset]=asset
     if code!='en':public[f'/{code}/']=f'{code}/index.html';public[f'/{code}']=f'{code}/index.html'
     variant=film['variants'][code]
     if variant['status']!='planned':
@@ -36,3 +42,9 @@ for url in private:
     except urllib.error.HTTPError as error:assert error.code==404,(url,error.code)
     else:raise AssertionError('Unexpected public path: '+url)
 print(f'PASS: {len(public)} public locale/assets routes and {len(private)} private/unknown paths')
+
+# Every route is served from the deliberate locale allowlist. Unknown child pages stay private.
+for url in ('/demos/unknown/','/nl/demos/unknown/','/bg/demos/gunter/private','/demos/gunter/production.json'):
+    try:urllib.request.urlopen(base+url)
+    except urllib.error.HTTPError as error:assert error.code==404,(url,error.code)
+    else:raise AssertionError('Unexpected public route: '+url)

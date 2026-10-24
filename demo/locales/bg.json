@@ -191,7 +191,16 @@
     "film.ui.step": "Още една стъпка е направена.",
     "film.scene7.narration": "Нищо не се изпраща без неговото съгласие.",
     "film.scene8.narration": "Когато е готов, той изпраща съобщението.",
-    "film.scene9.narration": "Така му остава малко повече време да се наслади на сутринта."
+    "film.scene9.narration": "Така му остава малко повече време да се наслади на сутринта.",
+    "catalog.label": "ПРИМЕРИ",
+    "catalog.heading": "Разгледайте демонстрациите",
+    "catalog.intro": "Два измислени примера за ежедневни решения, всеки със собствена история.",
+    "catalog.link": "Демонстрации",
+    "catalog.gunter": "Денят на Гунтер",
+    "catalog.purchase": "Една покупка",
+    "catalog.open": "Разгледайте демонстрацията",
+    "catalog.back": "Всички демонстрации",
+    "catalog.disclosure": "Само измислени примери. Няма свързани акаунти или реални действия."
   },
   "sourceHashes": {
     "meta.title": "feb33172a9c2058b",
@@ -383,6 +392,15 @@
     "film.scene7.narration": "d562d4f1f1297aec",
     "film.scene8.narration": "8441239acbb6e16e",
     "film.scene9.narration": "cf0b07347b1e26fa",
-    "video.play": "8c250207ce21fa85"
+    "video.play": "8c250207ce21fa85",
+    "catalog.label": "04a81e6b4883fbf2",
+    "catalog.heading": "a7d4ac8d1a91cf55",
+    "catalog.intro": "60a7b27cb331507b",
+    "catalog.link": "f61ec10d1385dcc0",
+    "catalog.gunter": "b810e47a019d3e39",
+    "catalog.purchase": "4466f4589bcbff1f",
+    "catalog.open": "53d0a756afa50ca3",
+    "catalog.back": "d7dcac20dd154130",
+    "catalog.disclosure": "c068cd5a6857c2c4"
   }
 }

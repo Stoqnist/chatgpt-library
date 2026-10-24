@@ -191,7 +191,16 @@
     "film.ui.step": "One next step taken.",
     "film.scene7.narration": "Nothing goes out without his say.",
     "film.scene8.narration": "When he's ready, he sends it.",
-    "film.scene9.narration": "A little more room to enjoy his own morning."
+    "film.scene9.narration": "A little more room to enjoy his own morning.",
+    "catalog.label": "EXAMPLES",
+    "catalog.heading": "Explore the demos",
+    "catalog.intro": "Two fictional examples of everyday decisions, each with its own story.",
+    "catalog.link": "Demos",
+    "catalog.gunter": "Gunter’s day",
+    "catalog.purchase": "A purchase",
+    "catalog.open": "Explore this demo",
+    "catalog.back": "All demos",
+    "catalog.disclosure": "Fictional previews only. No connected accounts or real-world actions."
   },
   "sourceHashes": {}
 }

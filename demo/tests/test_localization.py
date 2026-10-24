@@ -20,21 +20,43 @@ class LocalizationTests(unittest.TestCase):
     def test_generated_pages_are_complete_and_distinct(self):
         l10n.build(True,self.root)
         files=l10n.outputs(self.root)
-        for code,title in [('en','What fits today?'),('nl','Wat past bij vandaag?'),('bg','Какво е по силите ви днес?')]:
-            page=files['index.html' if code=='en' else code+'/index.html']
-            self.assertIn(f'<html lang="{code}">',page);self.assertIn(title,page)
-            self.assertIn('hreflang="x-default"',page);self.assertNotIn('{{',page)
-            if l10n.read(self.root/'media/gunter-morning.json')['variants'][code]['status']=='planned':
-                self.assertNotIn('<video',page) # planned films never masquerade as ready
-        self.assertIn('/nl/index.html',files['Dockerfile'])
-        # The English film has a local poster, accessible play control and
-        # stable dimensions; unreleased languages must not show fake players.
-        self.assertIn('poster="/media/gunter-morning-en.webp"',files['index.html'])
-        self.assertIn('id="film-play" class="film-play" type="button" hidden',files['index.html'])
-        self.assertIn('Watch the 55-second film',files['index.html'])
-        self.assertIn('id="film-runtime"',files['index.html'])
+        for code in ('en','nl','bg'):
+            prefix='' if code=='en' else code+'/'
+            home=files[prefix+'index.html']
+            catalog=files[prefix+'demos/index.html']
+            gunter=files[prefix+'demos/gunter/index.html']
+            purchase=files[prefix+'demos/purchase/index.html']
+            self.assertIn(f'<html lang="{code}">',home)
+            self.assertIn('href="/'+prefix+'demos/gunter/"',catalog)
+            self.assertIn('href="/'+prefix+'demos/purchase/"',catalog)
+            self.assertIn('id="recovery"',home)  # legacy /#recovery links land on its card
+            self.assertIn('id="demo"',home)  # legacy /#demo links land on its card
+            self.assertNotIn('id="story-video"',home)
+            self.assertNotIn('id="scenarios"',home)
+            self.assertIn('id="mood"',gunter)
+            self.assertNotIn('id="scenarios"',gunter)
+            self.assertIn('id="scenarios"',purchase)
+            self.assertNotIn('id="mood"',purchase)
+            self.assertIn('href="https://stoq.page/'+prefix+'demos/gunter/"',gunter)
+            self.assertIn('href="https://stoq.page/'+prefix+'demos/purchase/"',purchase)
+            self.assertNotIn('{{',catalog)
+            self.assertNotIn('{{',gunter)
+            self.assertNotIn('{{',purchase)
+            self.assertIn('id="safety"',gunter)
+            self.assertIn('id="privacy"',purchase)
+            if code=='en':
+                self.assertIn('poster="/media/gunter-morning-en.webp"',gunter)
+                self.assertIn('id="film-play" class="film-play" type="button" hidden',gunter)
+                self.assertIn('Watch the 55-second film',gunter)
+                self.assertIn('id="film-runtime"',gunter)
+            else:
+                self.assertNotIn('<video',gunter)
+            self.assertIn('href="/'+prefix+'demos/gunter/"',home)
+        for file in ('demos/index.html','demos/gunter/index.html','demos/purchase/index.html',
+                     'nl/demos/index.html','bg/demos/index.html'):
+            self.assertIn('COPY '+file+' /usr/share/nginx/html/'+file,files['Dockerfile'])
         self.assertIn('/media/gunter-morning-en.webp',files['locale-routes.conf'])
-        self.assertIn('COPY media/gunter-morning-en.webp',files['Dockerfile'])
+
     def test_new_language_translation_exchange_and_build(self):
         previous=l10n.ROOT;l10n.ROOT=self.root
         try:

@@ -191,7 +191,16 @@ window.STOQ_LOCALE = {
     "film.ui.step": "Eén volgende stap gezet.",
     "film.scene7.narration": "Niets wordt verstuurd zonder zijn toestemming.",
     "film.scene8.narration": "Wanneer hij eraan toe is, verstuurt hij het bericht.",
-    "film.scene9.narration": "Zo heeft hij wat meer ruimte om van zijn ochtend te genieten."
+    "film.scene9.narration": "Zo heeft hij wat meer ruimte om van zijn ochtend te genieten.",
+    "catalog.label": "VOORBEELDEN",
+    "catalog.heading": "Bekijk de demo’s",
+    "catalog.intro": "Twee fictieve voorbeelden van alledaagse beslissingen, elk met een eigen verhaal.",
+    "catalog.link": "Demo’s",
+    "catalog.gunter": "De dag van Gunter",
+    "catalog.purchase": "Een aankoop",
+    "catalog.open": "Bekijk deze demo",
+    "catalog.back": "Alle demo’s",
+    "catalog.disclosure": "Alleen fictieve voorbeelden. Geen gekoppelde accounts of echte handelingen."
   },
   "sourceTextKeys": {
     "CASE {number}": "case.number",
