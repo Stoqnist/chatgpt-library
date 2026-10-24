@@ -27,6 +27,14 @@ class LocalizationTests(unittest.TestCase):
             if l10n.read(self.root/'media/gunter-morning.json')['variants'][code]['status']=='planned':
                 self.assertNotIn('<video',page) # planned films never masquerade as ready
         self.assertIn('/nl/index.html',files['Dockerfile'])
+        # The English film has a local poster, accessible play control and
+        # stable dimensions; unreleased languages must not show fake players.
+        self.assertIn('poster="/media/gunter-morning-en.webp"',files['index.html'])
+        self.assertIn('id="film-play" class="film-play" type="button" hidden',files['index.html'])
+        self.assertIn('Watch the 55-second film',files['index.html'])
+        self.assertIn('id="film-runtime"',files['index.html'])
+        self.assertIn('/media/gunter-morning-en.webp',files['locale-routes.conf'])
+        self.assertIn('COPY media/gunter-morning-en.webp',files['Dockerfile'])
     def test_new_language_translation_exchange_and_build(self):
         previous=l10n.ROOT;l10n.ROOT=self.root
         try:
