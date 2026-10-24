@@ -4,9 +4,15 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>stoqnist. — a little more help with everyday life</title>
 <meta name="description" content="stoqnist. — with a little more help. Explore a calmer, connected approach to everyday plans and decisions through fictional interactive demonstrations.">
-<link rel="stylesheet" href="style.css?v=20261024-3"><link rel="stylesheet" href="journey.css?v=20261024-3"><link rel="stylesheet" href="brand-journey.css?v=20261024-3"><script src="cases.js" defer></script><script src="app.js?v=20261024-3" defer></script>
+<link rel="canonical" href="https://stoq.page/">
+<link rel="alternate" hreflang="en" href="https://stoq.page/">
+<link rel="alternate" hreflang="nl" href="https://stoq.page/nl/">
+<link rel="alternate" hreflang="bg" href="https://stoq.page/bg/">
+<link rel="alternate" hreflang="x-default" href="https://stoq.page/">
+<link rel="stylesheet" href="/style.css?v=20261024-l10n"><link rel="stylesheet" href="/journey.css?v=20261024-l10n"><link rel="stylesheet" href="/brand-journey.css?v=20261024-l10n"><link rel="stylesheet" href="/localization.css"><script src="/locales/en.js" defer></script><script src="/i18n.js" defer></script><script src="/cases.js" defer></script><script src="/app.js?v=20261024-l10n" defer></script>
 </head>
 <body>
+<nav class="language-nav" aria-label="Language"><span>Language</span><a data-language-link href="/" lang="en" hreflang="en" aria-current="page">English</a><a data-language-link href="/nl/" lang="nl" hreflang="nl">Nederlands</a><a data-language-link href="/bg/" lang="bg" hreflang="bg">Български</a></nav>
 <a class="skip-link" href="#brand-title">Skip to the idea</a>
 <main>
 <section class="guided-hero" aria-labelledby="hero-heading">
@@ -21,6 +27,7 @@
 <div><p class="eyebrow">THE IDEA</p><h2 id="brand-title">Everyday life,<br>a little clearer.</h2></div>
 <div class="idea-copy"><p>Bring plans, paperwork and loose ends together. See what needs attention, what can wait, and where to begin.</p><p class="concept-note">A service concept in progress, explored through two fictional showcases.</p></div>
 </section>
+<section class="film-story" aria-labelledby="film-title"><p class="eyebrow">GUNTER’S MORNING</p><h2 id="film-title">One small step.</h2><p>Gunter reviews a grocery-help request before choosing to send it. He is still waiting for a reply.</p><details id="film-transcript"><summary>Read the film’s story</summary><ol><li>An appointment tomorrow. Taking it gently today.</li><li>Gunter adds his appointment. And his grocery list.</li><li>Could he ask Noor for help?</li><li>A message is ready. He can still change it.</li><li>Gunter chooses to send. Now he waits for a reply.</li><li>A little room to breathe.</li></ol></details><p class="micro">A fictional service concept. The film is in production.</p></section>
 <section id="recovery" class="recovery" aria-labelledby="recovery-title">
 <div class="demo-status"><span class="edition"><i></i> WORK IN PROGRESS</span></div>
 <div class="section-top"><div><p class="eyebrow">TRY IT / GUNTER’S DAY</p><h2 id="recovery-title">What fits today?</h2></div><button id="sound" class="pill" aria-pressed="false">Sound off</button></div>
@@ -29,7 +36,7 @@
 <div class="checkin">
 <p class="eyebrow">CHECK IN</p><h3>Meet Gunter.</h3><p>Gunter is home after an injury. Check in with his mood, then try a lower energy level to see which chores can wait.</p>
 <fieldset id="mood"><legend>How is Gunter feeling?</legend><div class="moods">
-<button data-mood="Very low" aria-pressed="false"><span aria-hidden="true">😞</span>Very low</button><button data-mood="Low" aria-pressed="false"><span aria-hidden="true">🙁</span>Low</button><button data-mood="Neutral" aria-pressed="false"><span aria-hidden="true">😐</span>Neutral</button><button data-mood="Good" aria-pressed="false"><span aria-hidden="true">🙂</span>Good</button><button data-mood="Very good" aria-pressed="false"><span aria-hidden="true">😊</span>Very good</button>
+<button data-mood="veryLow" aria-pressed="false"><span aria-hidden="true">😞</span>Very low</button><button data-mood="low" aria-pressed="false"><span aria-hidden="true">🙁</span>Low</button><button data-mood="neutral" aria-pressed="false"><span aria-hidden="true">😐</span>Neutral</button><button data-mood="good" aria-pressed="false"><span aria-hidden="true">🙂</span>Good</button><button data-mood="veryGood" aria-pressed="false"><span aria-hidden="true">😊</span>Very good</button>
 </div></fieldset>
 <div class="small-actions"><button id="skip-mood" class="secondary">Skip</button><button id="undo-mood" class="secondary" hidden>Undo</button></div>
 <p id="mood-status" class="micro" role="status">Choose one, or skip.</p>
@@ -51,7 +58,7 @@
 <div class="workspace">
 <aside><p class="eyebrow">CHOOSE A SCENARIO</p><div id="scenarios" class="scenarios"></div><div class="note"><span>↗</span><p>Compare a receipt and bank records. See what matches and what still needs an answer.</p></div></aside>
 <div class="desk"><div class="desk-heading"><span class="eyebrow">THE INPUT</span><span id="count"></span></div><h3 id="case-title"></h3><p id="case-detail"></p><div id="evidence"></div><button id="review" class="primary" aria-controls="result" aria-expanded="false">Review this purchase <span>→</span></button>
-<section id="result" hidden aria-labelledby="result-heading"><div class="result-top"><div><p class="eyebrow">THE RESULT</p><h3 id="result-heading" tabindex="-1">Here's what holds up.</h3></div><span class="tag">Demo result</span></div><div id="summary"></div><div id="owners"></div><div class="next"><h4>What still needs an answer</h4><ul id="questions"></ul><p>Matching amounts alone do not prove that a receipt and a bank payment belong together.</p></div><details><summary>Inspect the evidence and proposed changes</summary><p>Proposals only. No records have been changed.</p><pre id="raw"></pre></details><button id="reset" class="secondary">Try another scenario ↑</button></section>
+<section id="result" hidden aria-labelledby="result-heading"><div class="result-top"><div><p class="eyebrow">THE RESULT</p><h3 id="result-heading" tabindex="-1">Here&#x27;s what holds up.</h3></div><span class="tag">Demo result</span></div><div id="summary"></div><div id="owners"></div><div class="next"><h4>What still needs an answer</h4><ul id="questions"></ul><p>Matching amounts alone do not prove that a receipt and a bank payment belong together.</p></div><details><summary>Inspect the evidence and proposed changes</summary><p>Proposals only. No records have been changed.</p><p class="micro">Technical source data below preserves original identifiers and English source wording.</p><pre id="raw" lang="en"></pre></details><button id="reset" class="secondary">Try another scenario ↑</button></section>
 </div></div>
 </section>
 </details>

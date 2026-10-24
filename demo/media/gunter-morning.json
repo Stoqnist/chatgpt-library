@@ -1,0 +1,130 @@
+{
+  "id": "gunter-morning",
+  "revision": 1,
+  "sourceLocale": "en",
+  "status": "in-production",
+  "sourceNote": "Story adapted from local Dutch Gunter film v3. No film binaries are published by this change. Scene timings are planning estimates until a localized render is reviewed.",
+  "scenes": [
+    {
+      "id": "scene1",
+      "duration": 8,
+      "narration": "film.scene1.narration",
+      "onScreen": [
+        "film.scene1.caption1",
+        "film.scene1.caption2"
+      ]
+    },
+    {
+      "id": "scene2",
+      "duration": 7,
+      "narration": "film.scene2.narration",
+      "onScreen": [
+        "film.scene2.caption1",
+        "film.scene2.caption2"
+      ]
+    },
+    {
+      "id": "scene3",
+      "duration": 10,
+      "narration": "film.scene3.narration",
+      "onScreen": [
+        "film.scene3.caption1",
+        "film.scene3.caption2"
+      ]
+    },
+    {
+      "id": "scene4",
+      "duration": 10,
+      "narration": "film.scene4.narration",
+      "onScreen": [
+        "film.scene4.caption1",
+        "film.scene4.caption2"
+      ]
+    },
+    {
+      "id": "scene5",
+      "duration": 8,
+      "narration": "film.scene5.narration",
+      "onScreen": [
+        "film.scene5.caption1",
+        "film.scene5.caption2"
+      ]
+    },
+    {
+      "id": "scene6",
+      "duration": 8,
+      "narration": "film.scene6.narration",
+      "onScreen": [
+        "film.scene6.caption1",
+        "film.scene6.caption2"
+      ]
+    }
+  ],
+  "screenKeys": [
+    "film.disclosure",
+    "film.end.tagline",
+    "film.end.note",
+    "film.end.credits",
+    "film.ui.day",
+    "film.ui.morning",
+    "film.ui.name",
+    "film.ui.tomorrow",
+    "film.ui.appointment",
+    "film.ui.list",
+    "film.ui.groceries",
+    "film.ui.energy",
+    "film.ui.gently",
+    "film.ui.added",
+    "film.ui.today",
+    "film.ui.ask",
+    "film.ui.prepare",
+    "film.ui.proposal",
+    "film.ui.control",
+    "film.ui.unsent",
+    "film.ui.message",
+    "film.ui.daughter",
+    "film.ui.draft",
+    "film.ui.attachment",
+    "film.ui.groceryList",
+    "film.ui.edit",
+    "film.ui.send",
+    "film.ui.sent",
+    "film.ui.to",
+    "film.ui.wait",
+    "film.ui.reply",
+    "film.ui.step"
+  ],
+  "variants": {
+    "en": {
+      "status": "planned",
+      "audioLocale": "en",
+      "video": null,
+      "captions": null,
+      "poster": null,
+      "timingStatus": "provisional",
+      "sourceRevision": 1,
+      "contentHash": null
+    },
+    "nl": {
+      "status": "planned",
+      "audioLocale": "nl",
+      "video": null,
+      "captions": null,
+      "poster": null,
+      "timingStatus": "provisional",
+      "sourceRevision": 1,
+      "contentHash": null
+    },
+    "bg": {
+      "status": "planned",
+      "audioLocale": "bg",
+      "video": null,
+      "captions": null,
+      "poster": null,
+      "timingStatus": "provisional",
+      "sourceRevision": 1,
+      "contentHash": null
+    }
+  },
+  "fallbacks": {}
+}
