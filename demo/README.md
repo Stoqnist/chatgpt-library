@@ -32,8 +32,7 @@ docker compose -f demo/compose.yaml up -d --build
 curl --fail --head http://127.0.0.1:8092/
 ```
 
-Port 8092 is loopback-only. Before running, confirm it is unused. The image copies
-only four public assets. The existing HTTPS proxy or tunnel must route the
+Port 8092 is loopback-only. Before running, confirm it is unused. The image copies only public assets explicitly allowed by the Nginx configuration. The existing HTTPS proxy or tunnel must route the
 confirmed public demo hostname to this service. For a host proxy that target is
 `http://127.0.0.1:8092`. A containerized proxy has a different network context:
 inspect the existing topology before configuring it; do not assume its localhost
