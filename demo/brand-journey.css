@@ -1,8 +1,8 @@
 /* Guided-discovery hero. Scoped to avoid changing fictional recovery and purchase interactions.
    The optional WebP artwork must be supplied before publishing. The original SVG
    branding remains an explicit desktop fallback if the images are unavailable. */
-.guided-hero{position:relative;isolation:isolate;overflow:hidden;max-width:1240px;margin:0 auto;
- aspect-ratio:3/1;min-height:290px;background:#12352f;border-radius:0 0 20px 20px;color:#faf7f4}
+.guided-hero{position:relative;isolation:isolate;overflow:hidden;max-width:1240px;margin:24px 32px 0;
+ aspect-ratio:3/1;min-height:260px;background:#12352f;border-radius:20px;box-shadow:var(--shadow);color:#faf7f4}
 .guided-hero-art{position:absolute;inset:0;z-index:-2;
  background-color:#193d38;
  background-image:url("assets/stoqnist-family-hero.webp"),url("assets/stoqnist-banner.svg");
@@ -12,35 +12,23 @@
  background:linear-gradient(0deg,rgba(7,32,29,.8),transparent 32%),
  linear-gradient(90deg,rgba(4,25,24,.35) 0%,transparent 35%,rgba(7,29,26,.05) 70%,rgba(7,29,26,.22))}
 .guided-hero-accessible,.guided-hero-subtitle{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.guided-hero-next{position:absolute;right:24px;bottom:19px;display:inline-flex;gap:15px;align-items:center;
- padding:12px 19px;border:1px solid #ffffff70;border-radius:40px;background:#092b28dd;
- color:#faf7f4;font:600 13px/1.3 Arial,Helvetica,sans-serif;text-decoration:none}
-.guided-hero-next:hover{background:#22493f}
-.guided-hero-next:focus-visible{outline:3px solid #f4b3a7;outline-offset:4px}
-.guided-bridge{display:flex;align-items:baseline;gap:25px;justify-content:space-between;
- padding:23px 40px 15px;max-width:1240px;margin:0 auto;border-bottom:1px solid #ccd5c8}
-.guided-bridge-kicker{font:11px/1.5 monospace;letter-spacing:.12em;color:#536f64;flex:0 0 auto}
-.guided-bridge p{margin:0;flex:1;font:19px/1.5 Georgia,'Times New Roman',serif;color:#33463d}
-.guided-bridge strong{color:#193d38}
-.guided-bridge a{white-space:nowrap;font-size:13px;text-decoration:underline;text-underline-offset:6px;color:#193d38}
 /* On phones the brand is a separate first beat, not a layer on people's faces.
    The source art itself ends above some feet, so let the bottom fade naturally. */
 @media(max-width:760px){
  .guided-hero{
   display:flex;flex-direction:column;aspect-ratio:auto;height:auto;min-height:0;
-  background:#12352f;border-radius:0 0 16px 16px;
+  background:#12352f;margin:12px 16px 0;border-radius:16px;
  }
  .guided-hero-text{
   position:relative;order:0;top:auto;left:auto;right:auto;
-  padding:18px 21px 13px;background:#12352f;
+  padding:20px 22px 16px;background:#12352f;
  }
  .guided-hero-art{
   position:relative;inset:auto;z-index:0;order:1;flex:none;width:100%;
-  height:91vw;max-height:690px;
-  /* Use the panoramic source: preserve the same faces, and centre the small boy.
-     The left-edge fade hides clipped peripheral figures and baked-in desktop text. */
-  background-image:url("assets/stoqnist-family-hero.webp");
-  background-size:auto 100%;background-position:52% center;background-repeat:no-repeat;
+  height:68vw;max-height:400px;
+  /* Dedicated phone artwork keeps the family visible without embedded lettering. */
+  background-image:url("assets/stoqnist-family-mobile.webp?v=20261024-2");
+  background-size:cover;background-position:52% center;background-repeat:no-repeat;
   filter:brightness(.9) saturate(.88);transform:none;
  }
  .guided-hero-art::after{
@@ -52,25 +40,18 @@
  .guided-hero-accessible{
   position:static;display:block;width:auto;height:auto;padding:0;margin:0;
   overflow:visible;clip:auto;white-space:normal;
-  color:#faf7f4;font:normal clamp(62px,13vw,100px)/1 Georgia,'Times New Roman',serif;
+  color:#faf7f4;font:normal clamp(48px,13vw,76px)/1 Georgia,'Times New Roman',serif;
   letter-spacing:-.075em;
  }
  .guided-hero-subtitle{
   position:static;display:block;width:auto;height:auto;margin:3px 0 0;
   overflow:visible;clip:auto;white-space:normal;
-  color:#cfc5e6;font:italic clamp(22px,5vw,32px)/1.25 Georgia,'Times New Roman',serif;
+  color:#cfc5e6;font:italic clamp(19px,4.7vw,28px)/1.25 Georgia,'Times New Roman',serif;
  }
- .guided-hero-next{
-  position:relative;order:2;align-self:flex-end;right:auto;bottom:auto;
-  margin:12px 18px 16px;padding:12px 17px;
- }
- .guided-bridge{padding:24px 22px;display:block}
- .guided-bridge-kicker{display:block;margin-bottom:9px}
- .guided-bridge p{font-size:19px;margin-bottom:11px}
-}
-@media(max-width:380px){
- .guided-hero-accessible{font-size:clamp(48px,15vw,58px)}
 }
 @media(prefers-reduced-motion:no-preference){.guided-hero-art{animation:guided-hero-reveal .95s ease-out both}}
 @keyframes guided-hero-reveal{from{opacity:.6;transform:scale(1.018)}to{opacity:1;transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.guided-hero-art{animation:none;transform:none}}
+
+
+.idea h2,.recovery h2,.recovery h3,#demo h2,.desk h3{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-.04em}
