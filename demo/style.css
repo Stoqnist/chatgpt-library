@@ -11,3 +11,8 @@
 @media(max-width:760px){.brand-signature{margin:8px 22px 30px}.wordmark{font-size:25px}.wordmark .brand-product{font-size:10px;margin-left:5px}}
 @media(max-width:380px){.brand-product{display:none}}
 @media print{.brand-signature{display:none}}
+
+/* Lead with the artwork; keep prototype status beside the walkthrough. */
+.brand-opening{margin-top:0;margin-bottom:0}
+.demo-status{margin-bottom:24px}
+@media(max-width:760px){.brand-opening{margin-top:0;margin-bottom:0}}
