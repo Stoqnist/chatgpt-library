@@ -19,6 +19,10 @@ assets/*
 !locales/
 locales/*
 !locales/en.js
+!media/
+media/*
+!media/gunter-morning-en.mp4
+!media/gunter-morning-en.vtt
 !locales/nl.js
 !nl/
 nl/*
@@ -27,7 +31,3 @@ nl/*
 !bg/
 bg/*
 !bg/index.html
-!media/
-media/*
-!media/gunter-morning-en.mp4
-!media/gunter-morning-en.vtt
