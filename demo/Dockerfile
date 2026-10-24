@@ -10,6 +10,8 @@ COPY locales/nl.js /usr/share/nginx/html/locales/nl.js
 COPY nl/index.html /usr/share/nginx/html/nl/index.html
 COPY locales/bg.js /usr/share/nginx/html/locales/bg.js
 COPY bg/index.html /usr/share/nginx/html/bg/index.html
+COPY media/gunter-morning-en.mp4 /usr/share/nginx/html/media/gunter-morning-en.mp4
+COPY media/gunter-morning-en.vtt /usr/share/nginx/html/media/gunter-morning-en.vtt
 USER 101:101
 EXPOSE 8080
 ENTRYPOINT ["nginx", "-g", "daemon off;"]
