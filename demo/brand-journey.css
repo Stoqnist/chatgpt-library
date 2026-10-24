@@ -69,7 +69,7 @@
  .guided-bridge p{font-size:19px;margin-bottom:11px}
 }
 @media(max-width:380px){
- .guided-hero-accessible{font-size:59px}
+ .guided-hero-accessible{font-size:clamp(48px,15vw,58px)}
 }
 @media(prefers-reduced-motion:no-preference){.guided-hero-art{animation:guided-hero-reveal .95s ease-out both}}
 @keyframes guided-hero-reveal{from{opacity:.6;transform:scale(1.018)}to{opacity:1;transform:scale(1)}}
