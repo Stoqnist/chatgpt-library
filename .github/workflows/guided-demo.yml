@@ -22,11 +22,11 @@ jobs:
         run: |
           curl --fail --silent http://127.0.0.1:8092/ > /tmp/demo.html
           cmp demo/index.html /tmp/demo.html
-          for path in app.js style.css cases.js; do
+          for path in app.js style.css cases.js assets/stoqnist-banner.svg assets/stoqnist-banner-mobile.svg; do
             curl --fail --silent "http://127.0.0.1:8092/$path" > /tmp/demo-asset
             cmp "demo/$path" /tmp/demo-asset
           done
-          for path in auth/ README.md build.py compose.yaml publicity/launch.md; do
+          for path in auth/ README.md build.py compose.yaml publicity/launch.md assets/unknown.svg; do
             code=$(curl --silent --output /dev/null --write-out '%{http_code}' "http://127.0.0.1:8092/$path")
             test "$code" = 404
           done
