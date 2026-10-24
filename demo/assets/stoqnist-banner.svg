@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 344" role="img" aria-labelledby="title desc">
+<title id="title">stoqnist. — with a little more help.</title>
+<desc id="desc">A forest-green banner with two softly illuminated translucent ribbons weaving over and under each other. White lettering and a peach period remain clearly spaced.</desc>
+<defs>
+<linearGradient id="ground" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#193d38"/><stop offset=".62" stop-color="#143932"/><stop offset="1" stop-color="#092725"/></linearGradient>
+<linearGradient id="lavender" x1="0" y1="0" x2="1" y2=".6"><stop stop-color="#b4a6dd" stop-opacity=".36"/><stop offset=".36" stop-color="#eee2ff" stop-opacity=".94"/><stop offset=".67" stop-color="#c9b7ec" stop-opacity=".83"/><stop offset="1" stop-color="#786ab5" stop-opacity=".36"/></linearGradient>
+<linearGradient id="peach" x1="0" y1="1" x2=".95" y2="0"><stop stop-color="#cf84a0" stop-opacity=".4"/><stop offset=".37" stop-color="#ffd8cb" stop-opacity=".92"/><stop offset=".7" stop-color="#ffb9aa" stop-opacity=".87"/><stop offset="1" stop-color="#f5a3a6" stop-opacity=".47"/></linearGradient>
+<linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff" stop-opacity=".7"/><stop offset=".5" stop-color="#fff" stop-opacity=".15"/><stop offset="1" stop-color="#fff" stop-opacity=".5"/></linearGradient>
+<radialGradient id="halo"><stop stop-color="#f9dae4" stop-opacity=".27"/><stop offset="1" stop-color="#f9dae4" stop-opacity="0"/></radialGradient>
+<filter id="blur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="16"/></filter>
+<filter id="ribbonShadow" x="-40%" y="-60%" width="180%" height="220%"><feDropShadow dx="1" dy="11" stdDeviation="9" flood-color="#051916" flood-opacity=".62"/></filter>
+<filter id="wordShadow" x="-20%" y="-55%" width="140%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#001c19" flood-opacity=".25"/></filter>
+<clipPath id="peachFront"><ellipse cx="963" cy="217" rx="112" ry="91"/></clipPath>
+<clipPath id="lavenderFront"><ellipse cx="1125" cy="199" rx="92" ry="102"/></clipPath>
+</defs>
+<rect width="1200" height="344" fill="url(#ground)"/>
+<ellipse cx="1040" cy="220" rx="300" ry="200" fill="url(#halo)"/>
+<path d="M641 391 C802 324 870 340 976 234 S1146 111 1250 239" fill="none" stroke="#041e1b" stroke-width="113" opacity=".33" transform="translate(3 12)" filter="url(#blur)"/>
+<g filter="url(#ribbonShadow)">
+<path d="M641 391 C802 324 870 340 976 234 S1146 111 1250 239" fill="none" stroke="url(#peach)" stroke-width="91" stroke-linecap="round" opacity=".83"/>
+<path d="M641 391 C802 324 870 340 976 234 S1146 111 1250 239" fill="none" stroke="#fff4e7" stroke-width="4.6" stroke-opacity=".52" transform="translate(0 -28)"/>
+<path d="M575 386 C714 349 793 140 944 157 S1138 272 1260 85" fill="none" stroke="url(#lavender)" stroke-width="96" stroke-linecap="round" opacity=".86"/>
+<path d="M575 386 C714 349 793 140 944 157 S1138 272 1260 85" fill="none" stroke="#fdf7ff" stroke-width="4.2" stroke-opacity=".56" transform="translate(0 -30)"/>
+</g>
+<!-- Repaint only the forward-facing stretches so the ribbons physically alternate their stacking order. -->
+<g clip-path="url(#peachFront)" filter="url(#ribbonShadow)">
+<path d="M641 391 C802 324 870 340 976 234 S1146 111 1250 239" fill="none" stroke="#331d29" stroke-width="101" opacity=".17" transform="translate(0 8)"/>
+<path d="M641 391 C802 324 870 340 976 234 S1146 111 1250 239" fill="none" stroke="url(#peach)" stroke-width="91" stroke-linecap="round" opacity=".96"/>
+</g>
+<g clip-path="url(#lavenderFront)" filter="url(#ribbonShadow)">
+<path d="M575 386 C714 349 793 140 944 157 S1138 272 1260 85" fill="none" stroke="#202137" stroke-width="108" opacity=".14" transform="translate(0 8)"/>
+<path d="M575 386 C714 349 793 140 944 157 S1138 272 1260 85" fill="none" stroke="url(#lavender)" stroke-width="96" stroke-linecap="round" opacity=".96"/>
+</g>
+<path d="M575 386 C714 349 793 140 944 157 S1138 272 1260 85" fill="none" stroke="#fff" stroke-width="1.5" stroke-opacity=".24" stroke-dasharray="4 14"/>
+<!-- Optical spacing is fixed: word length and dot are independent elements, avoiding collisions across fallback fonts. -->
+<g filter="url(#wordShadow)"><text x="84" y="164" font-family="'Arial Rounded MT Bold','Trebuchet MS',Arial,sans-serif" font-weight="800" font-size="91" textLength="375" lengthAdjust="spacingAndGlyphs" fill="#FAF7F4">stoqnist</text></g>
+<circle cx="485" cy="151" r="10" fill="#f4b3a7"/>
+<text x="90" y="215" font-family="'Trebuchet MS',Arial,sans-serif" font-size="29" fill="#FAF7F4" letter-spacing=".2" opacity=".94">with a little more help.</text>
+</svg>
