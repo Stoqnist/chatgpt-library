@@ -15,6 +15,7 @@ jobs:
           python-version: '3.11'
       - name: Export higher-quality approved film poster
         run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
           ffmpeg -hide_banner -loglevel error -ss 9 -i demo/media/gunter-morning-en.mp4 -frames:v 1 -vf scale=960:-2 -c:v libwebp -quality 78 -compression_level 5 -y /tmp/gunter-morning-en.webp
           python3 - <<'PY'
           from pathlib import Path
