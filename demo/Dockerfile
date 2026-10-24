@@ -6,12 +6,12 @@ COPY assets/stoqnist-banner.svg assets/stoqnist-banner-mobile.svg /usr/share/ngi
 # Include current and future approved WebP assets, while nginx restricts public paths.
 COPY assets/*.webp /usr/share/nginx/html/assets/
 COPY locales/en.js /usr/share/nginx/html/locales/en.js
+COPY media/gunter-morning-en.mp4 /usr/share/nginx/html/media/gunter-morning-en.mp4
+COPY media/gunter-morning-en.vtt /usr/share/nginx/html/media/gunter-morning-en.vtt
 COPY locales/nl.js /usr/share/nginx/html/locales/nl.js
 COPY nl/index.html /usr/share/nginx/html/nl/index.html
 COPY locales/bg.js /usr/share/nginx/html/locales/bg.js
 COPY bg/index.html /usr/share/nginx/html/bg/index.html
-COPY media/gunter-morning-en.mp4 /usr/share/nginx/html/media/gunter-morning-en.mp4
-COPY media/gunter-morning-en.vtt /usr/share/nginx/html/media/gunter-morning-en.vtt
 USER 101:101
 EXPOSE 8080
 ENTRYPOINT ["nginx", "-g", "daemon off;"]
