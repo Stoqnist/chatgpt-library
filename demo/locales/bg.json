@@ -137,7 +137,8 @@
     "video.fallback": "Звукът на този филм е на {language}; субтитрите и текстът са на избрания от вас език.",
     "video.unavailable": "Филмът не може да се зареди. Можете да прочетете историята по-долу.",
     "video.captions": "Субтитри",
-    "video.description": "Гунтер преглежда молба за помощ с пазаруването, преди да избере да я изпрати. Той все още чака отговор.",
+    "video.description": "Утре има преглед. Днес — малко помощ. Гунтер сам решава какво следва.",
+    "video.play": "Гледайте 55-секундния филм",
     "film.scene1.narration": "Утре Гунтер има час за преглед.",
     "film.scene1.caption1": "Утре има преглед.",
     "film.scene1.caption2": "Днес — по-спокойно.",
@@ -328,7 +329,7 @@
     "video.fallback": "97f4d2c94306abc5",
     "video.unavailable": "e48a982b63d1f2bb",
     "video.captions": "43bf6af8e2d9b895",
-    "video.description": "94e3bf60aaed3bb7",
+    "video.description": "0ed15c25f74fb4e3",
     "film.scene1.narration": "ed97cc43a8bdf948",
     "film.scene1.caption1": "66027fd8884767f2",
     "film.scene1.caption2": "a7cef740b1950bba",
@@ -381,6 +382,7 @@
     "film.ui.step": "bc6da39eb11365f5",
     "film.scene7.narration": "d562d4f1f1297aec",
     "film.scene8.narration": "8441239acbb6e16e",
-    "film.scene9.narration": "cf0b07347b1e26fa"
+    "film.scene9.narration": "cf0b07347b1e26fa",
+    "video.play": "8c250207ce21fa85"
   }
 }
