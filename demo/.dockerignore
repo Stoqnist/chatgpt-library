@@ -1,0 +1,17 @@
+*
+!Dockerfile
+!nginx.conf
+!index.html
+!style.css
+!app.js
+!cases.js
+!assets/
+assets/*
+!assets/stoqnist-banner.svg
+!assets/stoqnist-banner-mobile.svg
+
+
+!journey.css
+!assets/everyday-room.webp
+!brand-journey.css
+!assets/*.webp

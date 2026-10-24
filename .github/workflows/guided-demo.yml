@@ -1,0 +1,50 @@
+name: Guided demo checks
+on:
+  pull_request:
+    paths: ['demo/**', 'poc/v2/v2_poc/coordinator.py', 'poc/v2/fixtures/purchase.json', '.github/workflows/guided-demo.yml']
+permissions:
+  contents: read
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.11'
+      - run: python3 demo/build.py --check
+      - run: node --check demo/app.js
+      - name: Verify demo persona and mobile hero
+        run: |
+          grep -q 'Meet Gunter' demo/index.html
+          grep -q 'GUNTER' demo/index.html
+          if grep -iq 'alex' demo/index.html; then echo 'Legacy Alex name remains in public demo'; exit 1; fi
+          grep -q 'background-position:52% center' demo/brand-journey.css
+      - run: PYTHONPATH=poc/v2 python3 -m unittest discover -s poc/v2/tests -p 'test_coordinator.py'
+      - run: docker compose -f demo/compose.yaml config --quiet
+      - run: docker compose -f demo/compose.yaml up -d --build --wait --wait-timeout 60
+      - name: Verify public asset boundary and headers
+        run: |
+          curl --fail --silent http://127.0.0.1:8092/ > /tmp/demo.html
+          cmp demo/index.html /tmp/demo.html
+          for path in app.js style.css journey.css brand-journey.css cases.js assets/stoqnist-banner.svg assets/stoqnist-banner-mobile.svg assets/everyday-room.webp; do
+            curl --fail --silent "http://127.0.0.1:8092/$path" > /tmp/demo-asset
+            cmp "demo/$path" /tmp/demo-asset
+          done
+          # Optional hero artwork is a 404 until its approved binary files are committed.
+          for asset in stoqnist-family-hero stoqnist-family-mobile; do
+            if test -f "demo/assets/$asset.webp"; then
+              curl --fail --silent "http://127.0.0.1:8092/assets/$asset.webp" > /tmp/demo-asset
+              cmp "demo/assets/$asset.webp" /tmp/demo-asset
+            else
+              test "$(curl --silent --output /dev/null --write-out '%{http_code}' "http://127.0.0.1:8092/assets/$asset.webp")" = 404
+            fi
+          done
+          for path in auth/ README.md build.py compose.yaml publicity/launch.md assets/unknown.svg; do
+            code=$(curl --silent --output /dev/null --write-out '%{http_code}' "http://127.0.0.1:8092/$path")
+            test "$code" = 404
+          done
+          curl --fail --silent --head http://127.0.0.1:8092/ | grep -i 'content-security-policy:'
+      - if: always()
+        run: docker compose -f demo/compose.yaml down
