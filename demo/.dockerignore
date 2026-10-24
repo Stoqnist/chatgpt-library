@@ -9,3 +9,7 @@
 assets/*
 !assets/stoqnist-banner.svg
 !assets/stoqnist-banner-mobile.svg
+
+
+!journey.css
+!assets/everyday-room.webp
