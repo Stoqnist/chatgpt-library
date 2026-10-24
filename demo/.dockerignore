@@ -13,3 +13,5 @@ assets/*
 
 !journey.css
 !assets/everyday-room.webp
+!brand-journey.css
+!assets/*.webp
