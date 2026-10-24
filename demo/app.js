@@ -15,7 +15,7 @@ function select(index) {
     info.append(node('strong',title),node('small',isReceipt?'Receipt R-123 · purchase complete':'Transaction '+e.data.transaction_id));
     row.append(node('span',isReceipt?'R':'B','icon'),info,node('span','€'+e.data.amount_eur,'amount')); $('evidence').append(row);
   });
-  $('result').hidden=true; $('review').hidden=false;
+  $('result').hidden=true; $('review').disabled=false; $('review').setAttribute('aria-expanded','false');
 }
 window.DEMO_CASES.forEach((item,index)=>{
   const b=node('button','','scenario'); b.type='button'; b.append(node('small','CASE 0'+(index+1)),node('strong',item.title));
@@ -35,7 +35,7 @@ $('review').addEventListener('click',()=>{
   });
   $('questions').replaceChildren(...r.unresolved_questions.map(q=>node('li',q)));
   $('raw').textContent=JSON.stringify({evidence:item.evidence, result:r},null,2);
-  $('review').hidden=true; $('result').hidden=false; $('result-heading').focus({preventScroll:true}); $('result').scrollIntoView({behavior:'auto',block:'start'});
+  $('review').disabled=true; $('review').setAttribute('aria-expanded','true'); $('result').hidden=false; $('result-heading').focus({preventScroll:true});
 });
 $('reset').addEventListener('click',()=>{select((active+1)%window.DEMO_CASES.length);document.querySelectorAll('.scenario')[active].focus();});
 select(0);
@@ -87,10 +87,11 @@ $('undo-mood').addEventListener('click', () => moodReset());
 function energySelect(value) {
   document.querySelectorAll('[data-energy]').forEach(b => b.setAttribute('aria-pressed',String(b.dataset.energy === value)));
   const low = value === 'low';
+  $('energy-feedback').textContent = low ? 'Two optional chores can wait. Gunter’s care plan stays unchanged.' : value ? 'Both optional chores are available at Gunter’s pace. His care plan stays unchanged.' : 'Choose an energy level to explore Gunter’s day.';
   $('optional-tasks').open = !low;
   $('optional-label').textContent = low ? 'Can wait · 2 optional tasks' : 'Optional tasks · 2';
   $('plan-title').textContent = low ? 'Keep today small.' : 'A few things to hold.';
-  $('plan-status').textContent = low ? 'Optional chores can wait. Your care instructions stay unchanged.' : value ? 'One practical step at a time. The care plan stays unchanged.' : 'Try a lower-energy day to see what can wait.';
+  $('plan-status').textContent = low ? 'Optional chores can wait. Gunter’s care instructions stay unchanged.' : value ? 'One practical step at a time. The care plan stays unchanged.' : 'Try a lower-energy day to see what can wait.';
   $('next-task').classList.remove('settle');
   void $('next-task').offsetWidth;
   if (value) $('next-task').classList.add('settle');

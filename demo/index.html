@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>stoqnist. — a little more help with everyday life</title>
 <meta name="description" content="stoqnist. — with a little more help. Explore a calmer, connected approach to everyday plans and decisions through fictional interactive demonstrations.">
-<link rel="stylesheet" href="style.css?v=20261024-2"><link rel="stylesheet" href="journey.css?v=20261024-2"><link rel="stylesheet" href="brand-journey.css?v=20261024-2"><script src="cases.js" defer></script><script src="app.js" defer></script>
+<link rel="stylesheet" href="style.css?v=20261024-3"><link rel="stylesheet" href="journey.css?v=20261024-3"><link rel="stylesheet" href="brand-journey.css?v=20261024-3"><script src="cases.js" defer></script><script src="app.js?v=20261024-3" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#brand-title">Skip to the idea</a>
@@ -34,9 +34,10 @@
 <div class="small-actions"><button id="skip-mood" class="secondary">Skip</button><button id="undo-mood" class="secondary" hidden>Undo</button></div>
 <p id="mood-status" class="micro" role="status">Choose one, or skip.</p>
 <fieldset class="energy"><legend>Gunter’s energy for everyday tasks? <span class="micro">Optional</span></legend><div class="energy-options"><button data-energy="low" aria-pressed="false">A little</button><button data-energy="some" aria-pressed="false">Some</button><button data-energy="plenty" aria-pressed="false">Plenty</button></div></fieldset>
+<p id="energy-feedback" class="energy-feedback" role="status" aria-live="polite" aria-atomic="true">Choose an energy level to explore Gunter’s day.</p>
 <p class="micro">Mood and energy are separate. Neither is a health assessment.</p>
 </div>
-<div class="day-plan"><div class="desk-heading"><span class="eyebrow">GUNTER’S DAY · FICTIONAL</span><span>Day 03</span></div><h3 id="plan-title">A few things to hold.</h3><p id="plan-status" class="muted" role="status">Try a lower-energy day to see what can wait.</p>
+<div class="day-plan"><div class="desk-heading"><span class="eyebrow">GUNTER’S DAY · FICTIONAL</span><span>Day 03</span></div><h3 id="plan-title">A few things to hold.</h3><p id="plan-status" class="muted">Try a lower-energy day to see what can wait.</p>
 <article class="care-card"><span class="eyebrow">EXISTING CARE PLAN</span><h4>Keep the care instructions in view.</h4><p>Follow-up: Friday, 10:00. Bring questions for the care team.</p><p class="micro">Source: fictional appointment note, Day 01. Treatment instructions are not included in this demo. Energy choices never change clinical instructions or appointments.</p></article>
 <article id="next-task" class="next-task"><span class="eyebrow">ONE PRACTICAL NEXT STEP</span><h4>Make groceries easier.</h4><p>Prepare a short request for help with the shopping.</p><button id="prepare-help" class="secondary">Preview a help request →</button><div id="help-draft" hidden><p>“Could you help with a small grocery run this week? I’ll share the list separately.”</p><p class="micro">Draft only. Nothing sent. No health details included.</p></div></article>
 <details id="optional-tasks" open><summary id="optional-label">Optional tasks · 2</summary><ul><li>Sort the paperwork.</li><li>Tidy the kitchen shelf.</li></ul></details>
@@ -44,12 +45,12 @@
 </div></div>
 <p class="micro">Choices reset on reload. Nothing is sent, scheduled or saved.</p>
 </section>
-<details class="purchase-more"><summary>Explore another example: a purchase</summary>
+<details class="purchase-more"><summary><span class="purchase-label">Explore another example: a purchase</span><span class="purchase-preview">Can a receipt and bank records tell the same story?</span></summary>
 <section id="demo" aria-labelledby="demo-title">
 <div class="section-top"><div><p class="eyebrow">SHOWCASE / A PURCHASE</p><h2 id="demo-title">One purchase. A clearer picture.</h2></div><span class="tag">Fictional data · No sign-in</span></div>
 <div class="workspace">
 <aside><p class="eyebrow">CHOOSE A SCENARIO</p><div id="scenarios" class="scenarios"></div><div class="note"><span>↗</span><p>Compare a receipt and bank records. See what matches and what still needs an answer.</p></div></aside>
-<div class="desk"><div class="desk-heading"><span class="eyebrow">THE INPUT</span><span id="count"></span></div><h3 id="case-title"></h3><p id="case-detail"></p><div id="evidence"></div><button id="review" class="primary">Review this purchase <span>→</span></button>
+<div class="desk"><div class="desk-heading"><span class="eyebrow">THE INPUT</span><span id="count"></span></div><h3 id="case-title"></h3><p id="case-detail"></p><div id="evidence"></div><button id="review" class="primary" aria-controls="result" aria-expanded="false">Review this purchase <span>→</span></button>
 <section id="result" hidden aria-labelledby="result-heading"><div class="result-top"><div><p class="eyebrow">THE RESULT</p><h3 id="result-heading" tabindex="-1">Here's what holds up.</h3></div><span class="tag">Demo result</span></div><div id="summary"></div><div id="owners"></div><div class="next"><h4>What still needs an answer</h4><ul id="questions"></ul><p>Matching amounts alone do not prove that a receipt and a bank payment belong together.</p></div><details><summary>Inspect the evidence and proposed changes</summary><p>Proposals only. No records have been changed.</p><pre id="raw"></pre></details><button id="reset" class="secondary">Try another scenario ↑</button></section>
 </div></div>
 </section>
