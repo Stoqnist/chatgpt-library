@@ -5,3 +5,7 @@
 !style.css
 !app.js
 !cases.js
+!assets/
+assets/*
+!assets/stoqnist-banner.svg
+!assets/stoqnist-banner-mobile.svg
