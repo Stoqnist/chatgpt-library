@@ -115,3 +115,28 @@ function openAnchor() {
   if (target?.closest('.purchase-more')) target.closest('.purchase-more').open = true;
 }
 window.addEventListener('hashchange', openAnchor); openAnchor();
+
+
+// Reveal the film invitation only when its action can start playback.
+// Native controls remain available without JavaScript and after playback begins.
+const filmVideo = $('story-video'), filmPlay = $('film-play');
+if (filmVideo && filmPlay) {
+  const runtime = $('film-runtime');
+  filmVideo.setAttribute('tabindex', '-1');
+  filmPlay.hidden = false;
+  const revealPlayer = () => {
+    filmPlay.hidden = true;
+    filmVideo.removeAttribute('tabindex');
+    if (runtime) runtime.hidden = true;
+  };
+  filmPlay.addEventListener('click', () => {
+    revealPlayer();
+    const playback = filmVideo.play();
+    if (playback && typeof playback.catch === 'function') playback.catch(() => filmVideo.focus());
+  });
+  filmVideo.addEventListener('play', revealPlayer);
+  filmVideo.addEventListener('error', () => {
+    revealPlayer();
+    $('video-status').textContent = t('video.unavailable');
+  });
+}
