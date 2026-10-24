@@ -1,13 +1,13 @@
 {
   "id": "gunter-morning",
-  "revision": 1,
+  "revision": 2,
   "sourceLocale": "en",
   "status": "in-production",
-  "sourceNote": "Story adapted from local Dutch Gunter film v3. No film binaries are published by this change. Scene timings are planning estimates until a localized render is reviewed.",
+  "sourceNote": "The user's approved 55.083-second English master has SHA-256 5d07a44604861d4258956605f9cf83f6c571cc9e2ca1baf7dac39736147dc815. The binary is not yet stored in this repository, so English remains planned. Dutch and Bulgarian films remain pending; transcript translations are draft.",
   "scenes": [
     {
       "id": "scene1",
-      "duration": 8,
+      "duration": 4,
       "narration": "film.scene1.narration",
       "onScreen": [
         "film.scene1.caption1",
@@ -16,44 +16,68 @@
     },
     {
       "id": "scene2",
-      "duration": 7,
+      "duration": 5,
       "narration": "film.scene2.narration",
+      "onScreen": [
+        "film.scene1.caption1",
+        "film.scene1.caption2"
+      ]
+    },
+    {
+      "id": "scene3",
+      "duration": 5,
+      "narration": "film.scene3.narration",
       "onScreen": [
         "film.scene2.caption1",
         "film.scene2.caption2"
       ]
     },
     {
-      "id": "scene3",
-      "duration": 10,
-      "narration": "film.scene3.narration",
+      "id": "scene4",
+      "duration": 4,
+      "narration": "film.scene4.narration",
       "onScreen": [
-        "film.scene3.caption1",
+        "film.scene3.caption1"
+      ]
+    },
+    {
+      "id": "scene5",
+      "duration": 6,
+      "narration": "film.scene5.narration",
+      "onScreen": [
         "film.scene3.caption2"
       ]
     },
     {
-      "id": "scene4",
-      "duration": 10,
-      "narration": "film.scene4.narration",
+      "id": "scene6",
+      "duration": 5,
+      "narration": "film.scene6.narration",
       "onScreen": [
         "film.scene4.caption1",
         "film.scene4.caption2"
       ]
     },
     {
-      "id": "scene5",
-      "duration": 8,
-      "narration": "film.scene5.narration",
+      "id": "scene7",
+      "duration": 6,
+      "narration": "film.scene7.narration",
+      "onScreen": [
+        "film.ui.control"
+      ]
+    },
+    {
+      "id": "scene8",
+      "duration": 7,
+      "narration": "film.scene8.narration",
       "onScreen": [
         "film.scene5.caption1",
         "film.scene5.caption2"
       ]
     },
     {
-      "id": "scene6",
-      "duration": 8,
-      "narration": "film.scene6.narration",
+      "id": "scene9",
+      "duration": 9,
+      "narration": "film.scene9.narration",
       "onScreen": [
         "film.scene6.caption1",
         "film.scene6.caption2"
@@ -102,7 +126,7 @@
       "captions": null,
       "poster": null,
       "timingStatus": "provisional",
-      "sourceRevision": 1,
+      "sourceRevision": 2,
       "contentHash": null
     },
     "nl": {
@@ -112,7 +136,7 @@
       "captions": null,
       "poster": null,
       "timingStatus": "provisional",
-      "sourceRevision": 1,
+      "sourceRevision": 2,
       "contentHash": null
     },
     "bg": {
@@ -122,7 +146,7 @@
       "captions": null,
       "poster": null,
       "timingStatus": "provisional",
-      "sourceRevision": 1,
+      "sourceRevision": 2,
       "contentHash": null
     }
   },
