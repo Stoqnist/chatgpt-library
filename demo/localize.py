@@ -117,7 +117,10 @@ def render_video(code, film, messages, registry):
         audio=code if variant['status']=='ready' else film['fallbacks'][code]
         ready=film['variants'][audio]
         poster=f' poster="{esc(ready["poster"],quote=True)}"' if ready.get('poster') else ''
-        player=f'<video id="story-video" controls playsinline preload="none"{poster} aria-label="{esc(messages["video.description"],quote=True)}"><source src="{ready["video"]}" type="video/mp4"><track kind="captions" src="{variant["captions"]}" srclang="{code}" label="{esc(messages["video.captions"],quote=True)}" default></video>'
+        # The approved English master already burns in English subtitles.
+        # Keep optional English CC selectable; default translated fallback CC on.
+        default_captions = ' default' if variant['status']=='captioned' else ''
+        player=f'<video id="story-video" controls playsinline preload="none"{poster} aria-label="{esc(messages["video.description"],quote=True)}"><source src="{ready["video"]}" type="video/mp4"><track kind="captions" src="{variant["captions"]}" srclang="{code}" label="{esc(messages["video.captions"],quote=True)}"{default_captions}></video>'
         status=''
         if audio!=code:
             name=next(v['name'] for v in registry['locales'] if v['code']==audio)

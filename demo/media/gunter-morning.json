@@ -2,8 +2,8 @@
   "id": "gunter-morning",
   "revision": 2,
   "sourceLocale": "en",
-  "status": "in-production",
-  "sourceNote": "The user's approved 55.083-second English master has SHA-256 5d07a44604861d4258956605f9cf83f6c571cc9e2ca1baf7dac39736147dc815. The binary is not yet stored in this repository, so English remains planned. Dutch and Bulgarian films remain pending; transcript translations are draft.",
+  "status": "partially-ready",
+  "sourceNote": "Approved 55.083-second English master uploaded to demo/media/gunter-morning-en.mp4; expected SHA-256 5d07a44604861d4258956605f9cf83f6c571cc9e2ca1baf7dac39736147dc815. English speech and WebVTT correspond to the nine finalized cues. Dutch and Bulgarian films remain planned.",
   "scenes": [
     {
       "id": "scene1",
@@ -120,14 +120,14 @@
   ],
   "variants": {
     "en": {
-      "status": "planned",
+      "status": "ready",
       "audioLocale": "en",
-      "video": null,
-      "captions": null,
+      "video": "/media/gunter-morning-en.mp4",
+      "captions": "/media/gunter-morning-en.vtt",
       "poster": null,
-      "timingStatus": "provisional",
+      "timingStatus": "final",
       "sourceRevision": 2,
-      "contentHash": null
+      "contentHash": "a1ed1375b844b099"
     },
     "nl": {
       "status": "planned",
