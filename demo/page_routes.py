@@ -86,7 +86,7 @@ def render_pages(full_page, code, messages):
     )
 
     bodies = {
-        '': brand + idea + home_cards + hero + policies,
+        '': brand + hero + idea + home_cards + policies,
         'demos/': brand + catalog_cards + policies,
         'demos/gunter/': brand + back + film + recovery + policies,
         'demos/purchase/': brand + back + purchase + policies,
