@@ -115,5 +115,21 @@ def render_pages(full_page, code, messages):
         header = header.replace('href="#brand-title"', f'href="#{anchors[leaf]}"', 1)
         if leaf:
             header = re.sub(r'<title>[^<]*</title>', '<title>' + esc(titles[leaf]) + ' · stoqnist.</title>', header, count=1)
+
+        # These metadata values match the localized destination, not just the homepage.
+        page_title = re.search(r'<title>([^<]*)</title>', header).group(1)
+        summary = re.search(r'<meta name="description" content="([^"]*)">', header).group(1)
+        page_url = 'https://stoq.page' + route(code, leaf)
+        locale_name = {'en': 'en_US', 'nl': 'nl_NL', 'bg': 'bg_BG'}.get(code, code)
+        social = (
+            '<meta property="og:type" content="website">\n'
+            '<meta property="og:site_name" content="stoqnist.">\n'
+            f'<meta property="og:title" content="{page_title}">\n'
+            f'<meta property="og:description" content="{summary}">\n'
+            f'<meta property="og:url" content="{page_url}">\n'
+            f'<meta property="og:locale" content="{locale_name}">\n'
+            '<meta name="twitter:card" content="summary">\n'
+        )
+        header = header.replace('</head>', social + '</head>', 1)
         pages[leaf + 'index.html'] = header + '<main class="site-main">' + body + '</main>' + tail
     return pages
