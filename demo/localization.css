@@ -63,7 +63,7 @@
 /* The original panorama includes the elderly man seated at far right.
    Right-align it and fit its full height so both he and the lifted girl's head
    remain visible. The opaque brand panel conceals baked-in English lettering. */
-.home-banner .guided-hero-art{background-image:url('/assets/stoqnist-family-hero.webp');background-size:auto 100%;background-position:right center;background-repeat:no-repeat;filter:brightness(.98) saturate(.9);transform:none;animation:none}
+.home-banner .guided-hero-art{background-image:url('/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471');background-size:auto 100%;background-position:right center;background-repeat:no-repeat;filter:brightness(.98) saturate(.9);transform:none;animation:none}
 .home-banner .guided-hero-shade{background:linear-gradient(90deg,#12352f 0%,#12352f 34%,#12352ff0 38%,#12352f00 52%)}
 .home-banner .guided-hero-text{padding:48px;max-width:43%}
 .home-banner .guided-hero-accessible{font-size:clamp(42px,5.2vw,70px)}
@@ -73,17 +73,9 @@
 @media(max-width:960px){
 .home-banner{display:flex;flex-direction:column;height:auto;min-height:0;aspect-ratio:auto}
 .home-banner .guided-hero-text{order:0;max-width:none;padding:26px 28px 20px}
-.home-banner .guided-hero-art{position:relative;inset:auto;z-index:0;order:1;width:100%;height:auto;max-height:none;aspect-ratio:3/1;background-image:url('/assets/stoqnist-family-hero.webp?v=3d116045c58659315a345f1d91130f06faa5862c');background-size:contain;background-position:center;filter:none;transform:none;animation:none}
-/* Only the source photo's baked-in English brand panel is veiled.
-   The remaining full 3:1 panorama is preserved at every phone width, including
-   the older relatives at both ends. The live headline stays legible above. */
-.home-banner .guided-hero-art::after{
-  content:"";display:block;position:absolute;inset:0 auto auto 0;
-  width:39%;height:57%;pointer-events:none;
-  background:linear-gradient(90deg,#12352f 0%,#12352ff2 78%,#12352f00 100%);
-  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 82%,transparent 100%);
-  mask-image:linear-gradient(180deg,#000 0%,#000 82%,transparent 100%)
-}
+.home-banner .guided-hero-art{position:relative;inset:auto;z-index:0;order:1;width:100%;height:auto;max-height:none;aspect-ratio:4/3;background-image:url('/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471');background-size:contain;background-position:center;filter:none;transform:none;animation:none}
+/* No text is baked into this approved artwork, so masking is prohibited. */
+.home-banner .guided-hero-art::after{display:none}
 .home-banner .guided-hero-shade{display:none}
 .home-banner .guided-hero-accessible{font-size:clamp(44px,8vw,72px)}
 }
@@ -123,4 +115,38 @@
   .page-home .home-banner .guided-hero-text{padding:19px 22px 13px}
   .page-home .home-banner .guided-hero-subtitle{margin-top:2px}
   .page-home .idea{padding-top:16px}
+}
+
+
+/* Approved 1448 × 1086 image, unaltered composition on desktop and phones.
+   Brand copy remains live HTML in every language, entirely outside the photo. */
+.page-home .home-banner{
+  display:grid;grid-template-columns:minmax(0,41%) minmax(0,59%);
+  height:auto;min-height:0;align-items:center;background:#12352f;
+}
+.page-home .home-banner .guided-hero-text{
+  grid-column:1;grid-row:1;position:relative;z-index:1;
+  max-width:none;width:100%;padding:30px 26px 30px 36px;
+}
+.page-home .home-banner .guided-hero-art{
+  grid-column:2;grid-row:1;position:relative;inset:auto;z-index:0;
+  width:100%;height:auto;max-height:none;aspect-ratio:4/3;
+  background-image:url('/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471');
+  background-size:contain;background-position:center;background-repeat:no-repeat;
+  filter:none;transform:none;animation:none;
+}
+.page-home .home-banner .guided-hero-shade{display:none}
+.page-home .home-banner .guided-hero-art::after{display:none}
+.page-home .home-banner .guided-hero-accessible{font-size:clamp(44px,5vw,70px)}
+.page-home .home-banner .guided-hero-subtitle{font-size:clamp(17px,1.85vw,23px)}
+@media(max-width:960px){
+  .page-home .home-banner{display:flex;flex-direction:column}
+  .page-home .home-banner .guided-hero-text{order:0;padding:25px 25px 18px}
+  .page-home .home-banner .guided-hero-art{order:1;width:100%;aspect-ratio:4/3}
+}
+@media(max-width:760px){
+  .page-home .home-banner{margin:6px 12px 12px}
+  .page-home .home-banner .guided-hero-text{padding:19px 22px 14px}
+  .page-home .home-banner .guided-hero-accessible{font-size:clamp(44px,12vw,50px)}
+  .page-home .home-banner .guided-hero-subtitle{font-size:clamp(19px,4.8vw,25px)}
 }
