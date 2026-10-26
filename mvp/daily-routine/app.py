@@ -146,9 +146,19 @@ def selected_domains(prompt: str) -> list[str]:
 def domain_excerpt(prompt: str, domain: str) -> str:
     if domain in ("health", "planner"):
         return prompt
-    matcher = HOME_RE if domain == "home" else FINANCE_RE
-    lines = re.split(r"(?<=[.!?\n])\s+|\n", prompt)
-    return " ".join(x.strip() for x in lines if matcher.search(x))[:1000]
+    # Avoid broadcasting private mixed-domain free text to unrelated specialists.
+    # Until canonical, permission-scoped reads exist, share only intent labels.
+    topics = {
+        "home": ("food", "inventory", "stock", "meal", "groceries",
+                 "supplies", "cleaning", "laundry", "household"),
+        "finance": ("budget", "rent", "bills", "salary", "purchase",
+                    "spending", "debt", "cost", "money"),
+    }[domain]
+    found = [topic for topic in topics if re.search(
+        rf"\\b{re.escape(topic)}\\b", prompt, re.I)]
+    return (f"User requests {domain} advice on: "
+            f"{', '.join(found) if found else 'an unspecified concern'}. "
+            "No canonical records, balances, quantities or amounts verified.")
 
 
 def possible_emergency(prompt: str) -> bool:
