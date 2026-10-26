@@ -39,8 +39,10 @@ SYSTEM = {
     ),
     "planner": (
         "You are the day coordinator, not a clinical or financial owner. "
-        "Suggest a realistic routine with at most three small priorities and one "
-        "optional follow-up question. Respect limitations from the Health review. "
+        "Synthesize the supplied bounded specialist notes into ONE realistic "
+        "daily routine with at most three priorities and one optional follow-up "
+        "question. Respect any Health limitations. Be explicit when another "
+        "specialist was unavailable. "
         "Do not claim to have accessed or changed any calendar or durable record."
     ),
     "home": (
@@ -116,7 +118,8 @@ document.getElementById("run").addEventListener("click",async()=>{
     if(!res.ok)throw new Error(data.error||"Service unavailable");
     if(data.urgent){status.textContent="Urgent concern detected. Routine planning was stopped.";}
     else{status.textContent="Review complete · No records or calendar events changed.";}
-    for(const entry of data.results){
+    for(const entry of [...data.results].sort((a,b)=>
+      (a.domain==="planner"?-1:0)-(b.domain==="planner"?-1:0))){
       const article=document.createElement("article");
       const heading=document.createElement("h2");
       heading.textContent=entry.domain[0].toUpperCase()+entry.domain.slice(1);
@@ -131,11 +134,12 @@ document.getElementById("run").addEventListener("click",async()=>{
 
 
 def selected_domains(prompt: str) -> list[str]:
-    domains = ["health", "planner"]
+    domains = ["health"]
     if HOME_RE.search(prompt):
         domains.append("home")
     if FINANCE_RE.search(prompt):
         domains.append("finance")
+    domains.append("planner")  # Consolidate after specialist advice.
     return domains
 
 
@@ -159,7 +163,7 @@ class OpenAIClient:
     def complete(self, domain: str, prompt: str, health: str = "") -> str:
         context = domain_excerpt(prompt, domain)
         if domain == "planner":
-            context += "\nHealth review (unverified model advice): " + health[:1000]
+            context += "\nSpecialist notes (unverified advisory output): " + health[:1600]
         data = json.dumps({
             "model": self.model,
             "instructions": BASE_RULES + "\n" + SYSTEM[domain],
@@ -202,6 +206,11 @@ def run_checkin(prompt: str, client: OpenAIClient) -> dict:
     results = []
     health_text = ""
     for domain in selected_domains(prompt):
+        if domain == "planner":
+            health_text = "\n".join(
+                f"{entry['domain']} ({entry['status']}): {entry['text']}"
+                for entry in results
+            )
         try:
             output = client.complete(domain, prompt, health_text)
             results.append({"domain": domain, "status": "advisory", "text": output})
