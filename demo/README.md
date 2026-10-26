@@ -139,8 +139,12 @@ is retained as an unused source/reference asset. On phones, the art is displayed
 without a CSS crop below a separate live-text brand panel. Its upper-left
 baked-in English brand lettering is veiled on mobile to avoid duplicated copy.
 The source photograph itself ends above some lower legs; CSS cannot recover
-missing pixels. A new editorially approved source render remains the definitive
-solution for complete bodies and perfectly localized art.
+missing pixels. The phone layout now suppresses the duplicate small navigation
+wordmark, keeps the Demos link accessible, and reduces the gap before the idea
+section. This is an incremental hierarchy repair, **not** approval of the
+artwork: faint baked-in English text beneath the existing mask and very small
+figures require a newly approved, text-free, mobile-specific editorial render.
+An opaque CSS patch would obscure relatives or scene details.
 
 The public Docker image includes the approved WebP images in `demo/assets/`;
 Nginx serves only named assets. The mobile photo URL includes its Git blob

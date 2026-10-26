@@ -46,6 +46,20 @@ try {
           `Horizontal overflow: ${locale} ${width}px ${route || 'home'} ${JSON.stringify(sizes)}`,
         );
         assert.equal(await page.locator('h1').count(), 1, `${url} should have one main heading`);
+        if (route === '' && width < 500) {
+          const topBar = page.locator('.page-home .site-top');
+          assert.equal(await topBar.locator('.site-mark').isVisible(), false,
+            'The mobile homepage should not repeat the hero wordmark');
+          assert(await topBar.locator('.site-nav-link').isVisible(),
+            'Demos navigation must remain available');
+          const spacing = await page.evaluate(() => {
+            const banner = document.querySelector('.home-banner').getBoundingClientRect();
+            const idea = document.querySelector('.page-home .idea').getBoundingClientRect();
+            return { gap: idea.top - banner.bottom, viewport: innerWidth };
+          });
+          assert(spacing.gap >= 0 && spacing.gap <= 48,
+            'Excess hero-to-idea gap: '+locale+' '+width+' '+JSON.stringify(spacing));
+        }
         if (route === '') {
           const banner = await page.locator('.home-banner .guided-hero-art').evaluate(el => {
             const styles = getComputedStyle(el);
