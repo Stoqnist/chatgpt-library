@@ -46,6 +46,7 @@ nl/demos/gunter/*
 !nl/demos/purchase/
 nl/demos/purchase/*
 !nl/demos/purchase/index.html
+!media/gunter-morning-nl.vtt
 !locales/bg.js
 !bg/
 bg/*
@@ -59,3 +60,4 @@ bg/demos/gunter/*
 !bg/demos/purchase/
 bg/demos/purchase/*
 !bg/demos/purchase/index.html
+!media/gunter-morning-bg.vtt

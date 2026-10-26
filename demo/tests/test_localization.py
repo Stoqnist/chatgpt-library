@@ -54,7 +54,13 @@ class LocalizationTests(unittest.TestCase):
                 self.assertIn('Watch the 55-second film',gunter)
                 self.assertIn('id="film-runtime"',gunter)
             else:
-                self.assertNotIn('<video',gunter)
+                self.assertIn('id="story-video"',gunter)
+                self.assertIn('src="/media/gunter-morning-en.mp4"',gunter)
+                self.assertIn(f'src="/media/gunter-morning-{code}.vtt"',gunter)
+                self.assertIn(f'srclang="{code}"',gunter)
+                self.assertIn(' default></video>',gunter)
+                self.assertIn('id="video-status"',gunter)
+                self.assertNotIn('film is in production',gunter)
             self.assertIn('href="/'+prefix+'demos/gunter/"',home)
             # Brand-first ordering remains consistent in every localized homepage.
             self.assertLess(home.index('class="guided-hero home-banner"'),home.index('class="idea"'))
@@ -69,6 +75,9 @@ class LocalizationTests(unittest.TestCase):
                      'nl/demos/index.html','bg/demos/index.html'):
             self.assertIn('COPY '+file+' /usr/share/nginx/html/'+file,files['Dockerfile'])
         self.assertIn('/media/gunter-morning-en.webp',files['locale-routes.conf'])
+        for code in ('nl','bg'):
+            self.assertIn(f'/media/gunter-morning-{code}.vtt',files['locale-routes.conf'])
+            self.assertIn(f'COPY media/gunter-morning-{code}.vtt ',files['Dockerfile'])
 
     def test_asset_urls_follow_content_changes_for_returning_visitors(self):
         pattern = r'(?:href|src)="/([^"?]+\.(?:css|js))\?v=([a-f0-9]{16})"'
@@ -173,15 +182,16 @@ class LocalizationTests(unittest.TestCase):
         p=self.root/'cases.js';p.write_text(p.read_text().replace('Was desk-lamp actually received into the household?','A new question?'))
         with self.assertRaisesRegex(AssertionError,'Uncatalogued coordinator'):l10n.load(self.root)
     def test_unreviewed_video_cannot_publish(self):
-        self.edit('media/gunter-morning.json',lambda d:d['variants']['bg'].update({'status':'ready'}))
+        self.edit('media/gunter-morning.json',lambda d:d['variants']['bg'].update({'status':'ready','contentHash':None}))
         with self.assertRaisesRegex(AssertionError,'stale film copy'):l10n.load(self.root)
     def test_ready_video_needs_final_timing_and_files(self):
         film=l10n.read(self.root/'media/gunter-morning.json');messages=l10n.read(self.root/'locales/bg.json')['messages']
-        self.edit('media/gunter-morning.json',lambda d:d['variants']['bg'].update({'status':'ready','contentHash':l10n.film_hash(film,messages)}))
+        self.edit('media/gunter-morning.json',lambda d:d['variants']['bg'].update({'status':'ready','audioLocale':'bg','timingStatus':'provisional','contentHash':l10n.film_hash(film,messages)}))
         with self.assertRaisesRegex(AssertionError,'final caption timing'):l10n.load(self.root)
     def test_planned_fallback_is_rejected(self):
+        self.edit('media/gunter-morning.json',lambda d:d['variants']['bg'].update({'status':'planned'}))
         self.edit('media/gunter-morning.json',lambda d:d['fallbacks'].update({'bg':'nl'}))
-        with self.assertRaisesRegex(AssertionError,'final captions'):l10n.load(self.root)
+        with self.assertRaisesRegex(AssertionError,'fallback needs final captions'):l10n.load(self.root)
     def test_translator_text_is_escaped(self):
         self.edit('locales/bg.json',lambda d:d['messages'].update({'idea.heading1':'<script>alert(1)</script>'}))
         self.assertIn('&lt;script&gt;',l10n.outputs(self.root)['bg/index.html'])

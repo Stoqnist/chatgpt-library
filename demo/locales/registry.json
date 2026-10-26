@@ -4,7 +4,11 @@
     {
       "code": "en",
       "name": "English",
-      "enabled": true
+      "enabled": true,
+      "audioNames": {
+        "nl": "Engels",
+        "bg": "английски"
+      }
     },
     {
       "code": "nl",

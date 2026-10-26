@@ -129,7 +129,8 @@ def render_video(code, film, messages, registry):
         player=f'<div class="film-player">{video}{button}{runtime}</div>'
         status=''
         if audio!=code:
-            name=next(v['name'] for v in registry['locales'] if v['code']==audio)
+            source=next(v for v in registry['locales'] if v['code']==audio)
+            name=source.get('audioNames',{}).get(code,source['name'])
             status=messages['video.fallback'].replace('{language}',name)
         player+=f'<p id="video-status" role="status" class="micro">{esc(status)}</p>'
     return f'<section class="film-story" aria-labelledby="film-title"><p class="eyebrow">{esc(messages["video.label"])}</p><h2 id="film-title">{esc(messages["video.title"])}</h2><p class="film-teaser-copy">{esc(messages["video.description"])}</p>{player}<details id="film-transcript"><summary>{esc(messages["video.read"])}</summary><ol>{items}</ol></details>'+ (f'<p class="micro">{esc(messages["video.note"])}</p>' if variant['status']=='planned' else '')+'</section>'
