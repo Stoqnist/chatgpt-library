@@ -198,9 +198,11 @@
     "catalog.link": "Демонстрации",
     "catalog.gunter": "Денят на Гунтер",
     "catalog.purchase": "Една покупка",
-    "catalog.open": "Разгледайте демонстрацията",
     "catalog.back": "Всички демонстрации",
-    "catalog.disclosure": "Само измислени примери. Няма свързани акаунти или реални действия."
+    "catalog.disclosure": "Само измислени примери. Няма свързани акаунти или реални действия.",
+    "catalog.gunter.preview": "Прочетете историята на Гунтер. После изберете настроението и енергията му, за да видите кои ежедневни задачи могат да почакат.",
+    "catalog.gunter.open": "Разгледайте деня на Гунтер",
+    "catalog.purchase.open": "Сравнете покупка"
   },
   "sourceHashes": {
     "meta.title": "feb33172a9c2058b",
@@ -399,8 +401,10 @@
     "catalog.link": "f61ec10d1385dcc0",
     "catalog.gunter": "b810e47a019d3e39",
     "catalog.purchase": "4466f4589bcbff1f",
-    "catalog.open": "53d0a756afa50ca3",
     "catalog.back": "d7dcac20dd154130",
-    "catalog.disclosure": "c068cd5a6857c2c4"
+    "catalog.disclosure": "c068cd5a6857c2c4",
+    "catalog.gunter.preview": "468a2f2afddf36e1",
+    "catalog.gunter.open": "1317c29f5a19c2c8",
+    "catalog.purchase.open": "83bae318d8b25cd0"
   }
 }

@@ -52,8 +52,8 @@
 .catalog-card{display:flex;flex-direction:column;align-items:flex-start;gap:13px;min-height:212px;padding:30px;border:1px solid #cdd7ca;border-radius:20px;background:#faf9f4;color:#194137;text-decoration:none;transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease}
 .catalog-card:hover{border-color:#8aa99b;box-shadow:0 8px 30px rgba(20,54,44,.07);transform:translateY(-2px)}
 .catalog-card:focus-visible{outline:3px solid #8da98b;outline-offset:3px}
-.catalog-card-label{font:500 clamp(25px,2.7vw,34px)/1.14 Georgia,'Times New Roman',serif;letter-spacing:-.9px}
-.catalog-card-copy{color:#5a6d66;font:15px/1.5 system-ui,-apple-system,sans-serif;flex:1}
+.catalog-card .catalog-card-label{margin:0;font:500 clamp(25px,2.7vw,34px)/1.14 Georgia,'Times New Roman',serif;letter-spacing:-.9px}
+.catalog-card-copy{margin:0;color:#5a6d66;font:15px/1.5 system-ui,-apple-system,sans-serif;flex:1}
 .catalog-card-action{font:600 13px/1.4 system-ui,-apple-system,sans-serif;color:#245d4c;border-bottom:1px solid #7d9988;padding-bottom:6px}
 .catalog-page{padding-top:56px;min-height:54vh}
 .catalog-page>.micro{margin-top:26px}
@@ -76,7 +76,7 @@
 .catalog-home h2,.catalog-page h1{font-size:34px}
 .catalog-grid{grid-template-columns:1fr;gap:12px}
 .catalog-card{min-height:0;padding:24px;gap:10px}
-.catalog-card-label{font-size:29px}
+.catalog-card .catalog-card-label{font-size:29px}
 .catalog-card-copy{font-size:14px}
 .home-banner{margin:14px 16px 38px;min-height:220px}
 .home-banner .guided-hero-text{padding:25px 20px}

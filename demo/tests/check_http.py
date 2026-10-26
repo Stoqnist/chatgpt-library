@@ -1,5 +1,6 @@
 """Check the production container's locale routing and public/private boundary."""
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -28,6 +29,11 @@ for name in ['index.html','style.css','journey.css','brand-journey.css','localiz
     public['/'+name]=name
 for name in ['stoqnist-banner.svg','stoqnist-banner-mobile.svg','everyday-room.webp','stoqnist-family-hero.webp','stoqnist-family-mobile.webp']:
     if (ROOT/'assets'/name).exists():public['/assets/'+name]='assets/'+name
+# Check the exact versioned URLs browsers request, not only the bare filenames.
+for path in list(public.values()):
+    if path.endswith('.html'):
+        for url in re.findall(r'(?:href|src)="(/[^"?]+\.(?:css|js)\?v=[a-f0-9]{16})"', (ROOT/path).read_text()):
+            public[url] = url.split('?', 1)[0].lstrip('/')
 for url,path in public.items():
     with urllib.request.urlopen(base+url) as response:
         assert response.status==200,url
