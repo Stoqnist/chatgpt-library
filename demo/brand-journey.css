@@ -27,7 +27,7 @@
   position:relative;inset:auto;z-index:0;order:1;flex:none;width:100%;
   height:68vw;max-height:400px;
   /* Dedicated phone artwork keeps the family visible without embedded lettering. */
-  background-image:url("assets/stoqnist-family-mobile.webp?v=20261024-2");
+  background-image:url("assets/stoqnist-family-mobile.webp");
   background-size:cover;background-position:52% center;background-repeat:no-repeat;
   filter:brightness(.9) saturate(.88);transform:none;
  }

@@ -180,7 +180,7 @@ def outputs(root=ROOT):
             if variant.get(name):routes.append(f'location = {variant[name]} {{ try_files $uri =404; }}')
     files['locale-routes.conf']='\n'.join(routes)+'\n'
     copies=[]
-    context=['Dockerfile','nginx.conf','locale-routes.conf','index.html','style.css','journey.css','brand-journey.css','localization.css','app.js','cases.js','i18n.js','assets/','assets/*.webp','assets/stoqnist-banner.svg','assets/stoqnist-banner-mobile.svg','assets/stoqnist-mark.svg','locales/']
+    context=['Dockerfile','nginx.conf','locale-routes.conf','index.html','style.css','journey.css','brand-journey.css','localization.css','app.js','cases.js','i18n.js','assets/','assets/*.webp','assets/stoqnist-banner.svg','assets/stoqnist-banner-mobile.svg','locales/']
     for config in enabled:
         code=config['code']
         copies.append(f'COPY locales/{code}.js /usr/share/nginx/html/locales/{code}.js')
