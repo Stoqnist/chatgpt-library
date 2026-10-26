@@ -147,6 +147,54 @@ class DailyTest(unittest.TestCase):
             ['fictional shoulder pain'],
             {**RESULT, 'suggestions': ['Consider speaking to a clinician.']}))
 
+    def test_fictional_unassessed_discomfort_warm_compress_is_not_displayed(self):
+        prompt = 'A fictional person has shoulder discomfort.'
+        self.provider.route = {'urgent': False, 'tasks': [
+            {'domain': 'wellbeing', 'excerpts': [prompt]}
+        ]}
+        original = self.provider.call
+
+        def unsupported(instructions, payload, schema):
+            if schema is RESULT_SCHEMA:
+                return {**RESULT, 'suggestions': [
+                    'Apply a warm compress to the affected area.'
+                ]}
+            return original(instructions, payload, schema)
+
+        self.provider.call = unsupported
+        self.login()
+        self.assertEqual(self.submit(prompt=prompt)['status'], 202)
+        run = self.finish()
+        self.assertEqual(run['status'], 'failed')
+        self.assertEqual(run['result']['agents'][0]['status'], 'failed')
+        self.assertNotIn('compress', json.dumps(run['result']).lower())
+        self.assertEqual(len(self.provider.calls), 1)
+
+    def test_unsupported_remedies_without_an_imperative_are_flagged(self):
+        from app import unsafe_pain_advice
+        examples = [
+            'Consider gently stretching the shoulder region to feel better.',
+            'Apply a warm compress to the area.',
+            'Use a heating pad for relief.',
+            'Try a massage to loosen the muscle.',
+            'Use ice packs for soreness.',
+            'Take ibuprofen to help the pain.',
+            'Should I start stretching to reduce discomfort?',
+        ]
+        for wording in examples:
+            with self.subTest(wording=wording):
+                result = {**RESULT, 'suggestions': [wording]}
+                self.assertTrue(unsafe_pain_advice(
+                    ['A fictional person reports soreness.'], result))
+        self.assertFalse(unsafe_pain_advice(
+            ['A fictional person reports soreness.'],
+            {**RESULT, 'suggestions': [
+                'Consider asking a qualified clinician about new or worsening symptoms.'
+            ]}))
+        self.assertTrue(unsafe_pain_advice(
+            ['A fictional person reports shoulder pain.'],
+            {**RESULT, 'question': 'Should I start stretching?'}))
+
     def test_private_health_excerpt_not_sent_to_other_specialists_or_final_coordinator(self):
         prompt = ('My prescription changed. I want to tidy the kitchen. '
                   'I have an hour this morning.')
