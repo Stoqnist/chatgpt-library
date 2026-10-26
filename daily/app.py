@@ -20,7 +20,7 @@ from http.cookies import SimpleCookie
 from wsgiref.simple_server import make_server
 
 DOMAINS = {
-    'wellbeing': ('Wellbeing', 'Support a manageable daily routine. No diagnosis, treatment, medication or clinical assessment. Reflect self-reports as self-reports.'),
+    'wellbeing': ('Wellbeing', 'Support a manageable daily routine, not medical treatment. Do not diagnose, prescribe medications, or recommend specific exercises, stretching, massage or manipulation to treat unassessed pain or injury. If someone only reports pain, acknowledge that cause and safe movement are unknown; suggest an appropriate healthcare assessment for new, persistent or worsening symptoms rather than a therapeutic movement. For possible immediate danger, the router must interrupt routine planning. Keep any actions practical, acknowledge uncertainty, and reflect self-reports as self-reports.'),
     'home': ('Home', 'Suggest small home, food preparation and personal-care tasks. Never assume inventory, purchases or task completion. No health or financial judgments.'),
     'planning': ('Planning', 'Prioritize feasible next steps and breaks. Calendar is NOT connected. Never invent events, availability or commitments. Do not infer health or financial facts.'),
 }
@@ -49,6 +49,23 @@ POSSIBLE_CREDENTIAL = re.compile(
     r"\b(?:sk-(?:proj-)?[a-z0-9_-]{20,}|"
     r"gh[pousr]_[a-z0-9]{20,}|xox[baprs]-[a-z0-9-]{20,})\b", re.I
 )
+
+
+# Narrow defense-in-depth check for the observed unsafe shoulder-pain answer.
+# It is NOT a clinical decision rule, multilingual safety filter or guarantee.
+UNASSESSED_PAIN = re.compile(r"\b(?:pain|injur(?:y|ed)|numbness|weakness)\b", re.I)
+PRESCRIBED_MOVEMENT = re.compile(
+    r"\b(?:try|start|perform|do|practice)\b.{0,90}"
+    r"\b(?:stretch(?:es|ing)?|exercis(?:e|es)|massage|manipulation)\b",
+    re.I | re.S,
+)
+
+
+def unsafe_pain_advice(excerpts, result):
+    if not any(UNASSESSED_PAIN.search(x) for x in excerpts):
+        return False
+    proposed = " ".join([result["summary"], *result["suggestions"]])
+    return bool(PRESCRIBED_MOVEMENT.search(proposed))
 
 
 class ProviderError(Exception):
@@ -200,6 +217,8 @@ class App:
                 domain=task['domain']
                 try:
                     output=clean_result(self.provider.call(COMMON+'\n'+DOMAINS[domain][1],{'user_reported_excerpts':task['excerpts']},RESULT_SCHEMA))
+                    if domain == 'wellbeing' and unsafe_pain_advice(task['excerpts'], output):
+                        raise ProviderError('A movement recommendation was unsafe without assessment.')
                     return {'domain':domain,'name':DOMAINS[domain][0],'status':'completed',**output}
                 except Exception:
                     return {'domain':domain,'name':DOMAINS[domain][0],'status':'failed','summary':'This specialist could not finish. Its advice is missing.'}
