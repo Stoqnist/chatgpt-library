@@ -65,17 +65,17 @@ in an environment with Docker and authorized VPS access.
 
 ## Mobile framing and public persona
 
-On narrow screens, the brand wordmark and subtitle are **separate from the
-photograph** so they cannot cover the lifted girl's head. The same approved
-panoramic hero image is centred on the four central family members, with the
-young boy toward the middle and a gentle edge fade to avoid a hard cut through
-other relatives. The existing mobile-crop asset remains in the image for
-possible future use, but the hero intentionally uses the panorama on phones.
+The homepage begins with the approved family banner, followed by the concept
+and two fictional demo cards. On desktop the full vertical extent of the
+existing family photograph fits the banner's height without the previous
+125% zoom; a dark-green text area preserves the readable wordmark. On
+tablets and phones the wordmark sits above the photograph, which keeps its
+natural aspect ratio rather than being cropped by a fixed-height frame.
+The girl's head is therefore visible at the top in both layouts.
 
-The original artwork itself ends at the subjects' lower legs. A web crop cannot
-restore those missing feet; a future genuinely full-body version requires a
-separate, approved artwork revision. This change does not regenerate faces or
-change the desktop image.
+The original artwork itself ends at some subjects' lower legs. No CSS change
+can restore missing feet; a genuinely full-body version requires a separately
+approved artwork revision. This change preserves the approved faces.
 
 **Gunter** is the canonical *fictional demo persona* for the public recovery
 walkthrough. Use this spelling consistently in public prose and example labels.
