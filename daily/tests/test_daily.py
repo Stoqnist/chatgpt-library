@@ -88,6 +88,65 @@ class DailyTest(unittest.TestCase):
         payloads=[c[1] for c in self.provider.calls[1:] if c[2] is not PLAN_SCHEMA]
         self.assertEqual(sorted([p['user_reported_excerpts'][0] for p in payloads]),sorted(['I slept well.','I want to tidy the kitchen.','I have an hour this morning.']))
         self.assertTrue(all('tools' not in p for p in payloads))
+
+    def test_fictional_unassessed_pain_stretching_advice_is_not_displayed(self):
+        prompt = 'A fictional person reports shoulder pain today.'
+        self.provider.route = {'urgent': False, 'tasks': [
+            {'domain': 'wellbeing', 'excerpts': [prompt]}
+        ]}
+        original = self.provider.call
+
+        def unsafe(instructions, payload, schema):
+            if schema is RESULT_SCHEMA:
+                return {**RESULT, 'suggestions': [
+                    'Try gentle stretching exercises for the painful shoulder.'
+                ]}
+            return original(instructions, payload, schema)
+
+        self.provider.call = unsafe
+        self.login()
+        self.assertEqual(self.submit(prompt=prompt)['status'], 202)
+        run = self.finish()
+        self.assertEqual(run['status'], 'failed')
+        self.assertEqual(run['result']['next_steps'], [])
+        self.assertEqual(run['result']['agents'][0]['status'], 'failed')
+        self.assertNotIn('stretching', json.dumps(run['result']).lower())
+        self.assertEqual(len(self.provider.calls), 1)
+
+    def test_fictional_unassessed_pain_cautious_advice_allowed(self):
+        prompt = 'A fictional person reports shoulder pain today.'
+        self.provider.route = {'urgent': False, 'tasks': [
+            {'domain': 'wellbeing', 'excerpts': [prompt]}
+        ]}
+        original = self.provider.call
+
+        def cautious(instructions, payload, schema):
+            if schema is RESULT_SCHEMA:
+                return {**RESULT, 'suggestions': [
+                    'Consider professional advice if this is new, worsening or persistent.'
+                ]}
+            return original(instructions, payload, schema)
+
+        self.provider.call = cautious
+        self.login()
+        self.assertEqual(self.submit(prompt=prompt)['status'], 202)
+        run = self.finish()
+        self.assertEqual(run['status'], 'completed')
+        self.assertEqual(run['result']['agents'][0]['domain'], 'wellbeing')
+        self.assertEqual(len(run['result']['next_steps']), 1)
+
+    def test_wellbeing_contract_for_unassessed_symptoms(self):
+        from app import DOMAINS, unsafe_pain_advice
+        wellbeing = DOMAINS['wellbeing'][1].lower()
+        self.assertIn('unassessed pain', wellbeing)
+        self.assertIn('do not diagnose', wellbeing)
+        self.assertTrue(unsafe_pain_advice(
+            ['fictional shoulder pain'],
+            {**RESULT, 'suggestions': ['Try stretches to relieve pain.']}))
+        self.assertFalse(unsafe_pain_advice(
+            ['fictional shoulder pain'],
+            {**RESULT, 'suggestions': ['Consider speaking to a clinician.']}))
+
     def test_private_health_excerpt_not_sent_to_other_specialists_or_final_coordinator(self):
         prompt = ('My prescription changed. I want to tidy the kitchen. '
                   'I have an hour this morning.')
