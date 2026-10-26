@@ -88,6 +88,58 @@ class DailyTest(unittest.TestCase):
         payloads=[c[1] for c in self.provider.calls[1:] if c[2] is not PLAN_SCHEMA]
         self.assertEqual(sorted([p['user_reported_excerpts'][0] for p in payloads]),sorted(['I slept well.','I want to tidy the kitchen.','I have an hour this morning.']))
         self.assertTrue(all('tools' not in p for p in payloads))
+    def test_private_health_excerpt_not_sent_to_other_specialists_or_final_coordinator(self):
+        prompt = ('My prescription changed. I want to tidy the kitchen. '
+                  'I have an hour this morning.')
+        self.provider.route = {'urgent': False, 'tasks': [
+            {'domain': 'wellbeing', 'excerpts': ['My prescription changed.']},
+            {'domain': 'home', 'excerpts': ['I want to tidy the kitchen.']},
+            {'domain': 'planning', 'excerpts': ['I have an hour this morning.']},
+        ]}
+        self.login()
+        self.assertEqual(self.submit(prompt=prompt)['status'], 202)
+        run = self.finish()
+        self.assertEqual(run['status'], 'completed')
+        calls = self.provider.calls
+        self.assertEqual(len(calls), 5)
+        for instructions, payload, schema in calls[1:]:
+            if schema is PLAN_SCHEMA:
+                self.assertNotIn('check_in', payload)
+                self.assertEqual(payload['routine_goals'], [
+                    'I want to tidy the kitchen.', 'I have an hour this morning.'])
+                self.assertNotIn('prescription', json.dumps(payload).lower())
+            elif payload.get('user_reported_excerpts') != ['My prescription changed.']:
+                self.assertNotIn('prescription', json.dumps(payload).lower())
+
+    def test_sensitive_health_handoff_to_home_fails_closed(self):
+        prompt = 'My prescription changed. I want to tidy the kitchen.'
+        self.provider.route = {'urgent': False, 'tasks': [
+            {'domain': 'home', 'excerpts': ['My prescription changed.']}
+        ]}
+        self.login();self.submit(prompt=prompt);run=self.finish()
+        self.assertEqual(run['status'], 'failed')
+        self.assertEqual(len(self.provider.calls), 1)
+        self.assertIn('separate private details', run['result']['message'])
+
+    def test_financial_handoff_to_planning_fails_closed(self):
+        prompt = 'My salary changed. I have an hour this morning.'
+        self.provider.route = {'urgent': False, 'tasks': [
+            {'domain': 'planning', 'excerpts': ['My salary changed.']}
+        ]}
+        self.login();self.submit(prompt=prompt);run=self.finish()
+        self.assertEqual(run['status'], 'failed')
+        self.assertEqual(len(self.provider.calls), 1)
+
+    def test_recognizable_pasted_key_rejected_before_storage_or_model(self):
+        self.login()
+        fake_key = 'sk-proj-' + 'z' * 36  # Nonfunctional fixture, never a credential
+        response = self.submit(prompt='Please save ' + fake_key)
+        self.assertEqual(response['status'], 400)
+        self.assertEqual(self.provider.calls, [])
+        with self.app.db() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM runs').fetchone()[0], 0)
+        self.assertNotIn(fake_key, json.dumps(response.get('json', {})))
+
     def test_one_domain_does_not_invoke_other_agents(self):
         self.provider.route={'urgent':False,'tasks':[{'domain':'planning','excerpts':['I have an hour this morning.']}]}
         self.login();self.submit();run=self.finish();self.assertEqual(len(run['result']['agents']),1);self.assertEqual(len(self.provider.calls),3)
