@@ -57,10 +57,24 @@
 .catalog-card-action{font:600 13px/1.4 system-ui,-apple-system,sans-serif;color:#245d4c;border-bottom:1px solid #7d9988;padding-bottom:6px}
 .catalog-page{padding-top:56px;min-height:54vh}
 .catalog-page>.micro{margin-top:26px}
-.home-banner{margin:25px 40px 65px;min-height:240px;border-radius:24px;overflow:hidden}
-.home-banner .guided-hero-text{padding:45px 48px}
-.home-banner .guided-hero-accessible{font-size:clamp(45px,5.9vw,73px)}
+/* Show the approved family image without a vertical crop; the source itself
+   ends at some lower legs, which no layout change can reconstruct. */
+.home-banner{margin:20px 40px 30px;min-height:0;height:clamp(385px,35vw,455px);aspect-ratio:auto;border-radius:24px;overflow:hidden}
+.home-banner .guided-hero-art{background-image:url('/assets/stoqnist-family-mobile.webp');background-size:auto 100%;background-position:right center;background-repeat:no-repeat;filter:brightness(.98) saturate(.9);transform:none;animation:none}
+.home-banner .guided-hero-shade{background:linear-gradient(90deg,#12352f 0%,#12352f 29%,#12352fea 37%,#12352f00 65%)}
+.home-banner .guided-hero-text{padding:48px;max-width:43%}
+.home-banner .guided-hero-accessible{font-size:clamp(42px,5.2vw,70px)}
 .home-banner .guided-hero-subtitle{font-size:clamp(18px,2.2vw,25px)}
+.page-home .idea{padding-top:20px}
+/* Tablet/phone: the brand sits above a complete, aspect-ratio-preserved image. */
+@media(max-width:960px){
+.home-banner{display:flex;flex-direction:column;height:auto;min-height:0;aspect-ratio:auto}
+.home-banner .guided-hero-text{order:0;max-width:none;padding:26px 28px 20px}
+.home-banner .guided-hero-art{position:relative;inset:auto;z-index:0;order:1;width:100%;height:auto;max-height:none;aspect-ratio:512/371;background-size:contain;background-position:center;filter:none;transform:none;animation:none}
+.home-banner .guided-hero-art::after{display:none}
+.home-banner .guided-hero-shade{display:none}
+.home-banner .guided-hero-accessible{font-size:clamp(44px,8vw,72px)}
+}
 .demo-back{max-width:1160px;margin:8px 40px 28px;padding:12px 0}
 .page-gunter .film-story{padding-top:8px;border-top:0;margin-top:0}
 .page-gunter .film-story h1,.page-purchase #demo h1{font:500 clamp(32px,4.4vw,52px)/1.15 Georgia,'Times New Roman',serif;letter-spacing:-1.5px;color:#183e36;margin:0 0 12px}
@@ -78,7 +92,7 @@
 .catalog-card{min-height:0;padding:24px;gap:10px}
 .catalog-card .catalog-card-label{font-size:29px}
 .catalog-card-copy{font-size:14px}
-.home-banner{margin:14px 16px 38px;min-height:220px}
+.home-banner{margin:14px 16px 30px;min-height:0;height:auto}
 .home-banner .guided-hero-text{padding:25px 20px}
 .home-banner .guided-hero-accessible{font-size:49px}
 .demo-back{margin:8px 16px 22px}
