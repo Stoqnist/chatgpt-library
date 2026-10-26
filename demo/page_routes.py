@@ -128,7 +128,13 @@ def render_pages(full_page, code, messages):
             f'<meta property="og:description" content="{summary}">\n'
             f'<meta property="og:url" content="{page_url}">\n'
             f'<meta property="og:locale" content="{locale_name}">\n'
-            '<meta name="twitter:card" content="summary">\n'
+            '<meta property="og:image" content="https://stoq.page/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471">\n'
+            '<meta property="og:image:type" content="image/webp">\n'
+            '<meta property="og:image:width" content="1448">\n'
+            '<meta property="og:image:height" content="1086">\n'
+            f'<meta property="og:image:alt" content="{esc(messages["hero.alt"], quote=True)}">\n'
+            '<meta name="twitter:card" content="summary_large_image">\n'
+            '<meta name="twitter:image" content="https://stoq.page/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471">\n'
         )
         header = header.replace('</head>', social + '</head>', 1)
         pages[leaf + 'index.html'] = header + '<main class="site-main">' + body + '</main>' + tail
