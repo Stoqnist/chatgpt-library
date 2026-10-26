@@ -71,6 +71,14 @@ no assessment of injury mechanism, severity or suitability. This is a
 identifying symptom details or check-in transcript are kept in this public
 test document.
 
+A subsequent live output remained unsafe: it suggested a stretching action
+and a warm compress for unassessed symptoms. It was not verified that the
+first patch had been deployed. Independently, source review identified a
+real coverage gap in that patch: it matched a small set of starting verbs
+before stretches, and did not cover compresses. The next correction removes
+that verb dependency, broadens the specifically observed symptom/intervention
+patterns, and adds response-level regression fixtures using fictional text.
+
 The smallest correction tightens the Wellbeing instruction and rejects
 a narrow pattern of prescriptive stretching, exercises or manipulation
 when its own inputs mention unassessed pain/injury. A rejected specialist

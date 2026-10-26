@@ -20,7 +20,7 @@ from http.cookies import SimpleCookie
 from wsgiref.simple_server import make_server
 
 DOMAINS = {
-    'wellbeing': ('Wellbeing', 'Support a manageable daily routine, not medical treatment. Do not diagnose, prescribe medications, or recommend specific exercises, stretching, massage or manipulation to treat unassessed pain or injury. If someone only reports pain, acknowledge that cause and safe movement are unknown; suggest an appropriate healthcare assessment for new, persistent or worsening symptoms rather than a therapeutic movement. For possible immediate danger, the router must interrupt routine planning. Keep any actions practical, acknowledge uncertainty, and reflect self-reports as self-reports.'),
+    'wellbeing': ('Wellbeing', 'Support a manageable daily routine, not medical treatment. Do not diagnose or suggest treatment, including stretching, exercises, manual therapy, heat/cold applications, or medications for unassessed pain or injury. Do not assume a common home remedy is safe when the cause of symptoms is unknown. If someone only reports pain, acknowledge that cause and safe movement are unknown; suggest an appropriate healthcare assessment for new, persistent or worsening symptoms rather than a therapeutic movement. For possible immediate danger, the router must interrupt routine planning. Keep any actions practical, acknowledge uncertainty, and reflect self-reports as self-reports.'),
     'home': ('Home', 'Suggest small home, food preparation and personal-care tasks. Never assume inventory, purchases or task completion. No health or financial judgments.'),
     'planning': ('Planning', 'Prioritize feasible next steps and breaks. Calendar is NOT connected. Never invent events, availability or commitments. Do not infer health or financial facts.'),
 }
@@ -53,18 +53,30 @@ POSSIBLE_CREDENTIAL = re.compile(
 
 # Narrow defense-in-depth check for the observed unsafe shoulder-pain answer.
 # It is NOT a clinical decision rule, multilingual safety filter or guarantee.
-UNASSESSED_PAIN = re.compile(r"\b(?:pain|injur(?:y|ed)|numbness|weakness)\b", re.I)
+UNASSESSED_PAIN = re.compile(
+    r"\b(?:pain(?:ful)?|ach(?:e|es|ing)|sor(?:e|eness)|injur(?:y|ed|ies)|"
+    r"numbness|weakness|discomfort|spasm(?:s)?|stiff(?:ness)?)\b", re.I
+)
+# Conservative output safeguard for the observed class of unassessed-symptom
+# remedies. This does not cover every treatment, language or indirect phrasing.
+# In ambiguous cases it may suppress otherwise benign model output.
 PRESCRIBED_MOVEMENT = re.compile(
-    r"\b(?:try|start|perform|do|practice)\b.{0,90}"
-    r"\b(?:stretch(?:es|ing)?|exercis(?:e|es)|massage|manipulation)\b",
-    re.I | re.S,
+    r"\b(?:stretch(?:ing|es|ed)?|exercis(?:e|es|ing)|mobility drills?|"
+    r"shoulder rolls?|massage|massaging|manipulat(?:e|ion)|"
+    r"compress(?:es)?|heating pads?|hot packs?|cold packs?|ice packs?|"
+    r"apply(?:ing)? heat|use heat|warm packs?|"
+    r"painkillers?|analgesics?|ibuprofen|acetaminophen|paracetamol)\b",
+    re.I,
 )
 
 
 def unsafe_pain_advice(excerpts, result):
     if not any(UNASSESSED_PAIN.search(x) for x in excerpts):
         return False
-    proposed = " ".join([result["summary"], *result["suggestions"]])
+    # Do not approve an otherwise concerning model suggestion merely because
+    # its opening verb is "consider" or the unsafe action is in a question.
+    proposed = " ".join([result["summary"], *result["suggestions"],
+                         result["question"]])
     return bool(PRESCRIBED_MOVEMENT.search(proposed))
 
 
@@ -218,7 +230,7 @@ class App:
                 try:
                     output=clean_result(self.provider.call(COMMON+'\n'+DOMAINS[domain][1],{'user_reported_excerpts':task['excerpts']},RESULT_SCHEMA))
                     if domain == 'wellbeing' and unsafe_pain_advice(task['excerpts'], output):
-                        raise ProviderError('A movement recommendation was unsafe without assessment.')
+                        raise ProviderError('Treatment advice for unassessed symptoms was withheld.')
                     return {'domain':domain,'name':DOMAINS[domain][0],'status':'completed',**output}
                 except Exception:
                     return {'domain':domain,'name':DOMAINS[domain][0],'status':'failed','summary':'This specialist could not finish. Its advice is missing.'}

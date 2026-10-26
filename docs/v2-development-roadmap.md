@@ -12,6 +12,12 @@ completed successfully from a technical perspective, but the recommendation
 was **not sufficiently grounded or appropriate for the health-safety scope**.
 No private check-in text is reproduced in public development records.
 
+Follow-up (2026-10-26): another live output offered stretching plus a home
+compress remedy for unassessed symptoms. Deployment of PR #111 had not been
+verified, but independent code inspection found its filter was incomplete even
+if deployed. Expand narrowly to cover the observed phrasing, verify all tests,
+and demand post-deploy fictional canary evidence before Calendar work.
+
 Minimal response: strengthen the existing Wellbeing runtime instructions, add
 an English-only high-confidence fail-closed output guard for the observed
 prescriptive movement pattern, and add fictional regression tests. Follow
