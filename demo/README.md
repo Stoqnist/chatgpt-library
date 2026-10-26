@@ -72,6 +72,12 @@ existing family photograph fits the banner's height without the previous
 tablets and phones the wordmark sits above the photograph, which keeps its
 natural aspect ratio rather than being cropped by a fixed-height frame.
 The girl's head is therefore visible at the top in both layouts.
+The original wide desktop panorama includes the seated older man at the far
+right; the homepage once used the central-family-only mobile crop on desktop,
+which inadvertently hid him. The desktop now right-aligns the uncropped panorama
+and masks its baked-in English lettering behind the localized live wordmark.
+The mobile view keeps the previously approved closer central-family crop, where
+the far-right elder is outside the frame, to preserve legibility.
 
 The original artwork itself ends at some subjects' lower legs. No CSS change
 can restore missing feet; a genuinely full-body version requires a separately

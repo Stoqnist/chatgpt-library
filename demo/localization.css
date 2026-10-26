@@ -60,8 +60,11 @@
 /* Show the approved family image without a vertical crop; the source itself
    ends at some lower legs, which no layout change can reconstruct. */
 .home-banner{margin:20px 40px 30px;min-height:0;height:clamp(385px,35vw,455px);aspect-ratio:auto;border-radius:24px;overflow:hidden}
-.home-banner .guided-hero-art{background-image:url('/assets/stoqnist-family-mobile.webp');background-size:auto 100%;background-position:right center;background-repeat:no-repeat;filter:brightness(.98) saturate(.9);transform:none;animation:none}
-.home-banner .guided-hero-shade{background:linear-gradient(90deg,#12352f 0%,#12352f 29%,#12352fea 37%,#12352f00 65%)}
+/* The original panorama includes the elderly man seated at far right.
+   Right-align it and fit its full height so both he and the lifted girl's head
+   remain visible. The opaque brand panel conceals baked-in English lettering. */
+.home-banner .guided-hero-art{background-image:url('/assets/stoqnist-family-hero.webp');background-size:auto 100%;background-position:right center;background-repeat:no-repeat;filter:brightness(.98) saturate(.9);transform:none;animation:none}
+.home-banner .guided-hero-shade{background:linear-gradient(90deg,#12352f 0%,#12352f 34%,#12352ff0 38%,#12352f00 52%)}
 .home-banner .guided-hero-text{padding:48px;max-width:43%}
 .home-banner .guided-hero-accessible{font-size:clamp(42px,5.2vw,70px)}
 .home-banner .guided-hero-subtitle{font-size:clamp(18px,2.2vw,25px)}
@@ -70,7 +73,7 @@
 @media(max-width:960px){
 .home-banner{display:flex;flex-direction:column;height:auto;min-height:0;aspect-ratio:auto}
 .home-banner .guided-hero-text{order:0;max-width:none;padding:26px 28px 20px}
-.home-banner .guided-hero-art{position:relative;inset:auto;z-index:0;order:1;width:100%;height:auto;max-height:none;aspect-ratio:512/371;background-size:contain;background-position:center;filter:none;transform:none;animation:none}
+.home-banner .guided-hero-art{position:relative;inset:auto;z-index:0;order:1;width:100%;height:auto;max-height:none;aspect-ratio:512/371;background-image:url('/assets/stoqnist-family-mobile.webp');background-size:contain;background-position:center;filter:none;transform:none;animation:none}
 .home-banner .guided-hero-art::after{display:none}
 .home-banner .guided-hero-shade{display:none}
 .home-banner .guided-hero-accessible{font-size:clamp(44px,8vw,72px)}
