@@ -213,7 +213,7 @@ class LocalizationTests(unittest.TestCase):
                 self.assertFalse(any(c.isalpha() for c in text) and text!='stoqnist.',text)
             def handle_starttag(inner,tag,attrs):
                 for key,value in attrs:
-                    if key in ('alt','aria-label') or (tag=='meta' and key=='content' and 'viewport' not in dict(attrs).get('name','')):
+                    if key in ('alt','aria-label') or (tag=='meta' and key=='content' and dict(attrs).get('name','') not in ('viewport','theme-color')):
                         self.assertTrue(l10n.TOKEN.fullmatch(value),f'{tag}: {key}={value}')
         CopyCheck().feed((self.root/'templates/index.html').read_text())
 
