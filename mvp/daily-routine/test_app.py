@@ -8,6 +8,19 @@ class RoutineTests(unittest.TestCase):
     def test_conditional_domains(self):
         self.assertEqual(app.selected_domains('food and rent'), ['health', 'home', 'finance', 'planner'])
 
+    def test_owner_input_excludes_health_details(self):
+        sample = "My medical problem worries me and rent is due."
+        finance = app.domain_excerpt(sample, "finance")
+        self.assertIn("rent", finance)
+        self.assertNotIn("medical problem", finance)
+        self.assertNotIn("worries", finance)
+
+    def test_raw_prompt_not_shared_with_inventory_adviser(self):
+        sample = "I feel unwell and need groceries."
+        home = app.domain_excerpt(sample, "home")
+        self.assertIn("groceries", home)
+        self.assertNotIn("feel unwell", home)
+
     def test_emergency(self):
         self.assertTrue(app.possible_emergency('chest pain'))
 
