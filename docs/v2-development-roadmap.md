@@ -4,6 +4,23 @@
 
 **Status (2026-10-14; GitHub implementation state verified):** End-to-end, evidence-backed personal assistance remains the V2 product target. Purchase benchmark/comparison/ablation component work (#7–#10), a health-led P0 contract (#12), scripted read-only J1 (#13), scripted J2/J3 safety journeys (#14), and disposable mock approval/execution (#15) are **merged into the experimental V2 branch only**. P0–P3 are experimental slices, not completed product/release gates. Draft [PR #3](https://github.com/Stoqnist/chatgpt-library/pull/3) still targets `main`; these experiments are not deployed. **S0 decisions explicitly confirmed by the user on 2026-10-13:** S1/S2/S5/S7 simplify; S3/S4 keep; S6 defer. Implementation remains subject to independent regression checks; real connector effects, model spending and deployment are not authorized. [P4 PR #16](https://github.com/Stoqnist/chatgpt-library/pull/16) is now merged into the experimental branch as **offline preflight only**; its checks and metadata/synthetic claims do not establish real provider authorization, transactional safety or release readiness. [PR #26](https://github.com/Stoqnist/chatgpt-library/pull/26) subsequently merged an offline-only synthetic elevated-read-role rejection; live authorization remains unverified. [PR #28](https://github.com/Stoqnist/chatgpt-library/pull/28) merged a synthetic OAuth-scope posture regression and documented limited, reported live read-only probes; effective scopes, audit provenance and execution safety remain unverified. [PR #30](https://github.com/Stoqnist/chatgpt-library/pull/30) adds Calendar-only operation-specific synthetic role checks and a redacted grant-feasibility audit, without establishing real token grants. [PR #34](https://github.com/Stoqnist/chatgpt-library/pull/34) merges the initial I1 scripted-to-P3 mock approval/execution bridge with 3.11/3.13 offline CI passing; it is not live integration. [PR #36](https://github.com/Stoqnist/chatgpt-library/pull/36) adds executor/store-bound mock approval revocation and cross-turn outcome history with Python 3.11/3.13 CI passing. [PR #38](https://github.com/Stoqnist/chatgpt-library/pull/38) adds an inspection-only synthetic recovery path for superseded unknown attempts with Python 3.11/3.13 offline checks passing. [PR #40](https://github.com/Stoqnist/chatgpt-library/pull/40) adds offline denial of cross-owner/unauthorized recovery reads, with Python 3.11/3.13 CI passing; it does not authenticate real users or prove connector scopes. [PR #42](https://github.com/Stoqnist/chatgpt-library/pull/42) merged uniform unauthorized recovery-ID denial into experimental V2 (`10e00ef`; Python 3.11/3.13 offline CI passed). See [I1 provider-operation feasibility](v2-i1-provider-operation-feasibility.md) for a *contract review only*, not live recovery evidence. Live execution remains blocked; V1 remains unchanged.
 
+## 2026-10-26 isolated Docker permission failure
+
+Operator-confirmed diagnostic of the isolated `a65b7fa` candidate found
+`PermissionError: /app/app.py` during Python import. Two attempts to promote
+that image failed health checks and automatically rolled back; the running
+Daily image remains `candidate-7c4407c` and is healthy. This is a build-context
+file-mode problem, **not evidence of a runtime model issue**. The prior
+staging script set a restrictive `umask 077` which may have caused checkout
+files to be unreadable to the `10001:10001` Docker process.
+
+The targeted remedy makes the Dockerfile normalize readable source/static
+permissions **before** dropping privileges, then imports the app and opens
+static files during the image build **as runtime UID 10001**. Existing
+Compose identity, origin, private data and public demo are unchanged.
+Rebuild a new pinned candidate from the fixed commit and run an **isolated
+container smoke test first**. Never re-promote the old faulty image.
+
 ## 2026-10-26 live Wellbeing safety observation
 
 A live, user-shared screenshot of the deployed single-specialist Daily flow
