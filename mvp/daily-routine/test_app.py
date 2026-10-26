@@ -1,4 +1,7 @@
 import unittest
+import io
+import json
+from unittest.mock import patch
 import app
 
 class RoutineTests(unittest.TestCase):
@@ -62,6 +65,39 @@ class RunContractTests(unittest.TestCase):
         result = app.run_checkin("Groceries and rent budget", model)
         self.assertEqual(model.calls, ["health", "home", "finance", "planner"])
         self.assertEqual(result["results"][1]["status"], "failed")
+
+class HttpBoundaryTests(unittest.TestCase):
+    def request(self, path, method="GET", prompt=None, origin=""):
+        raw = json.dumps({"prompt": prompt}).encode() if prompt is not None else b""
+        environ = {
+            "PATH_INFO": path, "REQUEST_METHOD": method,
+            "CONTENT_LENGTH": str(len(raw)),
+            "CONTENT_TYPE": "application/json",
+            "HTTP_ORIGIN": origin,
+            "wsgi.input": io.BytesIO(raw),
+        }
+        result = {}
+        def reply(status, headers):
+            result["status"] = status
+            result["headers"] = dict(headers)
+        result["body"] = b"".join(app.application(environ, reply))
+        return result
+
+    def test_page_requires_valid_identity(self):
+        with patch.object(app, "authorized", return_value=False):
+            result = self.request("/")
+        self.assertEqual(result["status"], "401 Unauthorized")
+
+    def test_post_denies_wrong_origin(self):
+        with patch.object(app, "authorized", return_value=True):
+            result = self.request("/api/checkin", "POST", "hello",
+                                  "https://unrelated.test")
+        self.assertEqual(result["status"], "403 Forbidden")
+
+    def test_unprotected_liveness_does_not_expose_data(self):
+        result = self.request("/_internal/live")
+        self.assertEqual(result["status"], "200 OK")
+        self.assertNotIn(b"key", result["body"])
 
 if __name__ == '__main__':
     unittest.main()
