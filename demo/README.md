@@ -6,6 +6,13 @@ interaction selects these precomputed results. No live models, sign-in, provider
 connections, personal records, forms, analytics or persistent browser storage.
 This does not promote experimental V2 or expose the private BFF.
 
+## Public presentation
+
+Route-specific OpenGraph metadata, a minimal branded favicon and a
+clear "interactive demo" label distinguish the fictional preview from a live
+service. All original privacy, safety and account-access limitations remain
+unchanged. A separately approved social preview image remains future work.
+
 ## Languages and video production
 
 English (default), Dutch and Bulgarian use shared templates and checked translation

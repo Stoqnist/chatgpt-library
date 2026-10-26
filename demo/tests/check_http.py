@@ -27,7 +27,7 @@ for config in registry['locales']:
             if variant.get(key):public[variant[key]]=variant[key].lstrip('/')
 for name in ['index.html','style.css','journey.css','brand-journey.css','localization.css','app.js','i18n.js','cases.js']:
     public['/'+name]=name
-for name in ['stoqnist-banner.svg','stoqnist-banner-mobile.svg','everyday-room.webp','stoqnist-family-hero.webp','stoqnist-family-mobile.webp']:
+for name in ['stoqnist-banner.svg','stoqnist-banner-mobile.svg','stoqnist-mark.svg','everyday-room.webp','stoqnist-family-hero.webp','stoqnist-family-mobile.webp']:
     if (ROOT/'assets'/name).exists():public['/assets/'+name]='assets/'+name
 # Check the exact versioned URLs browsers request, not only the bare filenames.
 for path in list(public.values()):

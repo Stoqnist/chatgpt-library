@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="brand">
+<title id="brand">stoqnist.</title>
+<rect width="64" height="64" rx="15" fill="#12352f"/>
+<text x="30" y="45" font-family="Georgia,serif" font-size="47" font-weight="bold" text-anchor="middle" fill="#fffaf3">s</text>
+<circle cx="49" cy="46" r="4" fill="#e4b474"/>
+</svg>

@@ -34,6 +34,8 @@ try {
         const response = await page.goto(url, { waitUntil: 'load', timeout: 30000 });
         assert.equal(response.status(), 200, `${url} status`);
         assert.equal(await page.locator('html').getAttribute('lang'), locale, url);
+        assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), `https://stoq.page${prefix}${route}`);
+        assert.equal(await page.locator('link[rel="icon"]').getAttribute('href'), '/assets/stoqnist-mark.svg');
         const sizes = await page.evaluate(() => ({
           viewport: window.innerWidth,
           document: document.documentElement.scrollWidth,

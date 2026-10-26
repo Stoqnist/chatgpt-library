@@ -16,6 +16,7 @@ assets/*
 !assets/*.webp
 !assets/stoqnist-banner.svg
 !assets/stoqnist-banner-mobile.svg
+!assets/stoqnist-mark.svg
 !locales/
 locales/*
 !locales/en.js

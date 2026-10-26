@@ -10,7 +10,7 @@ window.STOQ_LOCALE = {
     "idea.heading2": "een beetje duidelijker.",
     "idea.body": "Breng plannen, papierwerk en losse eindjes bij elkaar. Zie wat aandacht vraagt, wat kan wachten en waar je kunt beginnen.",
     "idea.note": "Een dienst in ontwikkeling, verkend aan de hand van twee fictieve voorbeelden.",
-    "demo.progress": "IN ONTWIKKELING",
+    "demo.progress": "INTERACTIEVE DEMO",
     "recovery.label": "PROBEER HET / GUNTERS DAG",
     "recovery.title": "Wat past bij vandaag?",
     "sound.off": "Geluid uit",
