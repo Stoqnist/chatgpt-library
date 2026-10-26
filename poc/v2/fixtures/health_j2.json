@@ -1,0 +1,31 @@
+{
+  "synthetic": true,
+  "version": "j2-j3-synthetic-1",
+  "journey": "j2",
+  "turns": [
+    {
+      "observation": "uncertain",
+      "suitable": true,
+      "needs_supplies": true,
+      "calendar": true,
+      "record_proposal": true,
+      "monitoring_consent": false,
+      "stock": "short",
+      "budget": "adequate",
+      "turn": 1,
+      "triage": "routine"
+    },
+    {
+      "observation": "conflicting",
+      "suitable": true,
+      "needs_supplies": true,
+      "calendar": true,
+      "record_proposal": false,
+      "monitoring_consent": false,
+      "stock": "short",
+      "budget": "adequate",
+      "turn": 2,
+      "triage": "urgent"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "synthetic": true,
+  "version": "j2-j3-synthetic-1",
+  "journey": "j3",
+  "turns": [
+    {
+      "observation": "uncertain",
+      "suitable": true,
+      "needs_supplies": false,
+      "calendar": false,
+      "record_proposal": false,
+      "monitoring_consent": false,
+      "stock": "unknown",
+      "budget": "unknown",
+      "turn": 1,
+      "triage": "clarify"
+    },
+    {
+      "observation": "conflicting",
+      "suitable": true,
+      "needs_supplies": false,
+      "calendar": true,
+      "record_proposal": true,
+      "monitoring_consent": false,
+      "stock": "unknown",
+      "budget": "unknown",
+      "turn": 2,
+      "triage": "routine"
+    },
+    {
+      "observation": "user_report",
+      "suitable": true,
+      "needs_supplies": false,
+      "calendar": true,
+      "record_proposal": false,
+      "monitoring_consent": false,
+      "stock": "unknown",
+      "budget": "unknown",
+      "turn": 3,
+      "triage": "urgent"
+    }
+  ]
+}
