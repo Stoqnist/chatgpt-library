@@ -1,0 +1,49 @@
+name: Guided demo checks
+on:
+  pull_request:
+    paths: ['demo/**', 'poc/v2/v2_poc/coordinator.py', 'poc/v2/fixtures/purchase.json', '.github/workflows/guided-demo.yml']
+permissions:
+  contents: read
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.11'
+      - run: python3 demo/build.py --check
+      - run: node --check demo/app.js && node --check demo/i18n.js
+      - run: python3 demo/localize.py check
+      - run: python3 -m unittest discover -s demo/tests -p 'test_localization.py'
+      - run: node demo/tests/test_runtime.mjs
+      - name: Verify demo persona and mobile hero
+        run: |
+          grep -q 'Meet Gunter' demo/demos/gunter/index.html
+          grep -q 'GUNTER' demo/demos/gunter/index.html
+          if grep -iq 'alex' demo/demos/gunter/index.html; then echo 'Legacy Alex name remains in public demo'; exit 1; fi
+          grep -q 'href="/demos/gunter/"' demo/index.html
+          grep -q 'href="/demos/purchase/"' demo/index.html
+          grep -q 'background-position:52% center' demo/brand-journey.css
+      - run: PYTHONPATH=poc/v2 python3 -m unittest discover -s poc/v2/tests -p 'test_coordinator.py'
+      - run: docker compose -f demo/compose.yaml config --quiet
+      - run: docker compose -f demo/compose.yaml up -d --build --wait --wait-timeout 60
+      - name: Verify all language routes, assets, private paths and headers
+        run: python3 demo/tests/check_http.py
+      - name: Set up browser QA
+        run: npm install --no-save --no-package-lock playwright@1.55.0
+      - name: Browser layout, film playback and subtitles (320px, 390px, desktop)
+        run: |
+          export CHROME_PATH="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium)"
+          test -x "$CHROME_PATH"
+          node demo/tests/browser_qa.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guided-demo-browser-screenshots
+          path: demo/screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
+      - if: always()
+        run: docker compose -f demo/compose.yaml down
