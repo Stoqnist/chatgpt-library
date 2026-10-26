@@ -25,6 +25,26 @@ jobs:
         run: python -m unittest discover -v
       - name: Compile
         run: python -m py_compile mvp/daily-routine/app.py
+      - name: Build isolated application image
+        run: docker build -f mvp/daily-routine/Dockerfile -t agency-daily:ci .
+      - name: Smoke-test liveness and unauthenticated denial
+        run: |
+          docker run -d --name agency-daily-ci \
+            -p 127.0.0.1:18080:18080 \
+            -e CF_ACCESS_TEAM=ci-test \
+            -e CF_ACCESS_AUD=not-a-real-app \
+            -e AGENCY_OWNER_EMAIL=test@example.invalid \
+            -e AGENCY_PUBLIC_ORIGIN=https://daily.example.invalid \
+            -e OPENAI_API_KEY=not-a-real-api-key \
+            agency-daily:ci
+          trap 'docker rm -f agency-daily-ci' EXIT
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS http://127.0.0.1:18080/_internal/live; then
+              break
+            fi
+            sleep 1
+          done
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/)" = "401"
       - name: No embedded secrets
         run: |
           python - <<'PY'
