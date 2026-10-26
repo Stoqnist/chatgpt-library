@@ -73,8 +73,17 @@
 @media(max-width:960px){
 .home-banner{display:flex;flex-direction:column;height:auto;min-height:0;aspect-ratio:auto}
 .home-banner .guided-hero-text{order:0;max-width:none;padding:26px 28px 20px}
-.home-banner .guided-hero-art{position:relative;inset:auto;z-index:0;order:1;width:100%;height:auto;max-height:none;aspect-ratio:512/371;background-image:url('/assets/stoqnist-family-mobile.webp');background-size:contain;background-position:center;filter:none;transform:none;animation:none}
-.home-banner .guided-hero-art::after{display:none}
+.home-banner .guided-hero-art{position:relative;inset:auto;z-index:0;order:1;width:100%;height:auto;max-height:none;aspect-ratio:3/1;background-image:url('/assets/stoqnist-family-hero.webp?v=3d116045c58659315a345f1d91130f06faa5862c');background-size:contain;background-position:center;filter:none;transform:none;animation:none}
+/* Only the source photo's baked-in English brand panel is veiled.
+   The remaining full 3:1 panorama is preserved at every phone width, including
+   the older relatives at both ends. The live headline stays legible above. */
+.home-banner .guided-hero-art::after{
+  content:"";display:block;position:absolute;inset:0 auto auto 0;
+  width:39%;height:57%;pointer-events:none;
+  background:linear-gradient(90deg,#12352f 0%,#12352ff2 78%,#12352f00 100%);
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 82%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 0%,#000 82%,transparent 100%)
+}
 .home-banner .guided-hero-shade{display:none}
 .home-banner .guided-hero-accessible{font-size:clamp(44px,8vw,72px)}
 }

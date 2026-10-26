@@ -131,17 +131,20 @@ illustration, a short bridge into the idea, and the original fictional recovery
 and purchase walkthroughs. `brand-journey.css` is a small, scoped design layer.
 It does not change the V2 coordinator, mock evidence or server infrastructure.
 
-**Before publication:** two approved WebP images still need to be committed
-to this same branch. They are included in the user's guided-discovery V2 ZIP:
+The approved WebP assets were committed on October 24, 2026. Both are
+available in `demo/assets/`, but the public homepage now deliberately uses
+the **same full panorama** (`stoqnist-family-hero.webp`) at desktop and phone
+widths; the previous mobile-only tight crop (`stoqnist-family-mobile.webp`)
+is retained as an unused source/reference asset. On phones, the art is displayed
+without a CSS crop below a separate live-text brand panel. Its upper-left
+baked-in English brand lettering is veiled on mobile to avoid duplicated copy.
+The source photograph itself ends above some lower legs; CSS cannot recover
+missing pixels. A new editorially approved source render remains the definitive
+solution for complete bodies and perfectly localized art.
 
-- `demo/assets/stoqnist-family-hero.webp` — desktop banner (2172 × 724).
-- `demo/assets/stoqnist-family-mobile.webp` — mobile crop.
-
-The public Docker image automatically includes WebP images in `demo/assets/`.
-The Nginx whitelist only serves these two named images and the existing
-`everyday-room.webp`. Until the image files are committed, desktop falls back
-to the previous branded SVG banner; mobile shows a forest-green branded hero.
-**Do not merge or deploy as the finished family design with assets missing.**
+The public Docker image includes the approved WebP images in `demo/assets/`;
+Nginx serves only named assets. The mobile photo URL includes its Git blob
+fingerprint, and browser regression checks enforce the intended aspect ratio.
 
 Confirm permission to publicly publish recognizable family members' likenesses,
 especially the images involving children, before publishing. The site remains a

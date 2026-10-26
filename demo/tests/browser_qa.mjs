@@ -46,6 +46,27 @@ try {
           `Horizontal overflow: ${locale} ${width}px ${route || 'home'} ${JSON.stringify(sizes)}`,
         );
         assert.equal(await page.locator('h1').count(), 1, `${url} should have one main heading`);
+        if (route === '') {
+          const banner = await page.locator('.home-banner .guided-hero-art').evaluate(el => {
+            const styles = getComputedStyle(el);
+            const rect = el.getBoundingClientRect();
+            return {
+              width: rect.width,
+              height: rect.height,
+              background: styles.backgroundImage,
+              fit: styles.backgroundSize,
+            };
+          });
+          assert(banner.background.includes('stoqnist-family-hero.webp'),
+            `Shared family panorama not applied: ${locale} ${width}px ${banner.background}`);
+          if (width < 960) {
+            assert(banner.background.includes('3d116045c58659315a345f1d91130f06faa5862c'),
+              `Unversioned family photo on ${locale} mobile ${width}px`);
+            assert.equal(banner.fit, 'contain', `Family art is cropped on ${locale} ${width}px`);
+            assert(Math.abs(banner.width / banner.height - 3) < 0.025,
+              `Full family panorama ratio lost on ${locale} ${width}px: ${banner.width} × ${banner.height}`);
+          }
+        }
         if (route === 'demos/gunter/') {
           const player = page.locator('.film-player');
           const video = page.locator('#story-video');

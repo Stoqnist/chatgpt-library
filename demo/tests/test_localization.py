@@ -73,7 +73,7 @@ class LocalizationTests(unittest.TestCase):
         self.assertIn("background-image:url('/assets/stoqnist-family-hero.webp')", css)
         self.assertIn('background-size:auto 100%', css)
         self.assertIn('background-position:right center', css)
-        self.assertIn("aspect-ratio:512/371;background-image:url('/assets/stoqnist-family-mobile.webp')", css)
+        self.assertIn("aspect-ratio:3/1;background-image:url('/assets/stoqnist-family-hero.webp?v=3d116045c58659315a345f1d91130f06faa5862c')", css)
         for file in ('demos/index.html','demos/gunter/index.html','demos/purchase/index.html',
                      'nl/demos/index.html','bg/demos/index.html'):
             self.assertIn('COPY '+file+' /usr/share/nginx/html/'+file,files['Dockerfile'])
