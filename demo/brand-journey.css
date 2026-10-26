@@ -5,8 +5,8 @@
  aspect-ratio:3/1;min-height:260px;background:#12352f;border-radius:20px;box-shadow:var(--shadow);color:#faf7f4}
 .guided-hero-art{position:absolute;inset:0;z-index:-2;
  background-color:#193d38;
- background-image:url("assets/stoqnist-family-hero.webp"),url("assets/stoqnist-banner.svg");
- background-size:cover,cover;background-position:center,center;background-repeat:no-repeat;
+ background-image:url("/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471");
+ background-size:contain;background-position:center;background-repeat:no-repeat;
  filter:brightness(.86) saturate(.86);transform:scale(1.012)}
 .guided-hero-shade{position:absolute;inset:0;z-index:-1;pointer-events:none;
  background:linear-gradient(0deg,rgba(7,32,29,.8),transparent 32%),
@@ -27,7 +27,7 @@
   position:relative;inset:auto;z-index:0;order:1;flex:none;width:100%;
   height:68vw;max-height:400px;
   /* Dedicated phone artwork keeps the family visible without embedded lettering. */
-  background-image:url("assets/stoqnist-family-mobile.webp");
+  background-image:url("/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471");
   background-size:cover;background-position:52% center;background-repeat:no-repeat;
   filter:brightness(.9) saturate(.88);transform:none;
  }

@@ -70,10 +70,11 @@ class LocalizationTests(unittest.TestCase):
             self.assertLess(home.index('class="idea"'),home.index('class="catalog-home"'))
             self.assertLess(home.index('class="catalog-home"'),home.index('class="policies"'))
         css = (self.root/'localization.css').read_text()
-        self.assertIn("background-image:url('/assets/stoqnist-family-hero.webp')", css)
+        self.assertIn("background-image:url('/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471')", css)
         self.assertIn('background-size:auto 100%', css)
-        self.assertIn('background-position:right center', css)
-        self.assertIn("aspect-ratio:3/1;background-image:url('/assets/stoqnist-family-hero.webp?v=3d116045c58659315a345f1d91130f06faa5862c')", css)
+        self.assertIn('background-size:contain;background-position:center', css)
+        self.assertIn("aspect-ratio:4/3;background-image:url('/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471')", css)
+        self.assertIn('.page-home .home-banner .guided-hero-art::after{display:none}', css)
         for file in ('demos/index.html','demos/gunter/index.html','demos/purchase/index.html',
                      'nl/demos/index.html','bg/demos/index.html'):
             self.assertIn('COPY '+file+' /usr/share/nginx/html/'+file,files['Dockerfile'])

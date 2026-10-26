@@ -71,15 +71,16 @@ try {
               fit: styles.backgroundSize,
             };
           });
-          assert(banner.background.includes('stoqnist-family-hero.webp'),
-            `Shared family panorama not applied: ${locale} ${width}px ${banner.background}`);
-          if (width < 960) {
-            assert(banner.background.includes('3d116045c58659315a345f1d91130f06faa5862c'),
-              `Unversioned family photo on ${locale} mobile ${width}px`);
-            assert.equal(banner.fit, 'contain', `Family art is cropped on ${locale} ${width}px`);
-            assert(Math.abs(banner.width / banner.height - 3) < 0.025,
-              `Full family panorama ratio lost on ${locale} ${width}px: ${banner.width} × ${banner.height}`);
-          }
+          assert(banner.background.includes('stoqnist-family-clean.webp'),
+            `Approved family photograph not applied: ${locale} ${width}px ${banner.background}`);
+          assert(banner.background.includes('82b64016d088411cc9cffe2ceca41e7d77e74471'),
+            `Unversioned family photograph on ${locale} ${width}px`);
+          assert.equal(banner.fit, 'contain', `Family members would be cropped on ${locale} ${width}px`);
+          assert(Math.abs(banner.width / banner.height - 4/3) < 0.025,
+            `Full 4:3 family photograph ratio lost on ${locale} ${width}px: ${banner.width} × ${banner.height}`);
+          const originalGhost = await page.locator('.home-banner .guided-hero-art').evaluate(el =>
+            getComputedStyle(el, '::after').display);
+          assert.equal(originalGhost, 'none', `Old artwork mask remains: ${locale} ${width}px`);
         }
         if (route === 'demos/gunter/') {
           const player = page.locator('.film-player');

@@ -131,24 +131,18 @@ illustration, a short bridge into the idea, and the original fictional recovery
 and purchase walkthroughs. `brand-journey.css` is a small, scoped design layer.
 It does not change the V2 coordinator, mock evidence or server infrastructure.
 
-The approved WebP assets were committed on October 24, 2026. Both are
-available in `demo/assets/`, but the public homepage now deliberately uses
-the **same full panorama** (`stoqnist-family-hero.webp`) at desktop and phone
-widths; the previous mobile-only tight crop (`stoqnist-family-mobile.webp`)
-is retained as an unused source/reference asset. On phones, the art is displayed
-without a CSS crop below a separate live-text brand panel. Its upper-left
-baked-in English brand lettering is veiled on mobile to avoid duplicated copy.
-The source photograph itself ends above some lower legs; CSS cannot recover
-missing pixels. The phone layout now suppresses the duplicate small navigation
-wordmark, keeps the Demos link accessible, and reduces the gap before the idea
-section. This is an incremental hierarchy repair, **not** approval of the
-artwork: faint baked-in English text beneath the existing mask and very small
-figures require a newly approved, text-free, mobile-specific editorial render.
-An opaque CSS patch would obscure relatives or scene details.
+The final approved text-free family photograph (1448 × 1086 pixels) is
+`demo/assets/stoqnist-family-clean.webp`. It is used unchanged on both
+desktop and mobile, with a 4:3 fitted image region and no cropping. The
+live, translated `stoqnist.` heading and tagline sit in a separate green
+panel: beside the photo on desktop and above it on phone/tablet.
 
-The public Docker image includes the approved WebP images in `demo/assets/`;
-Nginx serves only named assets. The mobile photo URL includes its Git blob
-fingerprint, and browser regression checks enforce the intended aspect ratio.
+The previous text-baked panoramic and mobile-crop WebPs remain in the repository
+for archival reference but are no longer active homepage hero assets. The
+dark opacity mask and duplicated English brand lettering are gone. Image
+references are pinned to the approved asset's Git blob hash to avoid stale
+cache artifacts. Browser release checks enforce the same photo, complete
+4:3 fit and absence of the old pseudo-element mask across languages.
 
 Confirm permission to publicly publish recognizable family members' likenesses,
 especially the images involving children, before publishing. The site remains a
