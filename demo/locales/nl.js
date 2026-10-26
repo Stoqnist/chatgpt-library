@@ -200,7 +200,7 @@ window.STOQ_LOCALE = {
     "catalog.purchase": "Een aankoop",
     "catalog.back": "Alle demo’s",
     "catalog.disclosure": "Alleen fictieve voorbeelden. Geen gekoppelde accounts of echte handelingen.",
-    "catalog.gunter.preview": "Lees het verhaal van Gunter. Kies daarna zijn stemming en energie om te zien welke dagelijkse taken kunnen wachten.",
+    "catalog.gunter.preview": "Bekijk Gunters korte film. Kies daarna zijn stemming en energie om te zien welke dagelijkse taken kunnen wachten.",
     "catalog.gunter.open": "Bekijk de dag van Gunter",
     "catalog.purchase.open": "Vergelijk een aankoop"
   },
