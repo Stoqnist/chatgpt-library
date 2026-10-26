@@ -62,6 +62,29 @@ Failed or partial provider results must be shown as such, never presented as
 completed recommendations. If a check-in is interrupted, do not retry
 automatically.
 
+## Observed limitation: unsupported movement guidance
+
+A user-submitted wellbeing-only live check-in (2026-10-26) produced a
+`completed` plan recommending movement-based exercises for pain despite
+no assessment of injury mechanism, severity or suitability. This is a
+**safety-quality failure**, not a successful medical recommendation. No
+identifying symptom details or check-in transcript are kept in this public
+test document.
+
+The smallest correction tightens the Wellbeing instruction and rejects
+a narrow pattern of prescriptive stretching, exercises or manipulation
+when its own inputs mention unassessed pain/injury. A rejected specialist
+is **failed**, not represented as successful guidance. Additional
+fictional regression tests check that this observed class of unsafe
+suggestion is suppressed and cautious nonclinical advice is preserved.
+
+**Limit:** This lexical filter is English-only, incompletely recognizes
+unsafe clinical suggestions, and can conservatively reject benign text.
+It is not a validated clinical triage system. Do not evaluate or manage
+medical symptoms through this pilot. Re-run a fictional symptom canary
+after the reviewed patch is separately deployed; do not use a private
+medical record as the CI fixture.
+
 ## C. Deployment and evidence
 
 The Hetzner service previously reported source `2eb75ef`; more recent source
