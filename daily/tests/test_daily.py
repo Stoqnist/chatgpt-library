@@ -11,7 +11,7 @@ import unittest
 import uuid
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app import App, OpenAIProvider, ProviderError, ROUTE_SCHEMA, PLAN_SCHEMA, password_hash
+from app import App, OpenAIProvider, ProviderError, ROUTE_SCHEMA, RESULT_SCHEMA, PLAN_SCHEMA, password_hash
 
 PROMPT='Help me plan my day. I slept well. I want to tidy the kitchen. I have an hour this morning.'
 RESULT={'summary':'A manageable next step, based on your report.','suggestions':['Choose one small task.'],'missing_context':['No connected records were checked.'],'question':''}
