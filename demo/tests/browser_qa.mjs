@@ -1,0 +1,103 @@
+// Browser smoke test against the same Docker release artifact used by HTTP checks.
+// Uses installed Chrome on the GitHub runner; screenshots are QA evidence, not deployment.
+import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+import { chromium } from 'playwright';
+
+const base = process.env.STOQ_TEST_URL || 'http://127.0.0.1:8092';
+const widthCases = [320, 390, 1280];
+const locales = ['en', 'nl', 'bg'];
+const paths = ['', 'demos/', 'demos/gunter/', 'demos/purchase/'];
+const screenshotDir = 'demo/screenshots';
+await mkdir(screenshotDir, { recursive: true });
+const browser = await chromium.launch({
+  headless: true,
+  executablePath: process.env.CHROME_PATH || undefined,
+  args: ['--no-sandbox', '--disable-dev-shm-usage'],
+});
+let checked = 0;
+try {
+  for (const locale of locales) {
+    const prefix = locale === 'en' ? '/' : `/${locale}/`;
+    for (const width of widthCases) {
+      const context = await browser.newContext({
+        viewport: { width, height: 900 },
+        isMobile: width < 500,
+        hasTouch: width < 500,
+        deviceScaleFactor: 1,
+      });
+      const page = await context.newPage();
+      const pageErrors = [];
+      page.on('pageerror', error => pageErrors.push(error.message));
+      for (const route of paths) {
+        const url = `${base}${prefix}${route}`;
+        const response = await page.goto(url, { waitUntil: 'load', timeout: 30000 });
+        assert.equal(response.status(), 200, `${url} status`);
+        assert.equal(await page.locator('html').getAttribute('lang'), locale, url);
+        const sizes = await page.evaluate(() => ({
+          viewport: window.innerWidth,
+          document: document.documentElement.scrollWidth,
+          body: document.body.scrollWidth,
+        }));
+        assert(
+          sizes.document <= sizes.viewport + 2 && sizes.body <= sizes.viewport + 2,
+          `Horizontal overflow: ${locale} ${width}px ${route || 'home'} ${JSON.stringify(sizes)}`,
+        );
+        assert.equal(await page.locator('h1').count(), 1, `${url} should have one main heading`);
+        if (route === 'demos/gunter/') {
+          const player = page.locator('.film-player');
+          const video = page.locator('#story-video');
+          const rect = await player.boundingBox();
+          assert(rect && rect.x >= -2 && rect.x + rect.width <= width + 2,
+            `Film player offscreen ${locale} ${width}px: ${JSON.stringify(rect)}`);
+          assert.equal(await video.locator('source').getAttribute('src'), '/media/gunter-morning-en.mp4');
+          if (locale !== 'en') {
+            const track = video.locator('track');
+            assert.equal(await track.getAttribute('srclang'), locale);
+            assert.equal(await track.getAttribute('src'), `/media/gunter-morning-${locale}.vtt`);
+            assert.notEqual(await track.getAttribute('default'), null, `Captions are default on ${locale}`);
+          }
+          if (width === 390) {
+            await page.locator('#film-play').click({ timeout: 10000 });
+            await page.waitForFunction(
+              () => document.getElementById('story-video')?.currentTime > 0.1,
+              null, { timeout: 20000 },
+            );
+            if (locale !== 'en') {
+              await page.waitForFunction(
+                () => document.querySelector('#story-video track')?.track?.cues?.length === 9,
+                null, { timeout: 15000 },
+              );
+              const cues = await page.evaluate(() => {
+                const track = document.querySelector('#story-video track').track;
+                return {
+                  count: track.cues.length,
+                  mode: track.mode,
+                  firstLine: track.cues[0].line,
+                  lastEnd: track.cues[8].endTime,
+                };
+              });
+              assert.equal(cues.mode, 'showing', `${locale} subtitles are active`);
+              assert.equal(cues.firstLine, 8, `${locale} subtitles should avoid bottom burned-in copy`);
+              assert(cues.lastEnd < 55, `${locale} captions exceed video duration`);
+            }
+          }
+        }
+        if ((width === 390 || width === 1280) && (route === '' || route === 'demos/gunter/')) {
+          const name = route ? 'gunter' : 'home';
+          await page.screenshot({
+            path: `${screenshotDir}/${locale}-${name}-${width}.png`,
+            fullPage: true,
+            animations: 'disabled',
+          });
+        }
+        checked++;
+      }
+      assert.deepEqual(pageErrors, [], `${locale} ${width}px JavaScript runtime errors`);
+      await context.close();
+    }
+  }
+  console.log(`PASS: ${checked} browser pages, nine video layouts, three real playback tests, two translated WebVTT tracks`);
+} finally {
+  await browser.close();
+}

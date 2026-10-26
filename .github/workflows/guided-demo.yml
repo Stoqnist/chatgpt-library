@@ -31,5 +31,19 @@ jobs:
       - run: docker compose -f demo/compose.yaml up -d --build --wait --wait-timeout 60
       - name: Verify all language routes, assets, private paths and headers
         run: python3 demo/tests/check_http.py
+      - name: Set up browser QA
+        run: npm install --no-save --no-package-lock playwright@1.55.0
+      - name: Browser layout, film playback and subtitles (320px, 390px, desktop)
+        run: |
+          export CHROME_PATH="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium)"
+          test -x "$CHROME_PATH"
+          node demo/tests/browser_qa.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guided-demo-browser-screenshots
+          path: demo/screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
       - if: always()
         run: docker compose -f demo/compose.yaml down

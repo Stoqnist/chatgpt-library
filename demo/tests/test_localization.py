@@ -79,6 +79,13 @@ class LocalizationTests(unittest.TestCase):
             self.assertIn(f'/media/gunter-morning-{code}.vtt',files['locale-routes.conf'])
             self.assertIn(f'COPY media/gunter-morning-{code}.vtt ',files['Dockerfile'])
 
+    def test_captioned_fallback_cues_avoid_burned_in_english_subtitles(self):
+        for locale in ('nl', 'bg'):
+            cues=(self.root/f'media/gunter-morning-{locale}.vtt').read_text(encoding='utf-8')
+            self.assertEqual(cues.count(' --> '),9)
+            self.assertEqual(cues.count('line:8% position:50% align:center size:90%'),9)
+            self.assertNotIn('PROVISIONAL',cues)
+
     def test_asset_urls_follow_content_changes_for_returning_visitors(self):
         pattern = r'(?:href|src)="/([^"?]+\.(?:css|js))\?v=([a-f0-9]{16})"'
         before = l10n.outputs(self.root)
