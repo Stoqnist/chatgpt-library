@@ -35,6 +35,12 @@ try {
         assert.equal(response.status(), 200, `${url} status`);
         assert.equal(await page.locator('html').getAttribute('lang'), locale, url);
         assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), `https://stoq.page${prefix}${route}`);
+        assert.equal(await page.locator('meta[property="og:image"]').getAttribute('content'), 'https://stoq.page/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471');
+        assert.equal(await page.locator('meta[property="og:image:width"]').getAttribute('content'), '1448');
+        assert.equal(await page.locator('meta[property="og:image:height"]').getAttribute('content'), '1086');
+        assert.equal(await page.locator('meta[name="twitter:card"]').getAttribute('content'), 'summary_large_image');
+        assert(await page.locator('meta[property="og:image:alt"]').getAttribute('content'),
+          'Sharing image needs alternative text');
         assert.equal(await page.locator('link[rel="icon"]').getAttribute('href'), '/assets/stoqnist-mark.svg');
         const sizes = await page.evaluate(() => ({
           viewport: window.innerWidth,

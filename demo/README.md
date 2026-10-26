@@ -11,7 +11,9 @@ This does not promote experimental V2 or expose the private BFF.
 Route-specific OpenGraph metadata, a minimal branded favicon and a
 clear "interactive demo" label distinguish the fictional preview from a live
 service. All original privacy, safety and account-access limitations remain
-unchanged. A separately approved social preview image remains future work.
+unchanged. Public social previews now reference the approved family photograph
+with its known dimensions and locale-specific alternative text. A purpose-built
+wide social card remains an optional editorial improvement.
 
 ## Languages and video production
 
@@ -78,23 +80,15 @@ in an environment with Docker and authorized VPS access.
 
 ## Mobile framing and public persona
 
-The homepage begins with the approved family banner, followed by the concept
-and two fictional demo cards. On desktop the full vertical extent of the
-existing family photograph fits the banner's height without the previous
-125% zoom; a dark-green text area preserves the readable wordmark. On
-tablets and phones the wordmark sits above the photograph, which keeps its
-natural aspect ratio rather than being cropped by a fixed-height frame.
-The girl's head is therefore visible at the top in both layouts.
-The original wide desktop panorama includes the seated older man at the far
-right; the homepage once used the central-family-only mobile crop on desktop,
-which inadvertently hid him. The desktop now right-aligns the uncropped panorama
-and masks its baked-in English lettering behind the localized live wordmark.
-The mobile view keeps the previously approved closer central-family crop, where
-the far-right elder is outside the frame, to preserve legibility.
+The homepage uses the approved, text-free 4:3 family photo
+(`demo/assets/stoqnist-family-clean.webp`). The same photo is presented
+without cropping on desktop and mobile; the localized live title and tagline
+sit beside it on desktop and above it on mobile. The previous title-baked
+panorama and central crop remain only as historical assets, not the live hero.
+No opaque artwork mask is used; source asset fingerprints prevent stale art.
 
-The original artwork itself ends at some subjects' lower legs. No CSS change
-can restore missing feet; a genuinely full-body version requires a separately
-approved artwork revision. This change preserves the approved faces.
+Browser tests cover 320px, 390px and desktop across all three languages.
+Do not reintroduce title text inside the family image or crop participants.
 
 **Gunter** is the canonical *fictional demo persona* for the public recovery
 walkthrough. Use this spelling consistently in public prose and example labels.
