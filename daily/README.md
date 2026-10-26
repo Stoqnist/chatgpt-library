@@ -35,6 +35,11 @@ what the user reported.
 The changes above are only active once this reviewed source is separately
 deployed to Hetzner. Passing CI does not verify the running image.
 
+## Quality evidence
+
+- [Daily quality gate](QUALITY.md) contains seven fictional offline journeys plus a small real-model manual canary rubric. A green offline test is not a live-model quality result.
+- Real-account test reports must exclude keys, access codes, private check-in text and identifying account details.
+
 ## Deployment
 
 Keep this project isolated from the public demo and MCP services. A private env file supplies `AGENCY_ORIGIN=https://stoq.page`, `AGENCY_LOGIN_HASH` (generated with `password_hash`), and optional `AGENCY_MODEL` (default gpt-4.1-mini). Never commit private files or an actual access code. Mount `/opt/agency-daily/private/data` to `/data`; permissions must be 0700/UID 10001. Run one Gunicorn worker; in-process submission serialization and executor are deliberately single-process. Startup marks interrupted runs before serving requests.
