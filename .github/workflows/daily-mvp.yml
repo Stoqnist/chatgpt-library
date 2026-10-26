@@ -1,0 +1,31 @@
+name: Private daily MVP checks
+on:
+  pull_request:
+    paths: ['daily/**', 'demo/nginx.conf', '.github/workflows/daily-mvp.yml']
+permissions:
+  contents: read
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python3 -m unittest discover -s daily/tests -v
+      - run: node --check daily/static/app.js
+      - run: docker build -t agency-daily-check daily
+      - name: Check real production server and unauthenticated boundary
+        run: |
+          mkdir -p /tmp/daily-data
+          sudo chown 10001:10001 /tmp/daily-data
+          login_hash=$(PYTHONPATH=daily python3 -c "from app import password_hash; print(password_hash('ci-disposable-not-a-real-secret'))")
+          docker run -d --name daily-check -p 127.0.0.1:18001:8000 -v /tmp/daily-data:/data -e AGENCY_DATA_DIR=/data -e AGENCY_ORIGIN=https://example.invalid -e AGENCY_LOGIN_HASH="$login_hash" agency-daily-check
+          for n in $(seq 1 20); do curl -fsS http://127.0.0.1:18001/health && break || sleep 1; done
+          curl -fsS http://127.0.0.1:18001/daily/ > /tmp/daily.html
+          cmp daily/static/index.html /tmp/daily.html
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18001/daily/api/state)" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18001/daily/../../app.py)" != 200
+      - if: always()
+        run: docker rm -f daily-check || true
