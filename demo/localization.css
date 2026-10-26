@@ -112,3 +112,15 @@
 .page-purchase .purchase-standalone{margin:0 16px 28px}
 }
 @media(prefers-reduced-motion:reduce){.catalog-card{transition:none}.catalog-card:hover{transform:none}}
+
+/* Phone-only editorial hierarchy: one visible wordmark, direct family image,
+   and shorter handoff into the idea. Do not crop the source photograph. */
+@media(max-width:760px){
+  .page-home .site-top{padding:4px 20px 0;justify-content:flex-end}
+  .page-home .site-mark{display:none}
+  .page-home .site-nav-link{padding:8px 0;min-height:44px;display:inline-flex;align-items:center}
+  .page-home .home-banner{margin:6px 12px 8px}
+  .page-home .home-banner .guided-hero-text{padding:19px 22px 13px}
+  .page-home .home-banner .guided-hero-subtitle{margin-top:2px}
+  .page-home .idea{padding-top:16px}
+}
