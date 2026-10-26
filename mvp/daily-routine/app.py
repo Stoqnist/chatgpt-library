@@ -155,7 +155,7 @@ def domain_excerpt(prompt: str, domain: str) -> str:
                     "spending", "debt", "cost", "money"),
     }[domain]
     found = [topic for topic in topics if re.search(
-        rf"\\b{re.escape(topic)}\\b", prompt, re.I)]
+        rf"\b{re.escape(topic)}\b", prompt, re.I)]
     return (f"User requests {domain} advice on: "
             f"{', '.join(found) if found else 'an unspecified concern'}. "
             "No canonical records, balances, quantities or amounts verified.")
