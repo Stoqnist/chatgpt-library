@@ -11,7 +11,7 @@ import unittest
 import uuid
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app import App, OpenAIProvider, ProviderError, ROUTE_SCHEMA, password_hash
+from app import App, OpenAIProvider, ProviderError, ROUTE_SCHEMA, PLAN_SCHEMA, password_hash
 
 PROMPT='Help me plan my day. I slept well. I want to tidy the kitchen. I have an hour this morning.'
 RESULT={'summary':'A manageable next step, based on your report.','suggestions':['Choose one small task.'],'missing_context':['No connected records were checked.'],'question':''}
@@ -26,6 +26,8 @@ class FakeProvider:
                 {'domain':'wellbeing','excerpts':['I slept well.']},
                 {'domain':'home','excerpts':['I want to tidy the kitchen.']},
                 {'domain':'planning','excerpts':['I have an hour this morning.']} ]}
+        if schema is PLAN_SCHEMA:
+            return {'step_ids':list(payload['suggestions'])[:3], 'question_owner':''}
         if self.fail and self.fail in instructions:raise ProviderError('fake failure containing SECRET')
         return copy.deepcopy(RESULT)
 
@@ -81,14 +83,14 @@ class DailyTest(unittest.TestCase):
         self.assertNotIn(key.encode(),self.request('/daily/api/state')['raw'])
     def test_three_real_dispatches_with_scoped_excerpts(self):
         self.login();self.assertEqual(self.submit()['status'],202)
-        run=self.finish();self.assertEqual(run['status'],'completed');self.assertEqual(len(self.provider.calls),4)
+        run=self.finish();self.assertEqual(run['status'],'completed');self.assertEqual(len(self.provider.calls),5)
         self.assertEqual(len(run['result']['next_steps']),1)
-        payloads=[c[1] for c in self.provider.calls[1:]]
+        payloads=[c[1] for c in self.provider.calls[1:] if c[2] is not PLAN_SCHEMA]
         self.assertEqual(sorted([p['user_reported_excerpts'][0] for p in payloads]),sorted(['I slept well.','I want to tidy the kitchen.','I have an hour this morning.']))
         self.assertTrue(all('tools' not in p for p in payloads))
     def test_one_domain_does_not_invoke_other_agents(self):
         self.provider.route={'urgent':False,'tasks':[{'domain':'planning','excerpts':['I have an hour this morning.']}]}
-        self.login();self.submit();run=self.finish();self.assertEqual(len(run['result']['agents']),1);self.assertEqual(len(self.provider.calls),2)
+        self.login();self.submit();run=self.finish();self.assertEqual(len(run['result']['agents']),1);self.assertEqual(len(self.provider.calls),3)
     def test_provider_failure_returns_partial_without_raw_error(self):
         self.provider.fail='home, food';self.login();self.submit();run=self.finish()
         self.assertEqual(run['status'],'partial');self.assertNotIn('SECRET',json.dumps(run))
@@ -101,7 +103,7 @@ class DailyTest(unittest.TestCase):
     def test_duplicate_request_does_not_charge_twice_and_conflicting_reuse_fails(self):
         self.login();rid=str(uuid.uuid4());a=self.submit(rid);b=self.submit(rid)
         self.assertEqual(a['json']['id'],b['json']['id']);self.assertEqual(self.submit(rid,'A different input')['status'],409)
-        self.finish();self.assertEqual(len(self.provider.calls),4)
+        self.finish();self.assertEqual(len(self.provider.calls),5)
     def test_concurrent_run_and_settings_mutation_blocked(self):
         event=threading.Event();self.provider.block=event;self.login();self.submit()
         try:
@@ -141,6 +143,22 @@ class DailyTest(unittest.TestCase):
             r=OpenAIProvider(self.app.key_path,'gpt-4.1-mini').call('bounded',{},ROUTE_SCHEMA)
         self.assertEqual(r,RESULT);self.assertFalse(captured['body']['store']);self.assertNotIn('tools',captured['body'])
         self.assertEqual(captured['url'],'https://api.openai.com/v1/responses');self.assertEqual(captured['timeout'],45)
+    def test_unowned_coordinator_action_is_rejected(self):
+        original=self.provider.call
+        def invalid(instructions,payload,schema):
+            if schema is PLAN_SCHEMA:return {'step_ids':['invented:0'],'question_owner':''}
+            return original(instructions,payload,schema)
+        self.provider.call=invalid;self.login();self.submit();run=self.finish()
+        self.assertEqual(run['status'],'partial');self.assertEqual(run['result']['next_steps'],[])
+        self.assertIn('consolidation_error',run['result'])
+    def test_empty_specialist_advice_is_not_a_completed_plan(self):
+        original=self.provider.call
+        def empty(instructions,payload,schema):
+            if schema is not ROUTE_SCHEMA and schema is not PLAN_SCHEMA:
+                return {**RESULT,'suggestions':[]}
+            return original(instructions,payload,schema)
+        self.provider.call=empty;self.login();self.submit();run=self.finish()
+        self.assertEqual(run['status'],'partial');self.assertEqual(run['result']['next_steps'],[])
     def test_provider_incomplete_rejected(self):
         class Response:
             def __enter__(self):return self

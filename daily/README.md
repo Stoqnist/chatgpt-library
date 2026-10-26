@@ -7,7 +7,7 @@ A separate, single-owner phone web app at `/daily/`. One submitted check-in is r
 - User-submitted context only. **No Calendar, Gmail, inventory, bank or Library connector access.** Do not present this as the full existing daily routine or a clinical system.
 - No external writes or executed actions. Model advice stays explicitly unverified. The pilot does not reuse or impersonate existing custom GPTs.
 - Conservative urgent-input interruption is model-based, not a validated clinical triage service. No diagnosis or treatment. A provider failure blocks output or gives a clearly partial result.
-- Maximum one active run, three specialists, four bounded calls per check-in, 20 submissions per rolling 24 hours, no automatic provider retry. Counts are not a dollar budget; configure provider project limits.
+- Maximum one active run, three specialists, five bounded calls per check-in, 20 submissions per rolling 24 hours, one final coordinator selection pass, no automatic provider retry. Counts are not a dollar budget; configure provider project limits.
 - Request IDs deduplicate transport retries. Runs interrupted by restart are marked interrupted and never replayed. Clearing history does not reset usage limits.
 
 ## Privacy and access
