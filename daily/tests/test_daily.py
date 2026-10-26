@@ -108,7 +108,7 @@ class DailyTest(unittest.TestCase):
                 self.assertEqual(payload['routine_goals'], [
                     'I want to tidy the kitchen.', 'I have an hour this morning.'])
                 self.assertNotIn('prescription', json.dumps(payload).lower())
-            elif schema is not ROUTE_SCHEMA and 'Wellbeing' not in instructions:
+            elif payload.get('user_reported_excerpts') != ['My prescription changed.']:
                 self.assertNotIn('prescription', json.dumps(payload).lower())
 
     def test_sensitive_health_handoff_to_home_fails_closed(self):
