@@ -40,14 +40,14 @@ ROUTER = '''Route a daily check-in to only relevant owners: wellbeing, home, pla
 # comprehensive language-independent sensitive-data classifier. The router
 # itself still receives the submitted check-in.
 SENSITIVE_HANDOFF = re.compile(
-    r"\\b(?:prescription|medication|diagnos(?:is|ed)|suicid(?:e|al)|"
+    r"\b(?:prescription|medication|diagnos(?:is|ed)|suicid(?:e|al)|"
     r"self[- ]harm|depress(?:ion|ed)|psychiatr(?:ist|ic)|therapy|"
     r"bank account|credit card|salary|paycheck|debt|"
-    r"password|access code|api key)\\b", re.I
+    r"password|access code|api key)\b", re.I
 )
 POSSIBLE_CREDENTIAL = re.compile(
-    r"\\b(?:sk-(?:proj-)?[a-z0-9_-]{20,}|"
-    r"gh[pousr]_[a-z0-9]{20,}|xox[baprs]-[a-z0-9-]{20,})\\b", re.I
+    r"\b(?:sk-(?:proj-)?[a-z0-9_-]{20,}|"
+    r"gh[pousr]_[a-z0-9]{20,}|xox[baprs]-[a-z0-9-]{20,})\b", re.I
 )
 
 
