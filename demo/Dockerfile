@@ -17,11 +17,13 @@ COPY nl/index.html /usr/share/nginx/html/nl/index.html
 COPY nl/demos/index.html /usr/share/nginx/html/nl/demos/index.html
 COPY nl/demos/gunter/index.html /usr/share/nginx/html/nl/demos/gunter/index.html
 COPY nl/demos/purchase/index.html /usr/share/nginx/html/nl/demos/purchase/index.html
+COPY media/gunter-morning-nl.vtt /usr/share/nginx/html/media/gunter-morning-nl.vtt
 COPY locales/bg.js /usr/share/nginx/html/locales/bg.js
 COPY bg/index.html /usr/share/nginx/html/bg/index.html
 COPY bg/demos/index.html /usr/share/nginx/html/bg/demos/index.html
 COPY bg/demos/gunter/index.html /usr/share/nginx/html/bg/demos/gunter/index.html
 COPY bg/demos/purchase/index.html /usr/share/nginx/html/bg/demos/purchase/index.html
+COPY media/gunter-morning-bg.vtt /usr/share/nginx/html/media/gunter-morning-bg.vtt
 USER 101:101
 EXPOSE 8080
 ENTRYPOINT ["nginx", "-g", "daemon off;"]

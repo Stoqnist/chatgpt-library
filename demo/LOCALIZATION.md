@@ -72,9 +72,17 @@ no page-code change. Run the tests and open a feature PR against
 
 `media/gunter-morning.json` is the first film manifest. The scripts follow the local
 Gunter film v3: he reviews a request before sending, and there is no reply yet.
-The current public page did not contain a film. This release adds its translated
-story/transcript and production handoff, without presenting unfinished recordings
-as released videos. Existing local movie binaries are not uploaded by this PR.
+The public Gunter story includes an approved English master. Dutch and Bulgarian
+currently display that same English movie with translated WebVTT cues
+aligned to the English master’s timings, a local-language transcript, and an
+explicit original-audio notice. Subtitle readability on actual devices and
+native-speaker editorial review remain required release checks.
+These are **captioned fallbacks**, not Dutch- or Bulgarian-dubbed releases. The
+English movie has some embedded English labels; native localized movie assets
+must be reviewed separately before their variants can be marked ready. The
+fallback WebVTT is placed toward the *top* of the frame to avoid overlapping
+the English captions burned into the source film. Verify that this remains
+readable on narrow mobile displays and that captions can be switched on/off.
 
 1. Localize all `film.*` strings: spoken narration, editorial captions, phone UI,
    disclosure and end card. Keep the artwork free of baked-in language. Export one

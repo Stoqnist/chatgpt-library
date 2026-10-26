@@ -12,6 +12,12 @@ English (default), Dutch and Bulgarian use shared templates and checked translat
 catalogs. See [LOCALIZATION.md](LOCALIZATION.md) for translation exchange, adding a
 language, and the narration/captions/on-screen-text production workflow.
 
+The Gunter film is available on all three locale pages. The Dutch and Bulgarian
+editions currently use timed local subtitles over the approved English-audio
+master, with explicit notice and localized transcripts. These are **not** dubbed
+or fully on-screen-localized films; do not advertise native-language voiceovers
+until separate reviewed masters are available.
+
 ## Reproduce and verify
 
 From the repository root:

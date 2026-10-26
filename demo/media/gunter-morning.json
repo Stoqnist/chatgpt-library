@@ -3,7 +3,7 @@
   "revision": 2,
   "sourceLocale": "en",
   "status": "partially-ready",
-  "sourceNote": "The approved 55.083-second English master uses a still frame from 00:09 for the player poster. The film and timed English WebVTT are published; Dutch and Bulgarian film variants remain planned.",
+  "sourceNote": "The approved 55.083-second English master and poster are published. The Dutch and Bulgarian pages use that English master with timed local-language subtitles and an explicit audio-language notice. Separate Dutch/Bulgarian audio and on-screen-localized film masters are not yet ready.",
   "scenes": [
     {
       "id": "scene1",
@@ -131,25 +131,28 @@
       "durationSeconds": 55
     },
     "nl": {
-      "status": "planned",
-      "audioLocale": "nl",
+      "status": "captioned",
+      "audioLocale": "en",
       "video": null,
-      "captions": null,
+      "captions": "/media/gunter-morning-nl.vtt",
       "poster": null,
-      "timingStatus": "provisional",
+      "timingStatus": "final",
       "sourceRevision": 2,
-      "contentHash": null
+      "contentHash": "6f5ab892033d04c0"
     },
     "bg": {
-      "status": "planned",
-      "audioLocale": "bg",
+      "status": "captioned",
+      "audioLocale": "en",
       "video": null,
-      "captions": null,
+      "captions": "/media/gunter-morning-bg.vtt",
       "poster": null,
-      "timingStatus": "provisional",
+      "timingStatus": "final",
       "sourceRevision": 2,
-      "contentHash": null
+      "contentHash": "719376c26b491f84"
     }
   },
-  "fallbacks": {}
+  "fallbacks": {
+    "nl": "en",
+    "bg": "en"
+  }
 }
