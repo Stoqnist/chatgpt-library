@@ -1,0 +1,3 @@
+# Offline Calendar Gateway vault crypto; not a deployment lockfile.
+# Cryptography: vetted authenticated encryption; never implement homemade crypto.
+cryptography==50.0.2

@@ -1,0 +1,57 @@
+{
+  "synthetic": true,
+  "scenario_version": "j1-synthetic-1",
+  "turns": [
+    {
+      "turn": 1,
+      "assessment": "clarify",
+      "supplies": false,
+      "suitable": true,
+      "calendar": false,
+      "stock": {
+        "state": "unknown",
+        "connected": false,
+        "fresh": false
+      },
+      "budget": {
+        "state": "unknown",
+        "connected": false,
+        "fresh": false
+      }
+    },
+    {
+      "turn": 2,
+      "assessment": "routine",
+      "supplies": true,
+      "suitable": true,
+      "calendar": true,
+      "stock": {
+        "state": "short",
+        "connected": true,
+        "fresh": true
+      },
+      "budget": {
+        "state": "adequate",
+        "connected": true,
+        "fresh": true
+      }
+    },
+    {
+      "turn": 3,
+      "assessment": "urgent",
+      "supplies": true,
+      "suitable": true,
+      "calendar": true,
+      "stock": {
+        "state": "short",
+        "connected": true,
+        "fresh": true
+      },
+      "budget": {
+        "state": "adequate",
+        "connected": true,
+        "fresh": true
+      }
+    }
+  ]
+}

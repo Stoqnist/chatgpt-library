@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="{{locale}}">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{meta.title}}</title>
+<meta name="description" content="{{meta.description}}">
+{{locale_head}}
+<meta name="theme-color" content="#12352f">
+<link rel="icon" href="/assets/stoqnist-mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/journey.css"><link rel="stylesheet" href="/brand-journey.css"><link rel="stylesheet" href="/localization.css"><script src="/locales/{{locale}}.js" defer></script><script src="/i18n.js" defer></script><script src="/cases.js" defer></script><script src="/app.js" defer></script>
+</head>
+<body>
+{{language_nav}}
+<a class="skip-link" href="#brand-title">{{nav.skip}}</a>
+<main>
+<section class="guided-hero" aria-labelledby="hero-heading">
+  <div class="guided-hero-art" role="img" aria-label="{{hero.alt}}"></div>
+  <div class="guided-hero-shade" aria-hidden="true"></div>
+  <div class="guided-hero-text">
+    <h1 id="hero-heading" class="guided-hero-accessible">stoqnist.</h1>
+    <p class="guided-hero-subtitle">{{brand.tagline}}</p>
+  </div>
+</section>
+<section class="idea" aria-labelledby="brand-title">
+<div><p class="eyebrow">{{idea.label}}</p><h2 id="brand-title">{{idea.heading1}}<br>{{idea.heading2}}</h2></div>
+<div class="idea-copy"><p>{{idea.body}}</p><p class="concept-note">{{idea.note}}</p></div>
+</section>
+{{video_section}}
+<section id="recovery" class="recovery" aria-labelledby="recovery-title">
+<div class="demo-status"><span class="edition"><i></i> {{demo.progress}}</span></div>
+<div class="section-top"><div><p class="eyebrow">{{recovery.label}}</p><h2 id="recovery-title">{{recovery.title}}</h2></div><button id="sound" class="pill" aria-pressed="false">{{sound.off}}</button></div>
+<p class="boundary">{{recovery.boundary}} <a href="#safety">{{safety.title}}</a> · <a href="#privacy">{{privacy.short}}</a></p>
+<div class="recovery-grid">
+<div class="checkin">
+<p class="eyebrow">{{checkin.label}}</p><h3>{{checkin.title}}</h3><p>{{checkin.intro}}</p>
+<fieldset id="mood"><legend>{{mood.legend}}</legend><div class="moods">
+<button data-mood="veryLow" aria-pressed="false"><span aria-hidden="true">😞</span>{{mood.veryLow}}</button><button data-mood="low" aria-pressed="false"><span aria-hidden="true">🙁</span>{{mood.low}}</button><button data-mood="neutral" aria-pressed="false"><span aria-hidden="true">😐</span>{{mood.neutral}}</button><button data-mood="good" aria-pressed="false"><span aria-hidden="true">🙂</span>{{mood.good}}</button><button data-mood="veryGood" aria-pressed="false"><span aria-hidden="true">😊</span>{{mood.veryGood}}</button>
+</div></fieldset>
+<div class="small-actions"><button id="skip-mood" class="secondary">{{mood.skip}}</button><button id="undo-mood" class="secondary" hidden>{{mood.undo}}</button></div>
+<p id="mood-status" class="micro" role="status">{{mood.initial}}</p>
+<fieldset class="energy"><legend>{{energy.legend}} <span class="micro">{{energy.optional}}</span></legend><div class="energy-options"><button data-energy="low" aria-pressed="false">{{energy.low}}</button><button data-energy="some" aria-pressed="false">{{energy.some}}</button><button data-energy="plenty" aria-pressed="false">{{energy.plenty}}</button></div></fieldset>
+<p id="energy-feedback" class="energy-feedback" role="status" aria-live="polite" aria-atomic="true">{{energy.initial}}</p>
+<p class="micro">{{energy.note}}</p>
+</div>
+<div class="day-plan"><div class="desk-heading"><span class="eyebrow">{{plan.label}}</span><span>{{plan.day}}</span></div><h3 id="plan-title">{{plan.title}}</h3><p id="plan-status" class="muted">{{plan.initial}}</p>
+<article class="care-card"><span class="eyebrow">{{care.label}}</span><h4>{{care.title}}</h4><p>{{care.appointment}}</p><p class="micro">{{care.note}}</p></article>
+<article id="next-task" class="next-task"><span class="eyebrow">{{help.label}}</span><h4>{{help.title}}</h4><p>{{help.body}}</p><button id="prepare-help" class="secondary">{{help.open}}</button><div id="help-draft" hidden><p>{{help.draft}}</p><p class="micro">{{help.note}}</p></div></article>
+<details id="optional-tasks" open><summary id="optional-label">{{plan.optional}}</summary><ul><li>{{plan.paperwork}}</li><li>{{plan.shelf}}</li></ul></details>
+<button id="recovery-reset" class="secondary">{{recovery.reset}}</button>
+</div></div>
+<p class="micro">{{recovery.note}}</p>
+</section>
+<details class="purchase-more"><summary><span class="purchase-label">{{purchase.open}}</span><span class="purchase-preview">{{purchase.preview}}</span></summary>
+<section id="demo" aria-labelledby="demo-title">
+<div class="section-top"><div><p class="eyebrow">{{purchase.label}}</p><h2 id="demo-title">{{purchase.title}}</h2></div><span class="tag">{{purchase.tag}}</span></div>
+<div class="workspace">
+<aside><p class="eyebrow">{{purchase.choose}}</p><div id="scenarios" class="scenarios"></div><div class="note"><span>↗</span><p>{{purchase.intro}}</p></div></aside>
+<div class="desk"><div class="desk-heading"><span class="eyebrow">{{purchase.input}}</span><span id="count"></span></div><h3 id="case-title"></h3><p id="case-detail"></p><div id="evidence"></div><button id="review" class="primary" aria-controls="result" aria-expanded="false">{{purchase.review}} <span>→</span></button>
+<section id="result" hidden aria-labelledby="result-heading"><div class="result-top"><div><p class="eyebrow">{{result.label}}</p><h3 id="result-heading" tabindex="-1">{{result.title}}</h3></div><span class="tag">{{result.tag}}</span></div><div id="summary"></div><div id="owners"></div><div class="next"><h4>{{result.questions}}</h4><ul id="questions"></ul><p>{{result.caution}}</p></div><details><summary>{{result.inspect}}</summary><p>{{result.noChanges}}</p><p class="micro">{{result.rawNote}}</p><pre id="raw" lang="en"></pre></details><button id="reset" class="secondary">{{purchase.reset}}</button></section>
+</div></div>
+</section>
+</details>
+<section class="policies" aria-label="{{policies.label}}">
+<details id="safety"><summary>{{safety.title}}</summary><p>{{safety.body1}}</p><p>{{safety.body2}}</p><p>{{safety.body3}}</p></details>
+<details id="privacy"><summary>{{privacy.title}}</summary><p>{{privacy.body1}}</p><p>{{privacy.body2}}</p><p>{{privacy.body3}}</p></details>
+</section>
+</main><footer><span>{{footer.brand}}</span><span><a href="#safety">{{safety.title}}</a> · <a href="#privacy">{{privacy.short}}</a></span><a href="https://github.com/Stoqnist/chatgpt-library" target="_blank" rel="noopener noreferrer">{{footer.project}}</a></footer>
+<noscript><p class="noscript">{{noscript}}</p></noscript>
+</body></html>

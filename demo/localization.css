@@ -1,0 +1,152 @@
+/* Copy is live text, including the hero, so every language uses the same artwork. */
+.language-nav{max-width:1240px;margin:auto;padding:12px 32px 0;display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:4px 8px;font-size:13px}
+.language-nav>span{margin-right:8px;color:var(--muted)}
+.language-nav a{padding:9px 12px;min-height:44px;display:inline-flex;align-items:center;border-radius:24px;text-decoration:none;border:1px solid transparent}
+.language-nav a[aria-current=page]{background:#193d38;color:#fffdf8}
+.language-nav a:hover{border-color:var(--muted)}
+.guided-hero{min-height:320px}
+.guided-hero-art{background-image:url('/assets/stoqnist-family-mobile.webp');background-size:auto 125%;background-position:right 43%}
+.guided-hero-shade{background:linear-gradient(90deg,#12352f 0%,#12352ff2 25%,#12352f33 70%)}
+.guided-hero-text{padding:55px 48px;max-width:58%}
+.guided-hero-accessible,.guided-hero-subtitle{position:static;display:block;width:auto;height:auto;overflow:visible;clip:auto;white-space:normal;margin:0;border:0}
+.guided-hero-accessible{font:normal clamp(55px,7.4vw,96px)/1.1 Georgia,'Times New Roman',serif;letter-spacing:-.075em;color:#faf7f4}
+.guided-hero-subtitle{margin-top:12px;font:italic clamp(20px,2.4vw,30px)/1.3 Georgia,'Times New Roman',serif;color:#cfc5e6}
+/* The film deserves a recognizable first frame and a stable player on every device. */
+.film-story{margin:0 40px;padding:32px 0 42px;border-top:1px solid var(--line)}
+.film-story .eyebrow{margin-bottom:10px}
+.film-teaser-copy{max-width:60ch;color:#526a63;font-size:clamp(16px,1.6vw,20px);line-height:1.5;margin:12px 0 24px}
+.film-player{position:relative;isolation:isolate;width:100%;max-width:960px;aspect-ratio:16/9;background:#193d38;border-radius:20px;overflow:hidden;box-shadow:0 20px 52px rgba(20,49,41,.15)}
+.film-player video{display:block;width:100%;height:100%;max-width:none;aspect-ratio:16/9;object-fit:contain;background:#193d38;border:0;border-radius:0;margin:0}
+.film-play{position:absolute;z-index:2;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;width:100%;height:100%;padding:24px;border:0;border-radius:0;color:#fff;background:linear-gradient(180deg,rgba(4,34,28,.10),rgba(4,34,28,.19) 56%,rgba(4,34,28,.68));cursor:pointer;font:600 16px/1.3 system-ui,-apple-system,sans-serif;transition:background .2s ease}
+.film-play[hidden]{display:none}
+.film-play-icon{display:grid;place-items:center;width:84px;height:84px;border-radius:50%;background:#fffaf3;color:#173f37;font-size:33px;text-indent:5px;box-shadow:0 8px 24px rgba(0,0,0,.22);transition:transform .2s ease,box-shadow .2s ease}
+.film-play-label{border:1px solid rgba(255,255,255,.38);background:rgba(17,50,44,.84);padding:11px 20px;border-radius:999px;backdrop-filter:blur(8px);text-wrap:balance;text-align:center}
+.film-play:hover{background:linear-gradient(180deg,rgba(4,34,28,.04),rgba(4,34,28,.12) 56%,rgba(4,34,28,.70))}
+.film-play:hover .film-play-icon{transform:scale(1.06);box-shadow:0 10px 28px rgba(0,0,0,.27)}
+.film-play:focus-visible{outline:3px solid #f4b578;outline-offset:-6px}
+.film-runtime{position:absolute;z-index:3;top:15px;right:15px;padding:6px 11px;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(16,47,39,.77);color:#fff;font:600 12px/1.2 system-ui,-apple-system,sans-serif;pointer-events:none}
+.film-runtime[hidden],.film-story #video-status:empty{display:none}
+.film-story details{max-width:760px;font-size:16px;margin-top:22px}
+.film-story summary{min-height:44px;padding:10px 0}
+.film-story ol{padding-left:24px}
+.film-story li{padding:4px 0}
+@media(prefers-reduced-motion:reduce){.film-play,.film-play-icon{transition:none}}
+.desk-heading,.owner-head{flex-wrap:wrap;gap:8px}.moods button{overflow-wrap:anywhere}.energy-options{flex-wrap:wrap}.scenario{min-width:0}.evidence-row>div{min-width:0;overflow-wrap:anywhere}
+@media(max-width:760px){.language-nav{padding:8px 16px 0;justify-content:center}.language-nav a{padding:8px 10px}.guided-hero{min-height:0}.guided-hero-text{max-width:none;padding:20px 22px 16px}.guided-hero-accessible{font-size:clamp(48px,13vw,76px)}.guided-hero-subtitle{font-size:clamp(19px,4.7vw,28px);margin-top:3px}.guided-hero-art{background-size:cover;background-position:52% center}.film-story{margin:0 16px;padding:24px 0 32px}.film-teaser-copy{font-size:16px;margin:10px 0 18px}.film-player{border-radius:16px}.film-play{gap:10px}.film-play-icon{width:62px;height:62px;font-size:27px}.film-play-label{padding:9px 15px;font-size:13px}.film-runtime{top:10px;right:10px}.moods{grid-template-columns:repeat(5,minmax(0,1fr))}.recovery .section-top{flex-wrap:wrap}.energy-options button{min-width:70px}.scenarios{flex-wrap:wrap}.scenario{flex:1 1 100px}.tag{white-space:normal}}
+
+
+/* Focused information architecture: idea -> demos -> family signature. */
+.site-main{width:100%}
+.site-top{max-width:1160px;margin:0 auto;padding:20px 40px 10px;border:0;display:flex;justify-content:space-between;align-items:center;gap:24px;background:transparent}
+.site-mark{font:500 27px/1.15 Georgia,'Times New Roman',serif;letter-spacing:-1.3px;text-decoration:none;color:#183e36}
+.site-nav-link,.demo-back a{font:600 13px/1.35 system-ui,-apple-system,sans-serif;text-decoration:none;color:#24564d}
+.site-nav-link{padding:12px 0}
+.site-nav-link:hover,.demo-back a:hover{text-decoration:underline;text-underline-offset:4px}
+.page-home .idea{padding-top:54px;padding-bottom:45px}
+.page-home .idea h1{margin:0;font:500 clamp(40px,5.3vw,66px)/1.07 Georgia,'Times New Roman',serif;letter-spacing:-2.2px;color:#153e36}
+.catalog-home,.catalog-page{margin:0 40px;padding:30px 8px 48px;border-top:1px solid var(--line)}
+.catalog-lead{max-width:700px;margin-bottom:25px}
+.catalog-home h2,.catalog-page h1{font:500 clamp(32px,3.6vw,48px)/1.17 Georgia,'Times New Roman',serif;letter-spacing:-1.4px;color:#183e36;margin:0 0 14px}
+.catalog-lead>p:last-child,.catalog-intro{color:#526a63;line-height:1.65;max-width:64ch;margin:0 0 22px}
+.catalog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.catalog-card{display:flex;flex-direction:column;align-items:flex-start;gap:13px;min-height:212px;padding:30px;border:1px solid #cdd7ca;border-radius:20px;background:#faf9f4;color:#194137;text-decoration:none;transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease}
+.catalog-card:hover{border-color:#8aa99b;box-shadow:0 8px 30px rgba(20,54,44,.07);transform:translateY(-2px)}
+.catalog-card:focus-visible{outline:3px solid #8da98b;outline-offset:3px}
+.catalog-card .catalog-card-label{margin:0;font:500 clamp(25px,2.7vw,34px)/1.14 Georgia,'Times New Roman',serif;letter-spacing:-.9px}
+.catalog-card-copy{margin:0;color:#5a6d66;font:15px/1.5 system-ui,-apple-system,sans-serif;flex:1}
+.catalog-card-action{font:600 13px/1.4 system-ui,-apple-system,sans-serif;color:#245d4c;border-bottom:1px solid #7d9988;padding-bottom:6px}
+.catalog-page{padding-top:56px;min-height:54vh}
+.catalog-page>.micro{margin-top:26px}
+/* Show the approved family image without a vertical crop; the source itself
+   ends at some lower legs, which no layout change can reconstruct. */
+.home-banner{margin:20px 40px 30px;min-height:0;height:clamp(385px,35vw,455px);aspect-ratio:auto;border-radius:24px;overflow:hidden}
+/* The original panorama includes the elderly man seated at far right.
+   Right-align it and fit its full height so both he and the lifted girl's head
+   remain visible. The opaque brand panel conceals baked-in English lettering. */
+.home-banner .guided-hero-art{background-image:url('/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471');background-size:auto 100%;background-position:right center;background-repeat:no-repeat;filter:brightness(.98) saturate(.9);transform:none;animation:none}
+.home-banner .guided-hero-shade{background:linear-gradient(90deg,#12352f 0%,#12352f 34%,#12352ff0 38%,#12352f00 52%)}
+.home-banner .guided-hero-text{padding:48px;max-width:43%}
+.home-banner .guided-hero-accessible{font-size:clamp(42px,5.2vw,70px)}
+.home-banner .guided-hero-subtitle{font-size:clamp(18px,2.2vw,25px)}
+.page-home .idea{padding-top:20px}
+/* Tablet/phone: the brand sits above a complete, aspect-ratio-preserved image. */
+@media(max-width:960px){
+.home-banner{display:flex;flex-direction:column;height:auto;min-height:0;aspect-ratio:auto}
+.home-banner .guided-hero-text{order:0;max-width:none;padding:26px 28px 20px}
+.home-banner .guided-hero-art{position:relative;inset:auto;z-index:0;order:1;width:100%;height:auto;max-height:none;aspect-ratio:4/3;background-image:url('/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471');background-size:contain;background-position:center;filter:none;transform:none;animation:none}
+/* No text is baked into this approved artwork, so masking is prohibited. */
+.home-banner .guided-hero-art::after{display:none}
+.home-banner .guided-hero-shade{display:none}
+.home-banner .guided-hero-accessible{font-size:clamp(44px,8vw,72px)}
+}
+.demo-back{max-width:1160px;margin:8px 40px 28px;padding:12px 0}
+.page-gunter .film-story{padding-top:8px;border-top:0;margin-top:0}
+.page-gunter .film-story h1,.page-purchase #demo h1{font:500 clamp(32px,4.4vw,52px)/1.15 Georgia,'Times New Roman',serif;letter-spacing:-1.5px;color:#183e36;margin:0 0 12px}
+.page-purchase .purchase-standalone{border:0;margin-top:0}
+.page-purchase #demo{padding-top:8px}
+.page-purchase .purchase-standalone h1{margin-bottom:0}
+@media(max-width:760px){
+.site-top{padding:14px 20px 10px}
+.site-mark{font-size:23px}
+.page-home .idea{padding-top:40px;padding-bottom:26px}
+.page-home .idea h1{font-size:clamp(37px,9vw,52px);letter-spacing:-1.7px}
+.catalog-home,.catalog-page{margin:0 16px;padding:26px 8px 38px}
+.catalog-home h2,.catalog-page h1{font-size:34px}
+.catalog-grid{grid-template-columns:1fr;gap:12px}
+.catalog-card{min-height:0;padding:24px;gap:10px}
+.catalog-card .catalog-card-label{font-size:29px}
+.catalog-card-copy{font-size:14px}
+.home-banner{margin:14px 16px 30px;min-height:0;height:auto}
+.home-banner .guided-hero-text{padding:25px 20px}
+.home-banner .guided-hero-accessible{font-size:49px}
+.demo-back{margin:8px 16px 22px}
+.page-gunter .film-story h1,.page-purchase #demo h1{font-size:35px}
+.page-purchase .purchase-standalone{margin:0 16px 28px}
+}
+@media(prefers-reduced-motion:reduce){.catalog-card{transition:none}.catalog-card:hover{transform:none}}
+
+/* Phone-only editorial hierarchy: one visible wordmark, direct family image,
+   and shorter handoff into the idea. Do not crop the source photograph. */
+@media(max-width:760px){
+  .page-home .site-top{padding:4px 20px 0;justify-content:flex-end}
+  .page-home .site-mark{display:none}
+  .page-home .site-nav-link{padding:8px 0;min-height:44px;display:inline-flex;align-items:center}
+  .page-home .home-banner{margin:6px 12px 8px}
+  .page-home .home-banner .guided-hero-text{padding:19px 22px 13px}
+  .page-home .home-banner .guided-hero-subtitle{margin-top:2px}
+  .page-home .idea{padding-top:16px}
+}
+
+
+/* Approved 1448 × 1086 image, unaltered composition on desktop and phones.
+   Brand copy remains live HTML in every language, entirely outside the photo. */
+.page-home .home-banner{
+  display:grid;grid-template-columns:minmax(0,41%) minmax(0,59%);
+  height:auto;min-height:0;align-items:center;background:#12352f;
+}
+.page-home .home-banner .guided-hero-text{
+  grid-column:1;grid-row:1;position:relative;z-index:1;
+  max-width:none;width:100%;padding:30px 26px 30px 36px;
+}
+.page-home .home-banner .guided-hero-art{
+  grid-column:2;grid-row:1;position:relative;inset:auto;z-index:0;
+  width:100%;height:auto;max-height:none;aspect-ratio:4/3;
+  background-image:url('/assets/stoqnist-family-clean.webp?v=82b64016d088411cc9cffe2ceca41e7d77e74471');
+  background-size:contain;background-position:center;background-repeat:no-repeat;
+  filter:none;transform:none;animation:none;
+}
+.page-home .home-banner .guided-hero-shade{display:none}
+.page-home .home-banner .guided-hero-art::after{display:none}
+.page-home .home-banner .guided-hero-accessible{font-size:clamp(44px,5vw,70px)}
+.page-home .home-banner .guided-hero-subtitle{font-size:clamp(17px,1.85vw,23px)}
+@media(max-width:960px){
+  .page-home .home-banner{display:flex;flex-direction:column}
+  .page-home .home-banner .guided-hero-text{order:0;padding:25px 25px 18px}
+  .page-home .home-banner .guided-hero-art{order:1;width:100%;aspect-ratio:4/3}
+}
+@media(max-width:760px){
+  .page-home .home-banner{margin:6px 12px 12px}
+  .page-home .home-banner .guided-hero-text{padding:19px 22px 14px}
+  .page-home .home-banner .guided-hero-accessible{font-size:clamp(44px,12vw,50px)}
+  .page-home .home-banner .guided-hero-subtitle{font-size:clamp(19px,4.8vw,25px)}
+}

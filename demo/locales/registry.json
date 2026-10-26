@@ -1,0 +1,24 @@
+{
+  "default": "en",
+  "locales": [
+    {
+      "code": "en",
+      "name": "English",
+      "enabled": true,
+      "audioNames": {
+        "nl": "Engels",
+        "bg": "английски"
+      }
+    },
+    {
+      "code": "nl",
+      "name": "Nederlands",
+      "enabled": true
+    },
+    {
+      "code": "bg",
+      "name": "Български",
+      "enabled": true
+    }
+  ]
+}
