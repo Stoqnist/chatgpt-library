@@ -73,7 +73,7 @@
 @media(max-width:960px){
 .home-banner{display:flex;flex-direction:column;height:auto;min-height:0;aspect-ratio:auto}
 .home-banner .guided-hero-text{order:0;max-width:none;padding:26px 28px 20px}
-.home-banner .guided-hero-art{position:relative;inset:auto;z-index:0;order:1;width:100%;height:auto;max-height:none;aspect-ratio:512/371;background-size:contain;background-position:center;filter:none;transform:none;animation:none}
+.home-banner .guided-hero-art{position:relative;inset:auto;z-index:0;order:1;width:100%;height:auto;max-height:none;aspect-ratio:512/371;background-image:url('/assets/stoqnist-family-mobile.webp');background-size:contain;background-position:center;filter:none;transform:none;animation:none}
 .home-banner .guided-hero-art::after{display:none}
 .home-banner .guided-hero-shade{display:none}
 .home-banner .guided-hero-accessible{font-size:clamp(44px,8vw,72px)}
