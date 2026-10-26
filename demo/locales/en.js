@@ -198,9 +198,11 @@ window.STOQ_LOCALE = {
     "catalog.link": "Demos",
     "catalog.gunter": "Gunter’s day",
     "catalog.purchase": "A purchase",
-    "catalog.open": "Explore this demo",
     "catalog.back": "All demos",
-    "catalog.disclosure": "Fictional previews only. No connected accounts or real-world actions."
+    "catalog.disclosure": "Fictional previews only. No connected accounts or real-world actions.",
+    "catalog.gunter.preview": "Watch Gunter’s short film, then try a mood and energy check-in to see which everyday tasks can wait.",
+    "catalog.gunter.open": "Explore Gunter’s day",
+    "catalog.purchase.open": "Compare a purchase"
   },
   "sourceTextKeys": {
     "CASE {number}": "case.number",

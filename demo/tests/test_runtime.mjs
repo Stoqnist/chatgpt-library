@@ -40,4 +40,19 @@ for(const {code:locale} of registry.locales.filter(entry=>entry.enabled)){
   }
   byId('reset').click();assert.equal(byId('result').hidden,true);
   console.log(`PASS: ${locale} recovery controls, audio failure, three evidence scenarios, results and currency`);
+
+  // Model the IDs that actually exist on each generated route. The permissive
+  // interaction fixture above cannot catch initialization against absent controls.
+  for(const route of ['index.html','demos/index.html','demos/gunter/index.html','demos/purchase/index.html']){
+    const page=fs.readFileSync(new URL((locale==='en'?'':locale+'/')+route,root),'utf8');
+    const routeIds=new Map([...page.matchAll(/<([a-z][\w-]*)\b[^>]*\bid="([^"]+)"/g)].map(([,tag,id])=>[id,Object.assign(new Element(),{tagName:tag.toUpperCase()})]));
+    const routeDocument={getElementById:id=>routeIds.get(id)??null,createElement:()=>new Element(),querySelectorAll:selector=>selector==='.scenario'?(routeIds.get('scenarios')?.children??[]):[]};
+    const routeContext=vm.createContext({document:routeDocument,window:{addEventListener(){}},location:{hash:''},Intl,URL});
+    for(const file of [`locales/${locale}.js`,'i18n.js','cases.js','app.js']){
+      assert.doesNotThrow(()=>vm.runInContext(fs.readFileSync(new URL(file,root),'utf8'),routeContext),`${locale}/${route}: ${file}`);
+    }
+    if(route.includes('gunter')) assert.equal(typeof routeIds.get('sound').listeners.click,'function');
+    if(route.includes('purchase')) assert.equal(routeIds.get('scenarios').children.length,3);
+  }
+  console.log(`PASS: ${locale} homepage, catalog and individual demo initialization`);
 }

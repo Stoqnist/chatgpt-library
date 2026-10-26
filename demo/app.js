@@ -42,7 +42,8 @@ $('reset').addEventListener('click',()=>{select((active+1)%window.DEMO_CASES.len
 select(0);
 }
 
-if ($('recovery')) {
+// The catalog also has a legacy #recovery link; initialize only the real form.
+if ($('mood')) {
 // Recovery is a fictional UI story, not clinical logic or the V2 coordinator.
 let soundOn = false;
 let audioContext;

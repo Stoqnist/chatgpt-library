@@ -198,9 +198,11 @@ window.STOQ_LOCALE = {
     "catalog.link": "Демонстрации",
     "catalog.gunter": "Денят на Гунтер",
     "catalog.purchase": "Една покупка",
-    "catalog.open": "Разгледайте демонстрацията",
     "catalog.back": "Всички демонстрации",
-    "catalog.disclosure": "Само измислени примери. Няма свързани акаунти или реални действия."
+    "catalog.disclosure": "Само измислени примери. Няма свързани акаунти или реални действия.",
+    "catalog.gunter.preview": "Прочетете историята на Гунтер. После изберете настроението и енергията му, за да видите кои ежедневни задачи могат да почакат.",
+    "catalog.gunter.open": "Разгледайте деня на Гунтер",
+    "catalog.purchase.open": "Сравнете покупка"
   },
   "sourceTextKeys": {
     "CASE {number}": "case.number",

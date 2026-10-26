@@ -50,17 +50,18 @@ def render_pages(full_page, code, messages):
 
     def cards(compact=False):
         entries = [
-            ('recovery', 'gunter/', 'catalog.gunter', 'checkin.intro'),
-            ('demo', 'purchase/', 'catalog.purchase', 'purchase.preview'),
+            ('recovery', 'gunter/', 'catalog.gunter', 'catalog.gunter.preview', 'catalog.gunter.open'),
+            ('demo', 'purchase/', 'catalog.purchase', 'purchase.preview', 'catalog.purchase.open'),
         ]
+        heading = 'h3' if compact else 'h2'
         cards_html = ''
-        for anchor, leaf, key, description in entries:
+        for anchor, leaf, key, description, action in entries:
             cards_html += (
                 f'<a class="catalog-card" id="{anchor}" href="{link("demos/" + leaf)}">'
-                f'<span class="catalog-card-label">{esc(messages[key])}</span>'
-                f'<span class="catalog-card-copy">{esc(messages[description])}</span>'
-                f'<span class="catalog-card-action">{esc(messages["catalog.open"])} <span aria-hidden="true">→</span></span>'
-                '</a>'
+                f'<{heading} class="catalog-card-label">{esc(messages[key])}</{heading}>\n'
+                f'<p class="catalog-card-copy">{esc(messages[description])}</p>\n'
+                f'<span class="catalog-card-action">{esc(messages[action])} <span aria-hidden="true">→</span></span>'
+                '</a>\n'
             )
         return '<div class="catalog-grid">' + cards_html + '</div>'
 
@@ -74,7 +75,7 @@ def render_pages(full_page, code, messages):
         '<section class="catalog-home" aria-labelledby="catalog-home-title">'
         f'<div class="catalog-lead"><p class="eyebrow">{esc(messages["catalog.label"])}</p>'
         f'<h2 id="catalog-home-title">{esc(messages["catalog.heading"])}</h2>'
-        f'<p>{esc(messages["catalog.intro"])}</p></div>{cards()}</section>'
+        f'<p>{esc(messages["catalog.intro"])}</p></div>{cards(compact=True)}</section>'
     )
     catalog_cards = (
         '<section class="catalog-page" aria-labelledby="catalog-title">'
@@ -98,7 +99,9 @@ def render_pages(full_page, code, messages):
     pages = {}
 
     for leaf, body in bodies.items():
-        header = start
+        page_kind = {'': 'home', 'demos/': 'catalog', 'demos/gunter/': 'gunter',
+                     'demos/purchase/': 'purchase'}[leaf]
+        header = start.replace('<body>', f'<body class="page-{page_kind}">', 1)
         header = re.sub(
             r'(<link rel="canonical" href=")https://stoq\.page[^"]*',
             lambda m: m[1] + 'https://stoq.page' + route(code, leaf), header)
