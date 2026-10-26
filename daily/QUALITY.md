@@ -93,6 +93,20 @@ medical symptoms through this pilot. Re-run a fictional symptom canary
 after the reviewed patch is separately deployed; do not use a private
 medical record as the CI fixture.
 
+### Container-build permission preflight
+
+A fresh source checkout made under `umask 077` may have source files with
+mode `0600`, which Docker can preserve on `COPY`. The historical
+`a65b7fa` candidate failed before startup with `PermissionError: /app/app.py`
+when Gunicorn ran as non-root UID 10001. The Dockerfile now normalizes
+application/static read permissions and validates non-root access at build
+time. A passing offline unit suite did **not** catch this Docker image failure.
+
+Build a **new** tag from the pinned fixed SHA, confirm an isolated no-secret
+container can serve `/health`, and only then consider another controlled
+promotion with the existing backup/rollback mechanism. Do not change
+permissions of private `/data` or of API key and session files.
+
 ## C. Deployment and evidence
 
 The Hetzner service previously reported source `2eb75ef`; more recent source
