@@ -56,6 +56,13 @@ class LocalizationTests(unittest.TestCase):
             else:
                 self.assertNotIn('<video',gunter)
             self.assertIn('href="/'+prefix+'demos/gunter/"',home)
+            # Brand-first ordering remains consistent in every localized homepage.
+            self.assertLess(home.index('class="guided-hero home-banner"'),home.index('class="idea"'))
+            self.assertLess(home.index('class="idea"'),home.index('class="catalog-home"'))
+            self.assertLess(home.index('class="catalog-home"'),home.index('class="policies"'))
+        css = (self.root/'localization.css').read_text()
+        self.assertIn('background-size:auto 100%',css)
+        self.assertIn('aspect-ratio:512/371',css)
         for file in ('demos/index.html','demos/gunter/index.html','demos/purchase/index.html',
                      'nl/demos/index.html','bg/demos/index.html'):
             self.assertIn('COPY '+file+' /usr/share/nginx/html/'+file,files['Dockerfile'])
