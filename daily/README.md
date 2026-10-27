@@ -35,6 +35,15 @@ what the user reported.
 The changes above are only active once this reviewed source is separately
 deployed to Hetzner. Passing CI does not verify the running image.
 
+## Calendar read-only foundation (not connected)
+
+- [Calendar availability design and authorization gates](CALENDAR.md)
+  describe a Google freeBusy-only adapter (calendar_readonly.py) with no event
+  content, OAuth grant, Calendar reads or production connection yet.
+- The current app continues to use check-in text only. Do not claim real
+  Calendar availability until a separately consented owner OAuth connection,
+  private token lifecycle, privacy review and live read-only canary are verified.
+
 ## Quality evidence
 
 - [Daily quality gate](QUALITY.md) contains seven fictional offline journeys plus a small real-model manual canary rubric. A green offline test is not a live-model quality result.
