@@ -34,6 +34,31 @@ generally available. Calendar state is a bounded observation, never a promise
 that an appointment was created. Provider failures mean **missing context**
 and must not be interpreted as "free all day".
 
+## Sign-in is not Calendar authorization
+
+Stoq Daily's planned low-friction sign-in uses **Google as a Cloudflare
+Access identity provider** and, when Google offers it, a device passkey
+unlocked with Face ID. Existing Cloudflare one-time PIN and the Daily
+owner access code remain working fallbacks until separately verified.
+Do not attempt to implement Face ID directly in the Daily model pipeline.
+Cloudflare Access authentication alone must not be trusted by the origin
+without a verified JWT/session boundary.
+
+The **Cloudflare Google sign-in OAuth client** requests authentication
+identity only. The **Stoq Calendar OAuth client** is a separate authorization
+and credential lifecycle for a separately consented read-only calendar grant.
+These clients must not share secrets, tokens or extra Calendar scopes.
+A passkey authenticates the Google user; it does not authorize Stoq to
+inspect their Google Calendar or keep a refresh token. Connection may be
+re-prompted after expiry/revocation, which is preferable to hidden overreach.
+
+Deployment order: (1) personal Google passkey setup; (2) configure/test
+Google as additional Cloudflare IdP with exact owner email allow rule,
+retaining one-time PIN; (3) separately implement Calendar PKCE OAuth as
+specified below. Do not remove the second Daily access-code gate until
+backend validation of trusted Cloudflare identity is implemented and
+tested, including direct-origin bypass resistance.
+
 ## Auth and rollout blockers
 
 The adapter expects a separately supplied short-lived OAuth access token.
