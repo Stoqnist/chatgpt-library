@@ -89,6 +89,12 @@ class DailyTest(unittest.TestCase):
         self.assertEqual(sorted([p['user_reported_excerpts'][0] for p in payloads]),sorted(['I slept well.','I want to tidy the kitchen.','I have an hour this morning.']))
         self.assertTrue(all('tools' not in p for p in payloads))
 
+    def test_router_instruction_requires_evidence_for_urgent_flag(self):
+        from app import ROUTER
+        self.assertIn('Do not invent missing emergency signs.', ROUTER)
+        self.assertIn('NOT by themselves evidence of an emergency', ROUTER)
+        self.assertIn('A clearly described emergency remains urgent even in a fictional scenario.', ROUTER)
+
     def test_fictional_unassessed_pain_stretching_advice_is_not_displayed(self):
         prompt = 'A fictional person reports shoulder pain today.'
         self.provider.route = {'urgent': False, 'tasks': [
