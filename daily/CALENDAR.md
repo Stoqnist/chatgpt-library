@@ -1,6 +1,41 @@
 # Calendar availability in private Daily — first read-only slice
 
-**Status (2026-10-28):** owner-reported OAuth grant saved in the deployed private Daily app. The new explicit free/busy verification endpoint is **not deployed yet**. The existing model pipeline does not access Calendar data. Credentials and grant remain exclusively on the private server.
+**Status (2026-10-28):** owner confirmed the deployed private Daily app successfully verified Google primary-calendar free/busy. The next opt-in Planning integration is **source-only, not deployed**. Existing production still does not pass Calendar data to models. OAuth credentials and grant remain exclusively on the private server.
+
+## Opt-in Calendar-to-Planning integration (source only)
+
+The user-observed private Daily UI returned: **"Google Calendar availability
+verified for the primary calendar. No event details were accessed;
+availability is not used in plans yet."** following the API activation fix.
+This establishes one live freeBusy read on the owner's primary Calendar, not
+a perpetual availability guarantee.
+
+The next reviewed slice introduces a one-time, owner-only, CSRF-protected
+"Use free/busy for Planning" toggle. **Default is OFF** even if a grant exists.
+When enabled, only a relevant, nonurgent Planning check-in reads Calendar.
+The router receives the original check-in only. Wellbeing and Home receive
+only their existing validated excerpts, without calendar context. The final
+coordinator sees only specialist suggestions, never raw calendar windows.
+The Planning specialist receives at most six sample free intervals over
+the next 24 hours, converted to Europe/Amsterdam time, with a warning that
+"free" is not a confirmed or appropriate personal appointment time.
+
+Stored check-in history may contain resulting time recommendations for seven
+days, as explicitly disclosed next to the toggle. No raw provider response,
+busy intervals, event titles, attendees, IDs, credentials or full free/busy
+snapshot is saved to check-in history. If the grant is revoked, the service is
+unavailable, or there are no relevant Planning tasks, the system makes no
+calendar claim and continues with the owner's submitted text only. Urgent
+routing interrupts without any Calendar calls.
+
+Disabling consent takes effect for future check-ins; disconnect also clears
+the opt-in. The application refuses opt-in changes and disconnects while
+a check-in is active, avoiding surprise changes mid-run. No Calendar writes,
+automatic scheduling, reminders, background reads or additional scopes are
+authorized. Deployment, live Calendar-to-Planning user canaries, timezone
+quality review, and model output evaluation remain future release gates.
+Existing production is unchanged until the operator deploys a reviewed
+pinned candidate with backup and rollback.
 
 ## Narrowest useful operation
 
