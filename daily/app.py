@@ -94,6 +94,18 @@ def safe_framing(output, *, fictional=False, calendar=False):
         ]
         if SECOND_PERSON.search(output['question']):
             output['question'] = ''
+    if calendar:
+        if CALENDAR_CERTAINTY.search(output['summary']):
+            output['summary'] = (
+                'An unblocked calendar interval was considered; '
+                'personal availability was not confirmed.'
+            )
+        output['missing_context'] = [
+            text for text in output['missing_context']
+            if not CALENDAR_CERTAINTY.search(text)
+        ]
+        if CALENDAR_CERTAINTY.search(output['question']):
+            output['question'] = ''
     output['suggestions'] = [
         suggestion for suggestion in output['suggestions']
         if not (fictional and SECOND_PERSON.search(suggestion))
