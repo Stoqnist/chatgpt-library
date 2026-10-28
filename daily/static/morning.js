@@ -40,7 +40,7 @@ const MorningCompanion = (() => {
     function stopAudio(){
       if(recognizer){const current=recognizer;recognizer=null;try{current.abort();}catch(_){}}
       if(speechSupported)window.speechSynthesis.cancel();
-      spoken=false;dictate.textContent='Speak answer';read.textContent='Hear question';
+      spoken=false;dictate.textContent='Speak answer';read.textContent='Hear question';readPlan.textContent='Listen to plan';
     }
     function speak(text,button){
       if(!speechSupported)return;
@@ -82,7 +82,7 @@ const MorningCompanion = (() => {
       // No automatic submission: the owner explicitly reviews the text.
     });
     cancel.addEventListener('click',close);
-    read.addEventListener('click',()=>speak(question.textContent,read));
+    read.addEventListener('click',()=>speak((position===0?'Good morning. ':'')+question.textContent,read));
     readPlan.addEventListener('click',()=>{
       if(get('result').hidden)return;
       const title=get('result-title').textContent;
@@ -100,6 +100,7 @@ const MorningCompanion = (() => {
         dictate.textContent='Stop microphone';
         status('Listening only after your click. Your browser may use an external service to transcribe audio.');
         r.onresult=event=>{
+          if(recognizer!==r||!running)return;
           const words=Array.from(event.results).map(x=>x[0]?.transcript||'').join(' ').trim();
           if(words)answer.value=[answer.value.trim(),words].filter(Boolean).join(' ').slice(0,900);
         };
