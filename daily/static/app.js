@@ -52,7 +52,7 @@ function renderRun(run){
   $('result-title').textContent=historical&&run.status==='completed'?'Saved check-in from '+runDate(run):run.result.message||'Preparing your plan.';
   $('result-source').textContent=run.result.source||(run.status==='running'?'This can take about a minute. You can return to this page.':'Saved response based on that check-in.');
   $('progress').replaceChildren();$('plan').replaceChildren();$('questions').replaceChildren();
-  if(run.result.next_steps?.length){const steps=el('ol',undefined,'next-steps');for(const step of run.result.next_steps){const item=el('li');item.append(el('span',step.text));item.append(el('small',step.owner));steps.append(item);}$('plan').append(steps);}
+  if(run.result.next_steps?.length){const steps=el('ol',undefined,'next-steps');for(const step of run.result.next_steps){const item=el('li');item.append(el('span',step.text));item.append(el('small',step.owner));steps.append(item);}$('plan').append(el('h3','Start here'),steps);}
   for(const agent of run.result.agents||[]){
     $('progress').append(el('span',agent.name+' · '+({completed:'ready',waiting:'working',failed:'unavailable'}[agent.status]||agent.status),agent.status));
     if(agent.status==='waiting')continue;
