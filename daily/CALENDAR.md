@@ -112,6 +112,42 @@ be evaluated before considering Production publication.
   Cloudflare's identity provider client. The latter authenticates the user
   but does not grant calendar access.
 
+## Owner-only Calendar consent runtime (staged; not deployed)
+
+This iteration adds `daily/calendar_connection.py` and three existing Daily
+server endpoints:
+- Authenticated, CSRF-protected POST /daily/api/calendar/connect creates one
+  short-lived, owner-session-bound, single-use PKCE authorization request.
+- GET /daily/api/calendar/callback uses a Secure, HttpOnly, **SameSite=Lax**
+  short-lived correlation cookie, verifies server-side state, expiry and the
+  original still-live owner session, then consumes the request **before**
+  exchanging a code. It does not depend on the SameSite=Strict Daily session
+  on the cross-site Google redirect.
+- Authenticated POST /daily/api/calendar/disconnect removes local pending
+  consent and stored refresh credentials; it does **not** revoke provider-side
+  Google consent. Owners can additionally revoke access in Google Account.
+
+This feature is fail-closed until the operator installs the downloaded Google
+Web client file as `/opt/agency-daily/private/data/calendar-client.json`, with
+owner UID 10001 and mode 0600. The original download stays private, and
+nothing is stored in GitHub, environment variables, browser storage or logs
+by these application paths. The on-disk refresh grant is mode 0600 in
+`/data/calendar-grant.json`; only the refresh credential is persisted.
+Google Cloud clients must use the precise redirect URI described above.
+
+**Do not install or deploy with the live client yet.** Before a live consent
+trial, the full feature must pass CI, the app must be deployed with backup and
+rollback, and the proxy/Cloudflare callback path must be verified not to
+record authorization codes. The existing Nginx public demo source has access
+logging disabled globally, but this does not prove that all upstream
+infrastructure logs omit query parameters.
+
+This consent phase does not call Google Calendar, refresh access tokens, or
+send availability to Planning. A successful authorization is only a grant
+stored for later verification. Calendar remains unavailable to the model
+until the subsequent free/busy read wiring is separately tested. A locally
+saved grant is not proof of a valid current refresh token.
+
 ## Auth and rollout blockers
 
 The adapter expects a separately supplied short-lived OAuth access token.
