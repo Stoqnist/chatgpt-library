@@ -1,6 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
-let csrf='', state=null, activeId=null, poll=null, request=null, busy=false;
+let csrf='', state=null, activeId=null, activeKind=null, poll=null, request=null, busy=false;
+let guidedDraft=false, submittedPrompt=null, renderedRun=null;
 const notice=(message,error=false)=>{$('notice').textContent=message;$('notice').classList.toggle('error',error);};
 async function api(path,data){
   const options={credentials:'same-origin',cache:'no-store',headers:{}};
@@ -12,17 +13,44 @@ async function api(path,data){
   return result;
 }
 function lockUI(){
-  clearTimeout(poll);state=null;csrf='';activeId=null;request=null;busy=false;
+  clearTimeout(poll);state=null;csrf='';activeId=null;activeKind=null;request=null;busy=false;
+  guidedDraft=false;submittedPrompt=null;renderedRun=null;
   $('locked').hidden=false;$('workspace').hidden=true;$('prompt').value='';$('api-key').value='';
   $('plan').replaceChildren();$('history').replaceChildren();$('result').hidden=true;
+  $('history-section').open=false;$('checkin-form').hidden=true;
+  $('checkin-state').textContent='Not started';
   document.dispatchEvent(new Event('daily:locked'));
 }
 function el(tag,text,className){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;}
+function isToday(run){return new Date(run.created*1000).toDateString()===new Date().toDateString();}
+function runDate(run){return new Date(run.created*1000).toLocaleString([], {year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+function updateCheckinState(){
+  const current=state?.runs.find(r=>r.id===activeId);
+  const draft=guidedDraft||Boolean($('prompt').value.trim()&&$('prompt').value.trim()!==submittedPrompt);
+  $('checkin-state').textContent=busy?'Working':draft?'Draft in progress':
+    current&&activeKind==='current'&&isToday(current)?
+      ({completed:"Today's completed plan",partial:"Today's partial plan",failed:'Needs attention',interrupted:'Interrupted',needs_attention:'Pause & seek help'}[current.status]||'Not started'):'Not started';
+}
+function editDraft(){
+  request=null;
+  if(!busy){
+    document.dispatchEvent(new Event('daily:result-changed'));
+    activeId=null;activeKind=null;renderedRun=null;$('result').hidden=true;
+  }
+  updateCheckinState();
+}
+function openTextDraft(){
+  document.dispatchEvent(new Event('daily:text-entry'));
+  $('checkin-form').hidden=false;$('prompt').focus();
+}
 function renderRun(run){
+  const historical=activeKind==='history'||(run.status!=='running'&&!isToday(run));
+  if(renderedRun!==run.id){document.dispatchEvent(new Event('daily:result-changed'));renderedRun=run.id;}
   $('result').hidden=false;$('result').setAttribute('aria-busy',String(run.status==='running'));
-  $('run-status').textContent=({running:'Working',completed:'Ready',partial:'Partial',failed:'Needs attention',interrupted:'Interrupted',needs_attention:'Pause & seek help'})[run.status]||run.status;
-  $('result-title').textContent=run.result.message||'Preparing your plan.';
-  $('result-source').textContent=run.result.source||'This can take about a minute. You can return to this page.';
+  $('result-context').textContent=(historical?'Previous check-in · ':"Current check-in · ")+runDate(run);
+  $('run-status').textContent=({running:'Working',completed:'Completed',partial:'Partial',failed:'Needs attention',interrupted:'Interrupted',needs_attention:'Pause & seek help'})[run.status]||run.status;
+  $('result-title').textContent=historical&&run.status==='completed'?'Saved check-in from '+runDate(run):run.result.message||'Preparing your plan.';
+  $('result-source').textContent=run.result.source||(run.status==='running'?'This can take about a minute. You can return to this page.':'Saved response based on that check-in.');
   $('progress').replaceChildren();$('plan').replaceChildren();$('questions').replaceChildren();
   if(run.result.next_steps?.length){const steps=el('ol',undefined,'next-steps');for(const step of run.result.next_steps){const item=el('li');item.append(el('span',step.text));item.append(el('small',step.owner));steps.append(item);}$('plan').append(steps);}
   for(const agent of run.result.agents||[]){
@@ -34,12 +62,14 @@ function renderRun(run){
     $('plan').append(card);
   }
   if(run.result.questions?.length){$('questions').append(el('h3','Only if you can add a little more'));for(const q of run.result.questions)$('questions').append(el('p',q));}
+  updateCheckinState();
 }
 async function refresh(){
   try{state=await api('state');}catch(error){if(!$('workspace').hidden)notice(error.message,true);return;}
   csrf=state.csrf;$('locked').hidden=true;$('workspace').hidden=false;
   const running=state.runs.find(r=>r.status==='running');busy=Boolean(running);
   $('run-button').disabled=busy||!state.connected;
+  $('morning-open').disabled=busy;
   $('run-button').textContent=busy?'Your specialists are working…':'Find my next steps ↗';
   $('connection').textContent=state.connected?`${state.remaining} check-ins available today`:'Add your API key in Settings to begin';
   if(!state.connected){$('settings').hidden=false;$('settings-toggle').setAttribute('aria-expanded','true');}
@@ -58,19 +88,30 @@ async function refresh(){
   $('calendar-connect').hidden=calendar.connected;
   $('calendar-disconnect').hidden=!calendar.connected;
   $('calendar-verify').hidden=!calendar.connected;
-  if(running)activeId=running.id;
-  if(!activeId&&state.runs.length)activeId=state.runs[0].id;
+  if(running){activeId=running.id;activeKind='current';}
   const active=state.runs.find(r=>r.id===activeId);if(active)renderRun(active);else $('result').hidden=true;
-  $('history').replaceChildren();$('history-section').hidden=state.runs.length<1;
-  for(const run of state.runs){const b=el('button',run.prompt.slice(0,95)+(run.prompt.length>95?'…':''));b.type='button';b.append(el('small',new Date(run.created*1000).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+' · '+run.status));b.addEventListener('click',()=>{activeId=run.id;renderRun(run);$('result').scrollIntoView({block:'start'});});$('history').append(b);}
+  const previous=state.runs.filter(r=>r.status!=='running');
+  $('history').replaceChildren();$('history-section').hidden=previous.length<1;
+  for(const run of previous){const b=el('button',run.prompt.slice(0,95)+(run.prompt.length>95?'…':''));b.type='button';b.disabled=busy;b.append(el('small',runDate(run)+' · '+run.status));b.addEventListener('click',()=>{if(busy)return;activeId=run.id;activeKind='history';renderRun(run);$('result').scrollIntoView({block:'start'});});$('history').append(b);}
+  updateCheckinState();
   clearTimeout(poll);if(running)poll=setTimeout(refresh,1800);
 }
 $('date').textContent=new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'});
 $('login-form').addEventListener('submit',async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;try{await api('login',{password:$('password').value});$('password').value='';notice('');await refresh();}catch(error){notice(error.message,true);}finally{button.disabled=false;}});
 $('settings-toggle').addEventListener('click',()=>{$('settings').hidden=!$('settings').hidden;$('settings-toggle').setAttribute('aria-expanded',String(!$('settings').hidden));});
 $('key-form').addEventListener('submit',async e=>{e.preventDefault();e.submitter.disabled=true;try{await api('settings',{api_key:$('api-key').value.trim()});$('api-key').value='';$('settings').hidden=true;$('settings-toggle').setAttribute('aria-expanded','false');notice('Key saved. Your first check-in will test the connection.');await refresh();}catch(error){notice(error.message,true);}finally{e.submitter.disabled=false;}});
-$('checkin-form').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const prompt=$('prompt').value.trim();if(!request||request.prompt!==prompt)request={prompt,request_id:crypto.randomUUID()};busy=true;$('run-button').disabled=true;notice('');try{const r=await api('run',request);activeId=r.id;request=null;await refresh();$('result').scrollIntoView({block:'start'});}catch(error){notice(error.message,true);busy=false;await refresh();}});
-for(const button of document.querySelectorAll('[data-starter]'))button.addEventListener('click',()=>{if($('prompt').value.trim()&&!confirm('Replace your current check-in text?'))return;$('prompt').value=button.dataset.starter;$('prompt').focus();request=null;});
+$('checkin-form').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const prompt=$('prompt').value.trim();if(!request||request.prompt!==prompt)request={prompt,request_id:crypto.randomUUID()};busy=true;$('run-button').disabled=true;$('morning-open').disabled=true;updateCheckinState();notice('');try{const r=await api('run',request);activeId=r.id;activeKind='current';submittedPrompt=prompt;request=null;guidedDraft=false;await refresh();$('result').scrollIntoView({block:'start'});}catch(error){notice(error.message,true);busy=false;await refresh();}});
+$('prompt').addEventListener('input',editDraft);
+$('write-instead').addEventListener('click',openTextDraft);
+document.addEventListener('daily:draft',e=>{guidedDraft=e.detail.active;editDraft();});
+for(const button of document.querySelectorAll('[data-starter]'))button.addEventListener('click',()=>{if($('prompt').value.trim()&&!confirm('Replace your current check-in text?'))return;openTextDraft();$('prompt').value=button.dataset.starter;editDraft();});
+// Re-label an open plan when the local day changes, including return from background.
+function refreshDate(){
+  $('date').textContent=new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'});
+  const active=state?.runs.find(r=>r.id===activeId);if(active)renderRun(active);else updateCheckinState();
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshDate();});
+setInterval(refreshDate,60000);
 $('logout').addEventListener('click',async()=>{try{await api('logout',{});lockUI();notice('Your space is locked.');}catch(error){notice(error.message,true);}});
 $('calendar-connect').addEventListener('click',async e=>{
   const button=e.currentTarget;button.disabled=true;

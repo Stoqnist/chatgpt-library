@@ -28,89 +28,124 @@ const MorningCompanion = (() => {
     if(!panel)return;
     const open=get('morning-open'),answer=get('morning-answer'),question=get('morning-question');
     const progress=get('morning-progress'),next=get('morning-next'),cancel=get('morning-cancel');
-    const read=get('morning-hear'),dictate=get('morning-dictate');
-    const voiceStatus=get('morning-voice-status'),readPlan=get('read-plan');
+    const read=get('morning-hear'),dictate=get('morning-dictate'),stop=get('morning-stop');
+    const voiceStatus=get('morning-voice-status'),speechStatus=get('morning-speech-status'),readPlan=get('read-plan');
     const speechSupported=typeof window!=='undefined'&&'speechSynthesis' in window&&'SpeechSynthesisUtterance' in window;
     const Recognition=typeof window!=='undefined'&&(window.SpeechRecognition||window.webkitSpeechRecognition);
-    let running=false,position=0,answers=['','',''],recognizer=null,spoken=false;
-    read.hidden=!speechSupported;
+    const fallback='Tap the answer box, then the microphone on your device keyboard if available, or type your answer.';
+    let running=false,position=0,answers=['','',''],recognizer=null,utterance=null,speechTimer=null;
+    read.disabled=!speechSupported;
     readPlan.hidden=!speechSupported;
-    dictate.hidden=!Recognition;
+    // Keep an actionable, honest fallback visible even on iPhone browsers without recognition.
+    dictate.textContent=Recognition?'Speak answer':'Use keyboard dictation';
     const status=message=>{voiceStatus.textContent=message;};
+    const draft=active=>document.dispatchEvent(new CustomEvent('daily:draft',{detail:{active}}));
+    function syncControls(){
+      stop.disabled=!recognizer&&!utterance;
+      dictate.disabled=Boolean(recognizer);
+      read.textContent='Hear question';readPlan.textContent='Listen to plan';
+    }
     function stopAudio(){
+      clearTimeout(speechTimer);speechTimer=null;
       if(recognizer){const current=recognizer;recognizer=null;try{current.abort();}catch(_){}}
+      utterance=null;
       if(speechSupported)window.speechSynthesis.cancel();
-      spoken=false;dictate.textContent='Speak answer';read.textContent='Hear question';readPlan.textContent='Listen to plan';
+      syncControls();
     }
     function speak(text,button){
-      if(!speechSupported)return;
-      if(spoken){window.speechSynthesis.cancel();spoken=false;button.textContent=button===read?'Hear question':'Listen to plan';return;}
+      if(!speechSupported){speechStatus.textContent='Spoken prompts are unavailable in this browser. Read the question below and dictate or type.';return;}
+      if(utterance){stopAudio();speechStatus.textContent='Playback stopped.';return;}
       stopAudio();
-      const utterance=new window.SpeechSynthesisUtterance(text.slice(0,1600));
-      utterance.lang='en-GB';utterance.rate=0.96;
-      spoken=true;button.textContent='Stop speaking';
-      const reset=()=>{spoken=false;button.textContent=button===read?'Hear question':'Listen to plan';};
-      utterance.onend=reset;utterance.onerror=reset;
-      window.speechSynthesis.speak(utterance);
+      const u=new window.SpeechSynthesisUtterance(text.slice(0,1600));
+      utterance=u;u.lang='en-GB';u.rate=0.96;syncControls();button.textContent='Stop speaking';
+      speechStatus.textContent='Starting spoken prompt… If you cannot hear it, check volume or read the question.';
+      u.onstart=()=>{if(utterance!==u)return;clearTimeout(speechTimer);speechStatus.textContent='Speaking. You can stop playback at any time.';};
+      u.onend=()=>{if(utterance!==u)return;clearTimeout(speechTimer);utterance=null;syncControls();speechStatus.textContent='Playback finished. If you heard nothing, check device volume or read the question.';};
+      u.onerror=()=>{if(utterance!==u)return;stopAudio();speechStatus.textContent='Audio could not play. Read the question, or tap Hear question to retry.';};
+      // Some mobile browsers expose TTS but never start playback. Do not imply it was heard.
+      speechTimer=setTimeout(()=>{if(utterance!==u)return;stopAudio();speechStatus.textContent='Audio did not start. Read the question, or tap Hear question to retry.';},5000);
+      try{window.speechSynthesis.speak(u);}catch(_){u.onerror();}
     }
     function show(){
       question.textContent=questions[position].question;
-      progress.textContent='Question '+(position+1)+' of '+questions.length;
+      progress.textContent='Question '+(position+1)+' of '+questions.length+' · You may leave any answer blank';
       answer.value=answers[position];
-      next.textContent=position===questions.length-1?'Review my check-in':'Next question';
-      answer.focus();
+      next.textContent=position===questions.length-1?'Review my check-in':'Next question / skip';
+      // Avoid opening the software keyboard over the voice controls on the first tap.
+      get('morning-greeting').focus();
+      panel.scrollIntoView({block:'start'});
     }
-    function close(){stopAudio();running=false;panel.hidden=true;answer.value='';answers=['','',''];position=0;status('');}
+    function close(){
+      stopAudio();running=false;panel.hidden=true;open.setAttribute('aria-expanded','false');
+      answer.value='';answers=['','',''];position=0;status('');speechStatus.textContent='';draft(false);
+    }
     open.addEventListener('click',()=>{
       const prompt=get('prompt');
-      if(prompt.value.trim()&&!window.confirm('Start a guided morning check-in? Your current unsent text will remain until you choose to review the new draft.'))return;
-      stopAudio();running=true;answers=['','',''];position=0;panel.hidden=false;show();
-      status('You may type or use your device keyboard microphone. Browser speech recognition, if available, may use an external speech service.');
+      if((running||prompt.value.trim())&&!window.confirm('Start a new guided morning check-in? Guided answers will be reset. Your unsent text stays until you review the new draft.'))return;
+      stopAudio();running=true;answers=['','',''];position=0;panel.hidden=false;
+      open.setAttribute('aria-expanded','true');get('checkin-form').hidden=true;draft(true);show();
+      status(Recognition?'Tap Speak answer to start the microphone. Your browser may use an external speech service.':'Browser speech recognition is unavailable here. '+fallback);
+      speak('Hello. Welcome to your morning check-in. Share only what you want to share. '+question.textContent,read);
     });
     next.addEventListener('click',()=>{
       if(!running)return;
-      stopAudio();answers[position]=answer.value.slice(0,900);
-      if(position<questions.length-1){position+=1;show();return;}
-      const draft=buildPrompt(answers);
-      if(!draft){status('Add at least one answer before reviewing.');return;}
+      stopAudio();speechStatus.textContent='';answers[position]=answer.value.slice(0,900);
+      if(position<questions.length-1){position+=1;show();status(Recognition?'Tap Speak answer, dictate or type.':fallback);return;}
+      const text=buildPrompt(answers);
+      if(!text){status('Add at least one answer before reviewing, or cancel to write a check-in.');return;}
       const prompt=get('prompt');
       if(prompt.value.trim()&&!window.confirm('Replace your unsent check-in with these morning answers?'))return;
-      prompt.value=draft;
+      prompt.value=text;get('checkin-form').hidden=false;
       prompt.dispatchEvent(new Event('input',{bubbles:true}));
       close();prompt.focus();
       get('notice').textContent='Morning check-in drafted. Review and edit it before choosing Find my next steps.';
       // No automatic submission: the owner explicitly reviews the text.
     });
-    cancel.addEventListener('click',close);
-    read.addEventListener('click',()=>speak((position===0?'Good morning. ':'')+question.textContent,read));
+    cancel.addEventListener('click',()=>{close();get('checkin-form').hidden=!get('prompt').value.trim();open.focus();});
+    stop.addEventListener('click',()=>{
+      if(recognizer){
+        // Stop capture but accept the final transcript. Cancel/navigation instead aborts it.
+        status('Finishing speech input…');stop.disabled=true;
+        try{recognizer.stop();}catch(_){stopAudio();status('Microphone off. '+fallback);}
+        return;
+      }
+      stopAudio();speechStatus.textContent='Audio stopped.';status('Microphone off. '+fallback);
+    });
+    read.addEventListener('click',()=>speak(question.textContent,read));
     readPlan.addEventListener('click',()=>{
       if(get('result').hidden)return;
       const title=get('result-title').textContent;
       const items=Array.from(get('plan').querySelectorAll('.next-steps li span')).map(x=>x.textContent);
-      if(!items.length){status('No completed plan to read yet.');return;}
-      speak([title,...items].join('. '),readPlan);
+      if(!items.length)return;
+      speak([get('result-context').textContent,title,...items].join('. '),readPlan);
     });
-    if(Recognition){
-      dictate.addEventListener('click',()=>{
-        if(recognizer){stopAudio();return;}
-        stopAudio();
-        const r=new Recognition();
-        recognizer=r;
-        r.lang='en-GB';r.continuous=false;r.interimResults=false;r.maxAlternatives=1;
-        dictate.textContent='Stop microphone';
-        status('Listening only after your click. Your browser may use an external service to transcribe audio.');
-        r.onresult=event=>{
-          if(recognizer!==r||!running)return;
-          const words=Array.from(event.results).map(x=>x[0]?.transcript||'').join(' ').trim();
-          if(words)answer.value=[answer.value.trim(),words].filter(Boolean).join(' ').slice(0,900);
-        };
-        r.onerror=()=>{status('Speech recognition was unavailable. Use your keyboard microphone or type instead.');};
-        r.onend=()=>{if(recognizer===r)recognizer=null;dictate.textContent='Speak answer';};
-        try{r.start();}catch(_){recognizer=null;dictate.textContent='Speak answer';status('Speech recognition is not available in this browser. Use device dictation or type.');}
-      });
-    }else status('Browser speech recognition is unavailable. Use keyboard dictation or typing.');
+    dictate.addEventListener('click',()=>{
+      if(!running)return;
+      stopAudio();speechStatus.textContent='';
+      if(!Recognition){status('Browser speech recognition is unavailable here. '+fallback);answer.focus();return;}
+      let r;
+      try{r=new Recognition();}catch(_){status('Speech input could not start. '+fallback);return;}
+      recognizer=r;syncControls();
+      r.lang='en-GB';r.continuous=false;r.interimResults=false;r.maxAlternatives=1;
+      status('Requesting microphone access… Allow it in your browser to speak, or use keyboard dictation.');
+      r.onstart=()=>{if(recognizer===r)status('Listening… Tap Stop when finished. Your browser may use an external speech service.');};
+      r.onresult=event=>{
+        if(recognizer!==r||!running)return;
+        const words=Array.from(event.results).map(x=>x[0]?.transcript||'').join(' ').trim();
+        if(words){answer.value=[answer.value.trim(),words].filter(Boolean).join(' ').slice(0,900);status('Answer added. Review or edit it before continuing.');}
+        else status('No words were recognized. '+fallback);
+      };
+      r.onerror=event=>{if(recognizer!==r)return;stopAudio();status(event.error==='not-allowed'?'Microphone permission was denied. '+fallback:'Speech recognition was unavailable. '+fallback);};
+      r.onend=()=>{if(recognizer!==r)return;recognizer=null;syncControls();if(/^(Listening|Requesting|Finishing)/.test(voiceStatus.textContent))status('Microphone off. Tap Speak answer to retry, or use device dictation or typing.');};
+      try{r.start();}catch(_){if(recognizer===r){stopAudio();status('Speech input could not start. '+fallback);}}
+    });
     document.addEventListener('daily:locked',close);
+    document.addEventListener('daily:text-entry',close);
+    document.addEventListener('daily:result-changed',stopAudio);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden){stopAudio();if(running)status('Microphone off while this page is in the background.');}});
+    window.addEventListener('pagehide',stopAudio);
     get('checkin-form').addEventListener('submit',stopAudio,{capture:true});
+    syncControls();
   }
   if(typeof document!=='undefined'){
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});

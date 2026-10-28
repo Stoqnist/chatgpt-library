@@ -8,7 +8,7 @@
 #calendar-planning-label span{flex:1;min-width:0;line-height:1.5}
 
 /* Morning Companion: one question at a time, no modal and no hidden recording. */
-.morning-panel{margin:22px 0;padding:22px;border:1px solid var(--line);border-radius:20px;background:#fdfdf8}
+.morning-panel{scroll-margin-top:20px;margin:22px 0;padding:22px;border:1px solid var(--line);border-radius:20px;background:#fdfdf8}
 .morning-panel h2{margin:5px 0 13px;font-size:26px}
 .morning-panel #morning-question{font-size:18px;line-height:1.45;margin:12px 0}
 .morning-panel textarea{min-height:110px;margin:10px 0 12px}
@@ -16,3 +16,16 @@
 .morning-actions button{min-height:44px}
 #read-plan{margin-left:auto}
 @media(max-width:600px){.morning-panel{padding:18px 14px}.morning-panel #morning-question{font-size:16px}.morning-actions{gap:5px}.morning-actions button{padding:9px 12px}.result-heading #read-plan{margin-left:0}}
+
+/* Keep the first action and saved-history boundary clear at phone widths. */
+.checkin-state{display:inline-block;margin:0 0 4px}
+.morning-entry{margin-top:24px}
+#morning-open{width:100%;font-size:17px;min-height:58px}
+.morning-entry .quiet{margin:9px 0 2px}
+#history-section>summary{cursor:pointer;min-height:48px;padding:12px 0;font-size:19px}
+#history-section>summary .quiet{font-size:12px}
+#morning-stop:disabled{cursor:default}
+#morning-greeting:focus{outline:none}
+#morning-speech-status:empty,#morning-voice-status:empty{display:none}
+#checkin-form{scroll-margin-top:20px}
+@media(max-width:600px){main{padding-bottom:calc(20px + env(safe-area-inset-bottom))}.morning-actions button{min-height:48px}.chips{margin-top:18px}}
