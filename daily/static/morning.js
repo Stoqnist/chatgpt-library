@@ -83,7 +83,7 @@ const MorningCompanion = (() => {
       stopAudio();running=true;answers=['','',''];position=0;panel.hidden=false;
       open.setAttribute('aria-expanded','true');get('checkin-form').hidden=true;draft(true);show();
       if(voiceEnabled)speak('Hello. Welcome to your check-in. Share only what you want to share. '+question.textContent,read);
-      else speechStatus.textContent='Voice is off. Read the question and use the keyboard microphone or type.';
+      else speechStatus.textContent=speechSupported?'Voice is off. Read the question and use the keyboard microphone or type.':'Spoken prompts are unavailable. Read the question and use keyboard dictation or type.';
     });
     next.addEventListener('click',()=>{
       if(!running)return;
