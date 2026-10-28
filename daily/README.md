@@ -38,7 +38,7 @@ deployed to Hetzner. Passing CI does not verify the running image.
 ## Calendar read-only foundation (not connected)
 
 - [Calendar availability design and authorization gates](CALENDAR.md)
-  describe a Google freeBusy-only adapter (calendar_readonly.py) with no event
+  describe the Google freeBusy-only adapter (calendar_readonly.py) and the explicit verification endpoint. The verification probe has no event
   content, OAuth grant, Calendar reads or production connection yet.
 - The current app continues to use check-in text only. Do not claim real
   Calendar availability until a separately consented owner OAuth connection,
