@@ -118,7 +118,7 @@ class CalendarVerifyTest(unittest.TestCase):
         self.assertEqual(refresh_access(CLIENT, SECRET, REFRESH,
                                          opener=Transport(response)), ACCESS)
         for scope in ("https://www.googleapis.com/auth/calendar",
-                      FREEBUSY_SCOPE + " openid", "", 22):
+                      FREEBUSY_SCOPE + " openid", "", 22, None):
             with self.subTest(scope=scope), self.assertRaises(CalendarVerifyError):
                 refresh_access(CLIENT, SECRET, REFRESH,
                                opener=Transport(token_response(scope=scope)))
