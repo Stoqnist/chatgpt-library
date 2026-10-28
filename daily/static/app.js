@@ -49,6 +49,7 @@ async function refresh(){
     : 'Connect Google Calendar for free/busy-only access.';
   $('calendar-connect').hidden=calendar.connected;
   $('calendar-disconnect').hidden=!calendar.connected;
+  $('calendar-verify').hidden=!calendar.connected;
   if(running)activeId=running.id;
   if(!activeId&&state.runs.length)activeId=state.runs[0].id;
   const active=state.runs.find(r=>r.id===activeId);if(active)renderRun(active);else $('result').hidden=true;
@@ -71,6 +72,15 @@ $('calendar-connect').addEventListener('click',async e=>{
       throw new Error('The Calendar sign-in address was invalid.');
     location.assign(authorization_url);
   }catch(error){notice(error.message,true);button.disabled=false;}
+});
+$('calendar-verify').addEventListener('click',async e=>{
+  const button=e.currentTarget;button.disabled=true;
+  try{
+    const check=await api('calendar/verify',{});
+    if(check.verified!==true||check.scope!=='freebusy'||check.calendar_count!==1)
+      throw new Error('Calendar verification was incomplete.');
+    notice('Google Calendar availability verified for the primary calendar. No event details were accessed; availability is not used in plans yet.');
+  }catch(error){notice(error.message,true);}finally{button.disabled=false;}
 });
 $('calendar-disconnect').addEventListener('click',async e=>{
   if(!confirm('Disconnect Google Calendar from Stoq? This removes its saved authorization on this server.'))return;
