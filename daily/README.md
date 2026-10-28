@@ -35,16 +35,23 @@ what the user reported.
 The changes above are only active once this reviewed source is separately
 deployed to Hetzner. Passing CI does not verify the running image.
 
-## Calendar access (grant saved; availability not used in plans)
+## Calendar access (verified; Planning opt-in source only)
 
 - [Calendar availability architecture and rollout gates](CALENDAR.md) document
   the owner-consented Google OAuth grant on the private server and the
   separately staged explicit free/busy verification check.
-- The application does not yet use Calendar in check-ins. The verification
+- Production does not yet use Calendar in check-ins. The verification
   probe (once deployed) checks only the primary calendar for 24 hours and
   returns success/failure, not appointments or availability slots.
 - Calendar-to-Planning integration requires a further review, live read-only
   verification, scoped data handling and rollout.
+
+- Source-only Planning integration adds a **default-off** one-time owner
+  setting. If enabled after deployment, only relevant nonurgent Planning
+  check-ins can read bounded primary-calendar free/busy samples, with clear
+  fallback when Google is unavailable. No Calendar events are listed or
+  modified and no raw availability is persisted. Do not mark this deployed
+  until a pinned candidate and a live read-only canary are verified.
 
 ## Quality evidence
 
