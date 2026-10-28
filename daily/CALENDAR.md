@@ -1,8 +1,6 @@
 # Calendar availability in private Daily — first read-only slice
 
-**Status:** tested adapter source, **not connected to a Google account or the running app**.
-The existing Daily UI, API key, model pipeline and public website remain unchanged.
-This file is a development contract, not user OAuth consent.
+**Status (2026-10-28):** owner-reported OAuth grant saved in the deployed private Daily app. The new explicit free/busy verification endpoint is **not deployed yet**. The existing model pipeline does not access Calendar data. Credentials and grant remain exclusively on the private server.
 
 ## Narrowest useful operation
 
@@ -112,7 +110,44 @@ be evaluated before considering Production publication.
   Cloudflare's identity provider client. The latter authenticates the user
   but does not grant calendar access.
 
-## Owner-only Calendar consent runtime (staged; not deployed)
+## Explicit read-only Calendar verification (staged; not deployed)
+
+After the owner approved Google's Calendar free/busy-only consent on
+2026-10-28, Daily displayed **"Calendar authorization saved. Availability is
+not used in plans yet."** This is evidence that the OAuth redirect and
+server-side grant save succeeded, not a successful read of Calendar data.
+The grant must not be copied to GitHub or pasted into chat.
+
+The next feature adds an **owner-authenticated, CSRF-checked POST**
+`/daily/api/calendar/verify` endpoint and a Settings button to invoke it.
+This is **on demand only**: no background polling or startup reads. On
+request, it:
+
+1. Reads the private mode-0600 OAuth client and refresh credential.
+2. Exchanges the refresh token over Google's fixed OAuth token endpoint
+   for a short-lived access token, in memory only. Rejects any returned
+   incompatible scope, but accepts Google's documented omission of scope
+   on refresh (initial consent had been checked for exact freebusy scope).
+3. Requests `freeBusy.query` with exactly `primary` for the next 24 hours.
+   No event listing, titles, descriptions, attendee reads, event writes or
+   extra calendars; bounded network requests and fail-closed provider errors.
+4. Returns only `verified: true`, free/busy scope, calendar count and
+   window hours to the owner's UI. It **does not return, persist or inject**
+   actual free times into check-in history or the model.
+
+A positive read confirms the permission was usable **for one checked
+window only**. It does not mean the owner is generally available or that
+future reads will work. Failure is explicitly "unavailable", never "free".
+Calendar-to-Planning integration and selected-calendar choices beyond
+`primary` require a separate reviewed implementation. The login and
+Cloudflare controls are unchanged, and the public website stays public.
+
+The existing on-screen check-in description previously said Calendar
+"isn't connected yet", which became misleading once consent was saved.
+It is corrected to state accurately that availability is **not used in
+plans**.
+
+## Owner-only Calendar consent runtime (deployed; grant saved)
 
 This iteration adds `daily/calendar_connection.py` and three existing Daily
 server endpoints:
@@ -127,20 +162,13 @@ server endpoints:
   consent and stored refresh credentials; it does **not** revoke provider-side
   Google consent. Owners can additionally revoke access in Google Account.
 
-This feature is fail-closed until the operator installs the downloaded Google
-Web client file as `/opt/agency-daily/private/data/calendar-client.json`, with
-owner UID 10001 and mode 0600. The original download stays private, and
-nothing is stored in GitHub, environment variables, browser storage or logs
-by these application paths. The on-disk refresh grant is mode 0600 in
-`/data/calendar-grant.json`; only the refresh credential is persisted.
-Google Cloud clients must use the precise redirect URI described above.
-
-**Do not install or deploy with the live client yet.** Before a live consent
-trial, the full feature must pass CI, the app must be deployed with backup and
-rollback, and the proxy/Cloudflare callback path must be verified not to
-record authorization codes. The existing Nginx public demo source has access
-logging disabled globally, but this does not prove that all upstream
-infrastructure logs omit query parameters.
+The operator-installed Web client lives in
+`/opt/agency-daily/private/data/calendar-client.json` with owner UID 10001
+and mode 0600. The saved refresh grant lives at
+`/data/calendar-grant.json`, mode 0600. Do not move or expose these files.
+The deployed Nginx and Gunicorn access logs were checked as disabled, and
+the Cloudflare UI showed Logpush subscription not active. Cloudflare may
+still retain internal request metadata; do not claim zero upstream logging.
 
 This consent phase does not call Google Calendar, refresh access tokens, or
 send availability to Planning. A successful authorization is only a grant
@@ -150,15 +178,15 @@ saved grant is not proof of a valid current refresh token.
 
 ## Auth and rollout blockers
 
-The adapter expects a separately supplied short-lived OAuth access token.
-No app credential is committed, and no OAuth endpoints are enabled. Before
-wiring it into the current Daily application:
+The OAuth consent callback is deployed and the server has a saved grant.
+The explicit verification module is not yet deployed. Before feeding Calendar
+availability into Planning:
 
 1. Verify owner identity and exact consented calendars. Decide whether only
    the primary calendar is sufficient; do not claim coverage of others.
-2. Implement browser OAuth authorization code with PKCE/state, a fixed exact
-   HTTPS callback, owner session linkage, minimal calendar.freebusy scope,
-   and CSRF protections. Validate the real provider grant and refresh flow.
+2. Preserve the existing deployed PKCE/state and owner session controls.
+   Verify the actual refresh grant against Google with a bounded freeBusy
+   query, then test grant expiry and revocation without exposing tokens.
 3. Store any refresh credential only in protected private server storage,
    separate from public GitHub and check-in history; support revocation.
    Never place tokens in browser localStorage or URL fragments.

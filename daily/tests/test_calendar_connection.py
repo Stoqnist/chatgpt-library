@@ -90,6 +90,33 @@ class CalendarConsentIntegrationTest(unittest.TestCase):
         return self.request("/daily/api/calendar/callback",
                             cookie=cookie, query=query)
 
+    def test_freebusy_verification_requires_owner_and_csrf_and_returns_no_events(self):
+        self.configure()
+        self.assertEqual(self.request("/daily/api/calendar/verify", {})["status"], 401)
+        self.login()
+        self.assertEqual(self.request("/daily/api/calendar/verify", {},
+                                      csrf="wrong")["status"], 403)
+        self.assertEqual(self.request("/daily/api/calendar/verify", {},
+                                      origin="https://other.example")["status"], 403)
+        with patch("app.verify_primary_freebusy", return_value={
+                "verified": True, "scope": "freebusy",
+                "calendar_count": 1, "window_hours": 24}) as probe:
+            result = self.request("/daily/api/calendar/verify", {})
+        self.assertEqual(result["status"], 200)
+        self.assertEqual(probe.call_count, 1)
+        self.assertNotIn("refresh_token", result["body"].decode())
+        self.assertNotIn("free", str(result["json"].keys()).lower())
+
+    def test_freebusy_verification_unavailable_is_not_reported_as_free(self):
+        from calendar_verify import CalendarVerifyError
+        self.login()
+        with patch("app.verify_primary_freebusy",
+                   side_effect=CalendarVerifyError("fictional secret")):
+            result = self.request("/daily/api/calendar/verify", {})
+        self.assertEqual(result["status"], 503)
+        self.assertNotIn(b"secret", result["body"])
+        self.assertNotIn(b"free_all_day", result["body"])
+
     def test_disabled_without_client_configuration(self):
         self.login()
         status = self.request("/daily/api/state")["json"]["calendar"]

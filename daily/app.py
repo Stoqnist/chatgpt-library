@@ -23,6 +23,7 @@ from calendar_connection import (
     CalendarOwnerConsent, CalendarConnectionError, CORRELATION_COOKIE,
     PENDING_SECONDS,
 )
+from calendar_verify import verify_primary_freebusy, CalendarVerifyError
 
 DOMAINS = {
     'wellbeing': ('Wellbeing', 'Support a manageable daily routine, not medical treatment. Do not diagnose or suggest treatment, including stretching, exercises, manual therapy, heat/cold applications, or medications for unassessed pain or injury. Do not assume a common home remedy is safe when the cause of symptoms is unknown. If someone only reports pain, acknowledge that cause and safe movement are unknown; suggest an appropriate healthcare assessment for new, persistent or worsening symptoms rather than a therapeutic movement. For possible immediate danger, the router must interrupt routine planning. Keep any actions practical, acknowledge uncertainty, and reflect self-reports as self-reports.'),
@@ -365,6 +366,12 @@ class App:
                 runs=[{**dict(row),'result':json.loads(row['result'])} for row in db.execute('SELECT * FROM runs ORDER BY created DESC LIMIT 20')]
                 remaining=max(0,20-db.execute('SELECT count(*) FROM usage WHERE created>?',(self.clock()-86400,)).fetchone()[0])
             return respond(200,{'csrf':session['csrf'],'connected':self.key_path.exists(),'model':self.model,'runs':runs,'remaining':remaining,'calendar':self.calendar.status()})
+        if path=='/daily/api/calendar/verify' and method=='POST':
+            try:
+                check = verify_primary_freebusy(self.data, self.clock())
+            except CalendarVerifyError:
+                return respond(503,{'error':'Calendar availability could not be verified. Reconnect if access has expired.'})
+            return respond(200,check)
         if path=='/daily/api/calendar/connect' and method=='POST':
             try:
                 url,correlation=self.calendar.begin(session)
