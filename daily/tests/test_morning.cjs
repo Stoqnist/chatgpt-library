@@ -18,15 +18,18 @@ test('blank optional answers never produce a plan or a fabricated report', () =>
   assert.throws(()=>buildPrompt(['missing one answer']));
 });
 
-test('draft preserves chosen answers and explicitly protects obligations and focus', () => {
+test('draft preserves only reported answers, not invented priorities or suggestions', () => {
   const draft=buildPrompt([
     'Sleep was okay.',
     'Energy is low; I have a creative idea.',
     'One urgent email, meals and hygiene.'
   ]);
-  for(const part of ['Sleep was okay.','Energy is low','urgent email','my explicitly reported commitments',
-                     'Do not invent a focus block','Distinguish today from tomorrow']) {
+  for(const part of ['Sleep was okay.','Energy is low','urgent email','meals and hygiene']) {
     assert.ok(draft.includes(part),part);
+  }
+  for(const invented of ['uninterrupted focus block','nap','invent appointments',
+                         'keep optional chores','Protect fixed commitments']) {
+    assert.ok(!draft.includes(invented),invented);
   }
   assert.ok(draft.length<4000);
 });
