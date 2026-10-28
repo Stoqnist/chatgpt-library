@@ -4,10 +4,11 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py ./
+COPY calendar_oauth.py calendar_connection.py calendar_readonly.py ./
 COPY static ./static
 # Build contexts may be checked out with a restrictive umask (e.g. 077).
 # Ensure the non-root runtime can read source and traverse static directories.
-RUN chmod 0644 /app/app.py && chmod -R a+rX /app/static
+RUN chmod 0644 /app/*.py && chmod -R a+rX /app/static
 USER 10001:10001
 # Fail the image build if the actual runtime UID cannot import and read assets.
 RUN python -c "import app; from pathlib import Path; [p.open('rb').close() for p in Path('/app/static').rglob('*') if p.is_file()]"
