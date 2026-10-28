@@ -42,6 +42,13 @@ async function refresh(){
   $('run-button').textContent=busy?'Your specialists are working…':'Find my next steps ↗';
   $('connection').textContent=state.connected?`${state.remaining} check-ins available today`:'Add your API key in Settings to begin';
   if(!state.connected){$('settings').hidden=false;$('settings-toggle').setAttribute('aria-expanded','true');}
+  const calendar=state.calendar||{configured:false,connected:false};
+  $('calendar-setup').hidden=!calendar.configured;
+  $('calendar-status').textContent=calendar.connected
+    ? 'Google Calendar permission is connected. Availability is not used in plans yet.'
+    : 'Connect Google Calendar for free/busy-only access.';
+  $('calendar-connect').hidden=calendar.connected;
+  $('calendar-disconnect').hidden=!calendar.connected;
   if(running)activeId=running.id;
   if(!activeId&&state.runs.length)activeId=state.runs[0].id;
   const active=state.runs.find(r=>r.id===activeId);if(active)renderRun(active);else $('result').hidden=true;
@@ -56,5 +63,27 @@ $('key-form').addEventListener('submit',async e=>{e.preventDefault();e.submitter
 $('checkin-form').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const prompt=$('prompt').value.trim();if(!request||request.prompt!==prompt)request={prompt,request_id:crypto.randomUUID()};busy=true;$('run-button').disabled=true;notice('');try{const r=await api('run',request);activeId=r.id;request=null;await refresh();$('result').scrollIntoView({block:'start'});}catch(error){notice(error.message,true);busy=false;await refresh();}});
 for(const button of document.querySelectorAll('[data-starter]'))button.addEventListener('click',()=>{if($('prompt').value.trim()&&!confirm('Replace your current check-in text?'))return;$('prompt').value=button.dataset.starter;$('prompt').focus();request=null;});
 $('logout').addEventListener('click',async()=>{try{await api('logout',{});lockUI();notice('Your space is locked.');}catch(error){notice(error.message,true);}});
+$('calendar-connect').addEventListener('click',async e=>{
+  const button=e.currentTarget;button.disabled=true;
+  try{
+    const {authorization_url}=await api('calendar/connect',{});
+    if(!authorization_url?.startsWith('https://accounts.google.com/o/oauth2/v2/auth?'))
+      throw new Error('The Calendar sign-in address was invalid.');
+    location.assign(authorization_url);
+  }catch(error){notice(error.message,true);button.disabled=false;}
+});
+$('calendar-disconnect').addEventListener('click',async e=>{
+  if(!confirm('Disconnect Google Calendar from Stoq? This removes its saved authorization on this server.'))return;
+  const button=e.currentTarget;button.disabled=true;
+  try{
+    await api('calendar/disconnect',{});
+    await refresh();
+    notice('Calendar disconnected from Stoq. Revoke the app in Google Account settings if needed.');
+  }catch(error){notice(error.message,true);}finally{button.disabled=false;}
+});
 $('clear').addEventListener('click',async()=>{if(!confirm('Delete your saved check-ins and plans? This cannot be undone.'))return;try{await api('clear',{});activeId=null;await refresh();notice('Check-in history cleared.');}catch(error){notice(error.message,true);}});
+if(new URLSearchParams(location.search).get('calendar')==='connected'){
+  history.replaceState(null,'','/daily/');
+  notice('Calendar authorization saved. Availability is not used in plans yet.');
+}
 refresh();
