@@ -3,6 +3,7 @@
 !calendar_connection.py
 !calendar_oauth.py
 !calendar_readonly.py
+!calendar_verify.py
 !static/
 !static/**
 !requirements.txt
