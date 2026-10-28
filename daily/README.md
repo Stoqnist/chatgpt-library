@@ -1,5 +1,30 @@
 # Private daily MVP
 
+## Morning Companion — staged UI source, not yet deployed
+
+The existing **Start my day** control opens a three-question, optional-answer
+guide: sleep/physical comfort; energy/mood/mental clarity; and priorities
+including appointments, replies, hygiene, meals, chores and protected focus.
+The owner can review and edit the resulting text before pressing **Find my
+next steps**. There are no stored incomplete answers, mandatory health
+scores, new model calls, automatically submitted requests or provider writes.
+
+Browser speech synthesis can read a question or selected completed plan aloud
+after explicit button activation. Optional browser recognition can enter
+a spoken answer only after pressing **Speak answer**, and only on supporting
+browsers. **A browser may send microphone audio to its own speech provider**;
+Stoq itself does not record audio or upload it through this feature. Brave
+speech-recognition support is inconsistent. Device keyboard dictation and
+typing remain the supported fallbacks. Never claim guaranteed local-only
+transcription or full-duplex voice. Speech is stopped on logout, cancel or
+check-in submission. This slice requires owner browser QA, a pinned-image
+deployment, backup and rollback before it is operational.
+
+**Email remains a subsequent, separate permissioned milestone:** read-only
+metadata/message triage before owner-reviewed drafts, then individual
+send approval and provider readback. No Gmail scopes, OAuth or access are
+added by the Morning Companion. Private advocate matters remain separate.
+
 A separate, single-owner phone web app at `/daily/`. One submitted check-in is routed to up to three separate model calls (wellbeing, home, planning), with minimal exact excerpts and one consolidated UI. This is a real API integration, not a synthetic-fixture demo. Its live readiness still requires an owner API key and a successful canary.
 
 ## Deliberate scope
