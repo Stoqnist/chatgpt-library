@@ -56,6 +56,19 @@ class DailyTest(unittest.TestCase):
         self.app.pool.shutdown(wait=True)
         return self.request('/daily/api/state')['json']['runs'][0]
     def submit(self,request_id=None,prompt=PROMPT):return self.request('/daily/api/run',{'prompt':prompt,'request_id':request_id or str(uuid.uuid4())})
+    def test_morning_script_served_publicly_with_correct_type(self):
+        # Only the static JavaScript is public; owner data still requires login.
+        page=self.request('/daily/')
+        self.assertEqual(page['status'],200)
+        self.assertIn(b'/daily/morning.js',page['raw'])
+        asset=self.request('/daily/morning.js')
+        self.assertEqual(asset['status'],200)
+        self.assertEqual(asset['headers']['Content-Type'],'text/javascript; charset=utf-8')
+        self.assertIn(b'MorningCompanion',asset['raw'])
+        self.assertIn(b'buildPrompt',asset['raw'])
+        self.assertEqual(self.request('/daily/api/state')['status'],401)
+        self.assertEqual(self.request('/daily/morning.js/../app.py')['status'],401)
+
     def test_private_state_requires_session_and_shell_has_no_private_data(self):
         for path in ('/daily/api/state','/daily/api/run','/daily/openai-key','/daily/../app.py'):
             self.assertEqual(self.request(path)['status'],401)
