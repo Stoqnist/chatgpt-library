@@ -52,6 +52,6 @@ test('voice is explicit and never posts or persists on its own', () => {
   assert.match(html,/id="read-plan"/);
   assert.match(html,/iPhone keyboard microphone/);
   assert.doesNotMatch(html,/id="morning-dictate"|id="morning-stop"/);
-  assert.match(js,/No automatic submission/);
+  assert.match(js,/No microphone APIs/);
   assert.match(app,/daily:locked/);
 });
