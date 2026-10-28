@@ -1,8 +1,8 @@
 # Calendar availability in private Daily — first read-only slice
 
-**Status (2026-10-28):** owner confirmed the deployed private Daily app successfully verified Google primary-calendar free/busy. The next opt-in Planning integration is **source-only, not deployed**. Existing production still does not pass Calendar data to models. OAuth credentials and grant remain exclusively on the private server.
+**Status (2026-10-28):** owner screenshots confirm private Daily is running `candidate-1210153`, with owner-controlled primary-Calendar free/busy Planning deployed and a successful real free/busy canary. The owner said they would disable the opt-in before polishing, but the current switch state has not been independently verified. OAuth credentials and grant remain only on the private server. A focused language/UI correction is in this source branch, **not deployed**.
 
-## Opt-in Calendar-to-Planning integration (source only)
+## Opt-in Calendar-to-Planning integration (deployed)
 
 The user-observed private Daily UI returned: **"Google Calendar availability
 verified for the primary calendar. No event details were accessed;
@@ -32,10 +32,15 @@ Disabling consent takes effect for future check-ins; disconnect also clears
 the opt-in. The application refuses opt-in changes and disconnects while
 a check-in is active, avoiding surprise changes mid-run. No Calendar writes,
 automatic scheduling, reminders, background reads or additional scopes are
-authorized. Deployment, live Calendar-to-Planning user canaries, timezone
-quality review, and model output evaluation remain future release gates.
-Existing production is unchanged until the operator deploys a reviewed
-pinned candidate with backup and rollback.
+authorized. The user-observed live fictional canary showed Planning sampling calendar
+free/busy and Home contributing a kitchen task. It also exposed two model
+wording problems: describing an unblocked period as guaranteed 'free time',
+and addressing a fictional person's kitchen as the owner's. The correction
+branch adds explicit third-person scenario framing, a bounded output guard
+that drops unsupported claims, and skips personal Calendar reads for
+explicitly fictional scenarios, even if the owner enabled Planning.
+The production deployment remains unchanged until a new reviewed, pinned
+candidate passes the normal backup, rollback and real-model release gates.
 
 ## Narrowest useful operation
 
