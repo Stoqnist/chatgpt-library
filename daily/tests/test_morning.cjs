@@ -49,7 +49,7 @@ test('voice is explicit and never posts or persists on its own', () => {
   assert.match(html,/id="morning-open"/);
   assert.match(html,/id="morning-answer"/);
   assert.match(html,/id="read-plan"/);
-  assert.match(html,/Browser speech recognition/);
+  assert.match(html,/Some browsers send microphone audio/);
   assert.match(js,/No automatic submission/);
   assert.match(app,/daily:locked/);
 });
