@@ -76,7 +76,7 @@ def refresh_access(client_id, secret, refresh_token, *, opener=None):
     expires = result.get("expires_in")
     valid_expiry = type(expires) is int and 60 <= expires <= 86400
     scope = result.get("scope")
-    valid_scope = scope is None or (isinstance(scope, str) and set(scope.split()) == {FREEBUSY_SCOPE})
+    valid_scope = "scope" not in result or (isinstance(scope, str) and set(scope.split()) == {FREEBUSY_SCOPE})
     if not (valid_token and bearer and valid_expiry and valid_scope):
         raise CalendarVerifyError("Calendar permission could not be verified.")
     return token
