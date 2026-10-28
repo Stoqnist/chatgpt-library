@@ -139,9 +139,9 @@ PRESCRIBED_MOVEMENT = re.compile(
 
 
 # Fail closed on observed agent-facing phrasing instead of rewriting user goals.
-META_PLANNING = re.compile(r"^\\s*(?:consider\\s+(?:scheduling|planning)\\b|plan\\s+(?:a|an|the|your|essential|some)\\b)", re.I)
-UNOWNED_PERSON = re.compile(r"\\b(?:the person(?:'s)?|the user's)\\b", re.I)
-NAP_SUGGESTION = re.compile(r"\\bnap(?:s|ping)?\\b", re.I)
+META_PLANNING = re.compile(r"^\s*(?:consider\s+(?:scheduling|planning)\b|plan\s+(?:a|an|the|your|essential|some)\b)", re.I)
+UNOWNED_PERSON = re.compile(r"\b(?:the person(?:'s)?|the user's)\b", re.I)
+NAP_SUGGESTION = re.compile(r"\bnap(?:s|ping)?\b", re.I)
 
 
 def action_framing(output, excerpts, *, fictional=False, today=None):
@@ -156,8 +156,8 @@ def action_framing(output, excerpts, *, fictional=False, today=None):
         if NAP_SUGGESTION.search(suggestion) and not requested_nap:
             continue
         # A suggestion cannot describe a future dated window as "today".
-        if today and re.search(r"\\btoday\\b", suggestion, re.I):
-            dates = re.findall(r"\\b20\\d{2}-\\d{2}-\\d{2}\\b", suggestion)
+        if today and re.search(r"\btoday\b", suggestion, re.I):
+            dates = re.findall(r"\b20\d{2}-\d{2}-\d{2}\b", suggestion)
             if any(date != today for date in dates):
                 continue
         valid.append(suggestion)
