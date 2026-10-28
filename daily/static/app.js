@@ -15,6 +15,7 @@ function lockUI(){
   clearTimeout(poll);state=null;csrf='';activeId=null;request=null;busy=false;
   $('locked').hidden=false;$('workspace').hidden=true;$('prompt').value='';$('api-key').value='';
   $('plan').replaceChildren();$('history').replaceChildren();$('result').hidden=true;
+  document.dispatchEvent(new Event('daily:locked'));
 }
 function el(tag,text,className){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;}
 function renderRun(run){

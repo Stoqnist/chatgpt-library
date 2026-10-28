@@ -6,3 +6,13 @@
 #calendar-planning-label{display:flex;align-items:flex-start;gap:11px;cursor:pointer;margin:18px 0 8px}
 #calendar-planning-label input[type="checkbox"]{width:19px;height:19px;flex:0 0 19px;padding:0;margin:2px 0 0;border-radius:4px;accent-color:var(--ink)}
 #calendar-planning-label span{flex:1;min-width:0;line-height:1.5}
+
+/* Morning Companion: one question at a time, no modal and no hidden recording. */
+.morning-panel{margin:22px 0;padding:22px;border:1px solid var(--line);border-radius:20px;background:#fdfdf8}
+.morning-panel h2{margin:5px 0 13px;font-size:26px}
+.morning-panel #morning-question{font-size:18px;line-height:1.45;margin:12px 0}
+.morning-panel textarea{min-height:110px;margin:10px 0 12px}
+.morning-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.morning-actions button{min-height:44px}
+#read-plan{margin-left:auto}
+@media(max-width:600px){.morning-panel{padding:18px 14px}.morning-panel #morning-question{font-size:16px}.morning-actions{gap:5px}.morning-actions button{padding:9px 12px}.result-heading #read-plan{margin-left:0}}

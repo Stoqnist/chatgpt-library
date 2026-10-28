@@ -4,6 +4,82 @@
 
 **Status (2026-10-14; GitHub implementation state verified):** End-to-end, evidence-backed personal assistance remains the V2 product target. Purchase benchmark/comparison/ablation component work (#7–#10), a health-led P0 contract (#12), scripted read-only J1 (#13), scripted J2/J3 safety journeys (#14), and disposable mock approval/execution (#15) are **merged into the experimental V2 branch only**. P0–P3 are experimental slices, not completed product/release gates. Draft [PR #3](https://github.com/Stoqnist/chatgpt-library/pull/3) still targets `main`; these experiments are not deployed. **S0 decisions explicitly confirmed by the user on 2026-10-13:** S1/S2/S5/S7 simplify; S3/S4 keep; S6 defer. Implementation remains subject to independent regression checks; real connector effects, model spending and deployment are not authorized. [P4 PR #16](https://github.com/Stoqnist/chatgpt-library/pull/16) is now merged into the experimental branch as **offline preflight only**; its checks and metadata/synthetic claims do not establish real provider authorization, transactional safety or release readiness. [PR #26](https://github.com/Stoqnist/chatgpt-library/pull/26) subsequently merged an offline-only synthetic elevated-read-role rejection; live authorization remains unverified. [PR #28](https://github.com/Stoqnist/chatgpt-library/pull/28) merged a synthetic OAuth-scope posture regression and documented limited, reported live read-only probes; effective scopes, audit provenance and execution safety remain unverified. [PR #30](https://github.com/Stoqnist/chatgpt-library/pull/30) adds Calendar-only operation-specific synthetic role checks and a redacted grant-feasibility audit, without establishing real token grants. [PR #34](https://github.com/Stoqnist/chatgpt-library/pull/34) merges the initial I1 scripted-to-P3 mock approval/execution bridge with 3.11/3.13 offline CI passing; it is not live integration. [PR #36](https://github.com/Stoqnist/chatgpt-library/pull/36) adds executor/store-bound mock approval revocation and cross-turn outcome history with Python 3.11/3.13 CI passing. [PR #38](https://github.com/Stoqnist/chatgpt-library/pull/38) adds an inspection-only synthetic recovery path for superseded unknown attempts with Python 3.11/3.13 offline checks passing. [PR #40](https://github.com/Stoqnist/chatgpt-library/pull/40) adds offline denial of cross-owner/unauthorized recovery reads, with Python 3.11/3.13 CI passing; it does not authenticate real users or prove connector scopes. [PR #42](https://github.com/Stoqnist/chatgpt-library/pull/42) merged uniform unauthorized recovery-ID denial into experimental V2 (`10e00ef`; Python 3.11/3.13 offline CI passed). See [I1 provider-operation feasibility](v2-i1-provider-operation-feasibility.md) for a *contract review only*, not live recovery evidence. Live execution remains blocked; V1 remains unchanged.
 
+## 2026-10-28 accepted product priorities: Morning Companion first, email later
+
+**User decision:** Proceed with a voice-friendly Morning Companion as the next
+small Stoq Daily capability. Add email integration to the development roadmap
+because real pending communications are a central use case. **The separate
+advocate matter is intentionally not imported into Daily implementation,
+public Git, or this general agent feature.**
+
+**Current production evidence:** owner-shared screenshot shows
+agency-daily:candidate-d00c2aa healthy, with an isolated startup check,
+database backup, HTTP 200 health, unauthenticated HTTP 401, invalid-origin
+HTTP 403, and the fictional-canary privacy banner. Stoq Daily already has
+the actual Google primary-Calendar free/busy opt-in; it does not have Gmail,
+persistent obligations, autonomous reminders, or voice. The most recent
+Settings screenshot showed the Planning Calendar checkbox **checked**;
+subsequent disabling has not been independently confirmed. The screenshot
+also showed the checkbox above its label, so mobile/desktop visual QA for
+that polish correction remains open.
+
+**Immediate MVP: Morning Companion, no new backend authority**
+- Build on the existing owner-authenticated private Daily, not a second app
+  or independent daily agent. Use three brief questions covering sleep/physical
+  comfort, mood/energy/mental clarity, and obligations/focus/health/hygiene/
+  chores. Allow skipping, editing, typing and OS dictation; no forced ratings.
+- Spoken prompts and plan playback can use available browser speech synthesis
+  **only after a user action**; provide explicit stop and fallback to text.
+  Optional browser speech-recognition is invoked only by user pressing the
+  microphone; browser implementations may send audio to external services.
+  Brave support is uncertain and must be tested on the owner's actual devices.
+  No always-on microphone, recording stored by Stoq, browser storage, or
+  automatic Daily submission. The user must review the assembled check-in.
+- Submit once through the existing bounded, health-first coordinator after
+  review; preserve urgent-interruption and domain privacy. Do not suggest
+  this is longitudinal health tracking, appointment execution, or verified
+  task memory. Avoid scheduling promises without a canonical tasks source.
+- Test pure prompt assembly, optional blank answers, bounded input,
+  microphone user-gesture path, no storage/network from the voice UI and
+  accessible keyboard fallback in offline CI; run an owner-observed mobile
+  and desktop smoke test before claiming voice works.
+- **Source stage only until pinned deployment:** PR and green CI do not change
+  the running Hetzner service. Use isolated startup, fresh DB backup, rollback,
+  explicit readback and real UI acceptance before release.
+
+**Subsequent prioritized slices**
+1. **Daily obligations and adaptive prioritization:** define a canonical,
+   owner-authorized task queue (not the seven-day check-in history) before
+   claiming 'nothing is missed'. Merge fixed deadlines and important
+   responses with self-reported energy and focus. The coordinator owns
+   prioritization, Health owns health guidance, Home owns chores; avoid
+   duplicating canonical records or writing Calendar events by implication.
+2. **Email integration (explicit user priority, not implemented):** separately
+   consent to a Google/Gmail integration; begin with least-privilege
+   read-only headers/metadata or selected message content on demand,
+   provenance and no broad inbox ingestion. Introduce recipient-verified,
+   explicit-owner-approved **draft creation** only after read-only privacy
+   and scope review; an actual **send** needs distinct, explicit approval,
+   exact recipient/content preview, verified result/readback and dedicated
+   permission. Never silently mark read, archive, send, or store sensitive
+   mailbox bodies in public Git, global memory or unrelated specialists.
+   The advocate conversation is a separate user workflow; it is *not*
+   imported as an automatic Stoq obligation.
+3. **Proactive check-ins and reminder actions:** only after canonical tasks,
+   permissioned scheduling, deduplication, local-time handling, recurring
+   cadence and explicit confirmation semantics are implemented. Do not
+   confuse a proposed reminder with a created Calendar event.
+4. **Future richer audio:** if voice support is poor on Brave/iPhone,
+   investigate a separately consented transcription provider and minimal
+   audio retention/no retention; assess cost, device support and data transfer
+   before adding an audio-upload endpoint. Never silently switch providers.
+
+**Success criterion:** An owner can open their private Daily on a phone,
+hear a welcoming question, dictate or type up to three brief responses,
+review the exact text, submit once, and optionally listen to the resulting
+plan. No autonomous action or exposure of real email, Calendar events or
+audio recordings is implied.
+
 ## 2026-10-28 live Calendar Planning canary: language and UI correction
 
 Owner-confirmed deployment screenshot verifies `agency-daily:candidate-1210153`
