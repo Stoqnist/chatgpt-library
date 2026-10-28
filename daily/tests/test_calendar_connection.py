@@ -120,7 +120,7 @@ class CalendarConsentIntegrationTest(unittest.TestCase):
     def test_disabled_without_client_configuration(self):
         self.login()
         status = self.request("/daily/api/state")["json"]["calendar"]
-        self.assertEqual(status, {"configured": False, "connected": False})
+        self.assertEqual(status, {"configured": False, "connected": False, "planning_enabled": False})
         self.assertEqual(
             self.request("/daily/api/calendar/connect", {})["status"], 503)
         self.assertFalse(self.app.calendar.grant.exists())
@@ -134,7 +134,7 @@ class CalendarConsentIntegrationTest(unittest.TestCase):
         self.assertEqual(self.request(
             "/daily/api/calendar/connect", {}, origin="https://wrong.example")["status"], 403)
         self.assertEqual(self.request("/daily/api/state")["json"]["calendar"],
-                         {"configured": True, "connected": False})
+                         {"configured": True, "connected": False, "planning_enabled": False})
 
     def test_config_must_be_private_and_exact_redirect(self):
         self.configure()
@@ -175,7 +175,7 @@ class CalendarConsentIntegrationTest(unittest.TestCase):
         self.assertEqual(grant, {"refresh_token": tokens["refresh_token"]})
         self.assertNotIn("fictional", str(callback))
         self.assertEqual(self.request("/daily/api/state")["json"]["calendar"],
-                         {"configured": True, "connected": True})
+                         {"configured": True, "connected": True, "planning_enabled": False})
         with patch("calendar_connection.exchange_calendar_code") as replayed:
             self.assertEqual(self.callback(state, corr_cookie)["status"], 403)
         replayed.assert_not_called()
