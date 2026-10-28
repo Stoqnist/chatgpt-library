@@ -93,6 +93,129 @@ class PlanningOptinTest(unittest.TestCase):
         self.app.pool.shutdown(wait=True)
         return self.request("/daily/api/state")["data"]["runs"][0]
 
+    def test_fictional_example_never_reads_account_owners_calendar(self):
+        prompt = ("A fictional person needs 30 minutes to tidy their kitchen. "
+                  "Suggest a possible time for that person.")
+        self.provider = FakeProvider(route={
+            "urgent": False, "tasks": [
+                {"domain": "home", "excerpts": [
+                    "A fictional person needs 30 minutes to tidy their kitchen."]},
+                {"domain": "planning", "excerpts": [
+                    "Suggest a possible time for that person."]},
+            ]})
+        self.app.provider = self.provider
+        self.configure_grant()
+        self.login()
+        self.assertEqual(
+            self.request("/daily/api/calendar/planning", {"enabled": True})["status"], 200)
+        with patch("app.planning_freebusy") as read:
+            result = self.submit(prompt)
+        read.assert_not_called()
+        self.assertEqual(result["status"], "completed")
+        self.assertIn("Fictional example only", result["result"]["source"])
+        specialists = [
+            payload for _, payload, schema in self.provider.calls
+            if schema is RESULT_SCHEMA
+        ]
+        self.assertEqual(len(specialists), 2)
+        for payload in specialists:
+            self.assertEqual(payload["scenario_type"], "fictional")
+            self.assertNotIn("calendar_availability", payload)
+        self.assertNotIn("sample_free_windows", json.dumps(result))
+
+    def test_fictional_unsafe_you_and_your_are_filtered_before_display(self):
+        class MisframingProvider(FakeProvider):
+            def call(self, instructions, payload, schema):
+                if schema is RESULT_SCHEMA:
+                    return {
+                        "summary": "You reported that your kitchen is dirty.",
+                        "suggestions": [
+                            "Consider cleaning your kitchen between 11:07 and 12:00.",
+                            "The fictional person could tidy the kitchen if that suits them.",
+                        ],
+                        "missing_context": ["Your personal calendar is unknown."],
+                        "question": "Do you have enough cleaning cloths?",
+                    }
+                return super().call(instructions, payload, schema)
+
+        prompt = ("A fictional person needs to tidy their kitchen. "
+                  "Suggest a possible time for that person.")
+        self.provider = MisframingProvider(route={
+            "urgent": False, "tasks": [
+                {"domain": "home", "excerpts": [
+                    "A fictional person needs to tidy their kitchen."]},
+                {"domain": "planning", "excerpts": [
+                    "Suggest a possible time for that person."]},
+            ]})
+        self.app.provider = self.provider
+        self.login()
+        result = self.submit(prompt)
+        self.assertEqual(result["status"], "completed")
+        agents = result["result"]["agents"]
+        self.assertTrue(all(a["status"] == "completed" for a in agents))
+        self.assertTrue(all(
+            "your" not in suggestion.casefold()
+            for a in agents for suggestion in a["suggestions"]
+        ))
+        self.assertTrue(all("your" not in a["summary"].casefold() for a in agents))
+        self.assertEqual(
+            result["result"]["next_steps"][0]["text"],
+            "The fictional person could tidy the kitchen if that suits them.",
+        )
+        self.assertEqual(result["result"]["questions"], [])
+
+    def test_calendar_free_time_overclaim_withheld_not_shown_in_plan(self):
+        class CalendarOverclaimProvider(FakeProvider):
+            def call(self, instructions, payload, schema):
+                if schema is RESULT_SCHEMA and "calendar_availability" in payload:
+                    return {
+                        "summary": "A possible time can be considered.",
+                        "suggestions": [
+                            "Consider tidying your kitchen between 11:07 and 12:00, which offers over 50 minutes of free time.",
+                            "If that period suits you, consider 11:07–12:00, when the primary calendar appears unblocked.",
+                        ],
+                        "missing_context": ["Whether the owner is personally available."],
+                        "question": "",
+                    }
+                return super().call(instructions, payload, schema)
+
+        self.provider = CalendarOverclaimProvider()
+        self.app.provider = self.provider
+        self.configure_grant()
+        self.login()
+        self.request("/daily/api/calendar/planning", {"enabled": True})
+        with patch("app.planning_freebusy", return_value=CONTEXT) as read:
+            result = self.submit()
+        read.assert_called_once()
+        self.assertEqual(result["status"], "completed")
+        shown = json.dumps(result["result"])
+        self.assertNotIn("minutes of free time", shown)
+        self.assertIn("calendar appears unblocked", shown)
+        self.assertIn("read-only", result["result"]["source"])
+
+    def test_calendar_assertion_only_does_not_fail_when_calendar_is_off(self):
+        self.login()
+        from app import safe_framing
+        output = {
+            "summary": "Consider your day.",
+            "suggestions": ["Choose some free time later if it suits you."],
+            "missing_context": [],
+            "question": "",
+        }
+        self.assertEqual(
+            safe_framing(output, fictional=False, calendar=False),
+            output,
+        )
+
+    def test_calendar_checkbox_layout_has_explicit_inline_checkbox_rules(self):
+        html = (Path(__file__).parents[1] / "static/index.html").read_text()
+        css = (Path(__file__).parents[1] / "static/style.css").read_text()
+        self.assertIn('id="calendar-planning-label"', html)
+        self.assertIn('for="calendar-planning"', html)
+        self.assertIn('input id="calendar-planning" type="checkbox"', html)
+        self.assertIn("#calendar-planning-label{display:flex", css)
+        self.assertIn('#calendar-planning-label input[type="checkbox"]', css)
+
     def test_default_off_and_no_calendar_read(self):
         self.login()
         self.assertFalse(self.request("/daily/api/state")["data"]["calendar"]["planning_enabled"])
