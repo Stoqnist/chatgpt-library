@@ -4,7 +4,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py ./
-COPY calendar_oauth.py calendar_connection.py calendar_readonly.py ./
+COPY calendar_oauth.py calendar_connection.py calendar_readonly.py calendar_verify.py ./
 COPY static ./static
 # Build contexts may be checked out with a restrictive umask (e.g. 077).
 # Ensure the non-root runtime can read source and traverse static directories.
