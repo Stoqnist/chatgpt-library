@@ -15,6 +15,8 @@ jobs:
           python-version: '3.13'
       - run: python3 -m unittest discover -s daily/tests -v
       - run: node --check daily/static/app.js
+      - run: node --check daily/static/morning.js
+      - run: node --test daily/tests/test_morning.cjs
       - run: docker build -t agency-daily:local daily
       - name: Check real production server and unauthenticated boundary
         run: |
