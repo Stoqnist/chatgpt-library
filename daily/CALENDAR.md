@@ -112,6 +112,43 @@ be evaluated before considering Production publication.
   Cloudflare's identity provider client. The latter authenticates the user
   but does not grant calendar access.
 
+## Explicit read-only Calendar verification (staged; not deployed)
+
+After the owner approved Google's Calendar free/busy-only consent on
+2026-10-28, Daily displayed **"Calendar authorization saved. Availability is
+not used in plans yet."** This is evidence that the OAuth redirect and
+server-side grant save succeeded, not a successful read of Calendar data.
+The grant must not be copied to GitHub or pasted into chat.
+
+The next feature adds an **owner-authenticated, CSRF-checked POST**
+`/daily/api/calendar/verify` endpoint and a Settings button to invoke it.
+This is **on demand only**: no background polling or startup reads. On
+request, it:
+
+1. Reads the private mode-0600 OAuth client and refresh credential.
+2. Exchanges the refresh token over Google's fixed OAuth token endpoint
+   for a short-lived access token, in memory only. Rejects any returned
+   incompatible scope, but accepts Google's documented omission of scope
+   on refresh (initial consent had been checked for exact freebusy scope).
+3. Requests `freeBusy.query` with exactly `primary` for the next 24 hours.
+   No event listing, titles, descriptions, attendee reads, event writes or
+   extra calendars; bounded network requests and fail-closed provider errors.
+4. Returns only `verified: true`, free/busy scope, calendar count and
+   window hours to the owner's UI. It **does not return, persist or inject**
+   actual free times into check-in history or the model.
+
+A positive read confirms the permission was usable **for one checked
+window only**. It does not mean the owner is generally available or that
+future reads will work. Failure is explicitly "unavailable", never "free".
+Calendar-to-Planning integration and selected-calendar choices beyond
+`primary` require a separate reviewed implementation. The login and
+Cloudflare controls are unchanged, and the public website stays public.
+
+The existing on-screen check-in description previously said Calendar
+"isn't connected yet", which became misleading once consent was saved.
+It is corrected to state accurately that availability is **not used in
+plans**.
+
 ## Owner-only Calendar consent runtime (staged; not deployed)
 
 This iteration adds `daily/calendar_connection.py` and three existing Daily
