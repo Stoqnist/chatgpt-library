@@ -169,7 +169,7 @@ class PlanningOptinTest(unittest.TestCase):
             def call(self, instructions, payload, schema):
                 if schema is RESULT_SCHEMA and "calendar_availability" in payload:
                     return {
-                        "summary": "A possible time can be considered.",
+                        "summary": "Your calendar gives you plenty of free time.",
                         "suggestions": [
                             "Consider tidying your kitchen between 11:07 and 12:00, which offers over 50 minutes of free time.",
                             "If that period suits you, consider 11:07–12:00, when the primary calendar appears unblocked.",
@@ -190,6 +190,8 @@ class PlanningOptinTest(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         shown = json.dumps(result["result"])
         self.assertNotIn("minutes of free time", shown)
+        self.assertNotIn("plenty of free time", shown)
+        self.assertIn("personal availability was not confirmed", shown)
         self.assertIn("calendar appears unblocked", shown)
         self.assertIn("read-only", result["result"]["source"])
 
