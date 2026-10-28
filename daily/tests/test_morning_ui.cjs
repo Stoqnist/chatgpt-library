@@ -94,52 +94,71 @@ test('one user tap opens guided draft and greeting, never microphone or model; r
   assert.equal(p.get('checkin-state').textContent,'Not started');
 });
 
-test('unsupported voice has discoverable keyboard dictation and readable prompt',async()=>{
-  const p=await page({speech:false});await p.get('morning-open').fire('click');
-  assert.equal(p.get('morning-dictate').hidden,false);
-  assert.equal(p.get('morning-dictate').textContent,'Use keyboard dictation');
-  assert.match(p.get('morning-voice-status').textContent,/unavailable.*keyboard/);
-  assert.match(p.get('morning-speech-status').textContent,/unavailable/);
-  await p.get('morning-dictate').fire('click');assert.equal(p.focused(),p.get('morning-answer'));
+test('unsupported TTS still shows keyboard microphone guidance and never opens recording',async()=>{
+  const p=await page({speech:false,recognition:true});
+  await p.get('morning-open').fire('click');
+  assert.equal(p.get('morning-voice-toggle').disabled,true);
+  assert.match(p.get('morning-speech-status').textContent,/unavailable.*keyboard dictation/);
+  assert.equal(p.get('morning-answer').value,'');
+  assert.equal(p.recognizers.length,0);
   assert.equal(p.calls.length,1);
 });
 
-test('TTS error and silent non-start give honest fallback, stop cancels pending playback',async()=>{
+test('each next-question tap speaks the newly visible question, without starting a microphone',async()=>{
+  const p=await page({recognition:true});
+  await p.get('morning-open').fire('click');
+  assert.equal(p.spoken.length,1);
+  p.get('morning-answer').value='First fictional answer';
+  await p.get('morning-next').fire('click');
+  assert.equal(p.spoken.length,2);
+  assert.equal(p.spoken[1].text,p.get('morning-question').textContent);
+  p.get('morning-answer').value='Second fictional answer';
+  await p.get('morning-next').fire('click');
+  assert.equal(p.spoken.length,3);
+  assert.equal(p.spoken[2].text,p.get('morning-question').textContent);
+  assert.equal(p.recognizers.length,0);
+  assert.equal(p.calls.length,1);
+});
+
+test('voice off prevents subsequent speech, Hear again is explicit, voice on resumes',async()=>{
+  const p=await page();await p.get('morning-open').fire('click');
+  await p.get('morning-voice-toggle').fire('click');
+  assert.equal(p.get('morning-voice-toggle').attrs['aria-pressed'],'false');
+  await p.get('morning-next').fire('click');
+  assert.equal(p.spoken.length,1);
+  await p.get('morning-hear').fire('click');
+  assert.equal(p.spoken.length,2);
+  await p.get('morning-voice-toggle').fire('click');
+  assert.equal(p.spoken.length,3);
+  assert.equal(p.get('morning-voice-toggle').attrs['aria-pressed'],'true');
+  assert.equal(p.spoken[2].text,p.get('morning-question').textContent);
+});
+
+test('TTS error and silent non-start show an honest fallback; voice off stops playback',async()=>{
   const p=await page();await p.get('morning-open').fire('click');
   p.spoken[0].onerror();assert.match(p.get('morning-speech-status').textContent,/could not play/);
   await p.get('morning-hear').fire('click');
   [...p.timers.values()].find(t=>t.ms===5000).fn();
   assert.match(p.get('morning-speech-status').textContent,/did not start/);
-  await p.get('morning-hear').fire('click');await p.get('morning-stop').fire('click');
-  assert.equal(p.get('morning-stop').disabled,true);assert.equal(p.timers.size,0);
+  await p.get('morning-hear').fire('click');
+  await p.get('morning-voice-toggle').fire('click');
+  assert.equal(p.get('morning-voice-toggle').attrs['aria-pressed'],'false');
+  assert.equal(p.timers.size,0);
 });
 
-test('recognition starts only from Speak, exposes denial, stops and ignores late callbacks',async()=>{
-  const p=await page({recognition:true});await p.get('morning-open').fire('click');
-  await p.get('morning-dictate').fire('click');const denied=p.recognizers[0];
-  assert.equal(denied.started,true);denied.onerror({error:'not-allowed'});
-  assert.match(p.get('morning-voice-status').textContent,/permission was denied/);
-  await p.get('morning-dictate').fire('click');const r=p.recognizers[1];r.onstart();
-  assert.match(p.get('morning-voice-status').textContent,/Listening/);
-  r.onresult({results:[[{transcript:'Fictional answer'}]]});
-  assert.equal(p.get('morning-answer').value,'Fictional answer');
-  await p.get('morning-stop').fire('click');assert.equal(r.stopped,true);
-  r.onresult({results:[[{transcript:'Final words'}]]});r.onend();
-  assert.equal(p.get('morning-answer').value,'Fictional answer Final words');
-  r.onresult({results:[[{transcript:'LATE'}]]});r.onerror({error:'network'});
-  assert.equal(p.get('morning-answer').value,'Fictional answer Final words');
-  assert.match(p.get('morning-voice-status').textContent,/Answer added/);
-  assert.equal(p.calls.length,1);
-});
-
-test('backgrounding and locking stop microphone and discard private guided draft',async()=>{
-  const p=await page({recognition:true});await p.get('morning-open').fire('click');
-  await p.get('morning-dictate').fire('click');p.document.hidden=true;
-  await p.document.fire('visibilitychange');assert.equal(p.recognizers[0].aborted,true);
+test('backgrounding and locking stop playback and discard private guided draft',async()=>{
+  const p=await page({recognition:true});
+  await p.get('morning-open').fire('click');
+  assert.equal(p.spoken.length,1);
+  p.document.hidden=true;await p.document.fire('visibilitychange');
+  assert.match(p.get('morning-speech-status').textContent,/background/);
+  assert.equal(p.recognizers.length,0);
   p.get('morning-answer').value='Unsent synthetic draft';
   vm.runInContext('lockUI()',p.context);
-  assert.equal(p.get('morning-answer').value,'');assert.equal(p.get('morning-companion').hidden,true);
-  assert.equal(p.get('history-section').open,false);assert.equal(p.get('checkin-state').textContent,'Not started');
+  assert.equal(p.get('morning-answer').value,'');
+  assert.equal(p.get('morning-companion').hidden,true);
+  assert.equal(p.get('history-section').open,false);
+  assert.equal(p.get('checkin-state').textContent,'Not started');
 });
 
 test('local dates label a UTC-tomorrow run as today where appropriate',async()=>{

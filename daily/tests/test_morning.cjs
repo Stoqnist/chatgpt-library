@@ -18,15 +18,18 @@ test('blank optional answers never produce a plan or a fabricated report', () =>
   assert.throws(()=>buildPrompt(['missing one answer']));
 });
 
-test('draft preserves chosen answers and explicitly protects obligations and focus', () => {
+test('draft preserves only reported answers, not invented priorities or suggestions', () => {
   const draft=buildPrompt([
     'Sleep was okay.',
     'Energy is low; I have a creative idea.',
     'One urgent email, meals and hygiene.'
   ]);
-  for(const part of ['Sleep was okay.','Energy is low','urgent email','deadlines',
-                     'hygiene','uninterrupted focus block','Do not invent appointments']) {
+  for(const part of ['Sleep was okay.','Energy is low','urgent email','meals and hygiene']) {
     assert.ok(draft.includes(part),part);
+  }
+  for(const invented of ['uninterrupted focus block','nap','invent appointments',
+                         'keep optional chores','Protect fixed commitments']) {
+    assert.ok(!draft.includes(invented),invented);
   }
   assert.ok(draft.length<4000);
 });
@@ -42,14 +45,16 @@ test('voice is explicit and never posts or persists on its own', () => {
   const js=fs.readFileSync(path.join(__dirname,'../static/morning.js'),'utf8');
   const html=fs.readFileSync(path.join(__dirname,'../static/index.html'),'utf8');
   const app=fs.readFileSync(path.join(__dirname,'../static/app.js'),'utf8');
-  assert.match(js,/dictate.addEventListener\('click'/);
+  assert.match(js,/toggle.addEventListener\('click'/);
+  assert.match(js,/if\(voiceEnabled\)speak\(question.textContent,read\)/);
   assert.match(js,/read.addEventListener\('click'/);
   assert.match(js,/readPlan.addEventListener\('click'/);
-  assert.doesNotMatch(js,/localStorage|sessionStorage|indexedDB|fetch\(|sendBeacon|MediaRecorder/);
+  assert.doesNotMatch(js,/localStorage|sessionStorage|indexedDB|fetch\(|sendBeacon|MediaRecorder|SpeechRecognition|webkitSpeechRecognition|mediaDevices/);
   assert.match(html,/id="morning-open"/);
   assert.match(html,/id="morning-answer"/);
   assert.match(html,/id="read-plan"/);
-  assert.match(html,/Some browsers send microphone audio/);
-  assert.match(js,/No automatic submission/);
+  assert.match(html,/iPhone keyboard microphone/);
+  assert.doesNotMatch(html,/id="morning-dictate"|id="morning-stop"/);
+  assert.match(js,/No microphone APIs/);
   assert.match(app,/daily:locked/);
 });

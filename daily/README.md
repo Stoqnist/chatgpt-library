@@ -9,16 +9,24 @@ The owner can review and edit the resulting text before pressing **Find my
 next steps**. There are no stored incomplete answers, mandatory health
 scores, new model calls, automatically submitted requests or provider writes.
 
-The start tap attempts a welcoming spoken prompt. Browser speech synthesis
-can also read a question or selected completed plan after explicit activation. Optional browser recognition can enter
-a spoken answer only after pressing **Speak answer**, and only on supporting
-browsers. **A browser may send microphone audio to its own speech provider**;
-Stoq itself does not record audio or upload it through this feature. Brave
-speech-recognition support is inconsistent. Device keyboard dictation and
-typing remain the supported fallbacks. Never claim guaranteed local-only
-transcription or full-duplex voice. Speech is stopped on logout, cancel, backgrounding or
-check-in submission. This slice requires owner browser QA, a pinned-image
-deployment, backup and rollback before it is operational.
+The start tap attempts a spoken welcome. Each **Next question** tap also
+attempts to speak the next question automatically; **Voice on/off** stops or
+resumes prompts, and **Hear again** is an explicit replay. Browser speech
+synthesis is fallible and actual audibility on iPhone Brave is an owner device
+acceptance check. There is no browser SpeechRecognition or Stoq microphone
+control: the owner's working Apple keyboard dictation and typing are the input
+paths. Device dictation may use Apple's own speech service; Stoq does not
+record or upload microphone audio. Unsubmitted answers stay in memory only,
+and the user must review and submit the assembled draft explicitly.
+
+Model specialists are instructed to provide direct, report-grounded user
+actions rather than instructions for another planner. High-confidence
+agent-facing suggestions, unfounded naps and mistaken third-person phrasing
+are withheld rather than silently rewritten. Planning alone receives the
+current Europe/Amsterdam date, and a tomorrow window must not be called
+today. The completed title no longer assumes all suggested actions are for
+today. These are narrow filters and synthetic tests, not assurance of model
+accuracy; live fictional device review remains necessary.
 
 **Email remains a subsequent, separate permissioned milestone:** read-only
 metadata/message triage before owner-reviewed drafts, then individual
@@ -29,7 +37,7 @@ A separate, single-owner phone web app at `/daily/`. One submitted check-in is r
 
 ## Deliberate scope
 
-- User-submitted context only. **No Calendar, Gmail, inventory, bank or Library connector access.** Do not present this as the full existing daily routine or a clinical system.
+- User-submitted context, plus optional owner-enabled read-only primary-calendar free/busy samples scoped only to Planning. **No Gmail, inventory, bank or Library connector access.** Do not present this as the full existing daily routine or a clinical system.
 - No external writes or executed actions. Model advice stays explicitly unverified. The pilot does not reuse or impersonate existing custom GPTs.
 - Conservative urgent-input interruption is model-based, not a validated clinical triage service. No diagnosis or treatment. A provider failure blocks output or gives a clearly partial result.
 - Maximum one active run, three specialists, five bounded calls per check-in, 20 submissions per rolling 24 hours, one final coordinator selection pass, no automatic provider retry. Counts are not a dollar budget; configure provider project limits.
@@ -60,23 +68,22 @@ what the user reported.
 The changes above are only active once this reviewed source is separately
 deployed to Hetzner. Passing CI does not verify the running image.
 
-## Calendar access (verified; Planning opt-in source only)
+## Calendar access (read-only Planning opt-in)
 
 - [Calendar availability architecture and rollout gates](CALENDAR.md) document
   the owner-consented Google OAuth grant on the private server and the
   separately staged explicit free/busy verification check.
-- Production does not yet use Calendar in check-ins. The verification
-  probe (once deployed) checks only the primary calendar for 24 hours and
-  returns success/failure, not appointments or availability slots.
-- Calendar-to-Planning integration requires a further review, live read-only
-  verification, scoped data handling and rollout.
-
-- Source-only Planning integration adds a **default-off** one-time owner
-  setting. If enabled after deployment, only relevant nonurgent Planning
-  check-ins can read bounded primary-calendar free/busy samples, with clear
-  fallback when Google is unavailable. No Calendar events are listed or
-  modified and no raw availability is persisted. Do not mark this deployed
-  until a pinned candidate and a live read-only canary are verified.
+- Owner screenshots confirm one deployed read-only verification and a
+  subsequent explicitly opted-in Planning check-in that used bounded primary
+  Calendar free/busy samples. These observations do not establish permanent
+  grant validity or verified personal availability.
+- The default-off one-time owner setting only permits relevant nonurgent
+  Planning check-ins to read up to six bounded free/busy samples, with a clear
+  missing-data fallback. No Calendar event details are returned to Planning,
+  no event writes occur, and the raw availability is not persisted.
+- The current proposed source changes do not modify Calendar grants, access
+  scope, provider API paths or opt-in defaults. Do not issue new live Calendar
+  reads solely to validate wording.
 
 ## Quality evidence
 
@@ -92,6 +99,23 @@ The existing demo proxy forwards only `/daily/` to `agency-daily:8000`. Runtime 
 Check: `python3 -m unittest discover -s daily/tests -v` and `node --check daily/static/app.js`, plus existing generated demo/HTTP checks. Build/release and live model canary must be recorded separately. Synthetic tests inject the provider; production has no mock mode.
 
 Source API contract: https://developers.openai.com/api/docs/guides/structured-outputs and https://developers.openai.com/api/reference/resources/responses/methods/create.
+
+## 2026-10-28 owner-observed follow-up: native dictation and user-facing plan
+
+Owner reports successful native Apple keyboard dictation and unreliable
+browser speech recording on iPhone Brave. The next source iteration removes
+the browser recognition controls rather than adding an audio upload service.
+A second owner screenshot shows an agent-facing plan, unsolicited nap, a
+calendar suggestion for 2026-10-29 beneath a "for today" title, and wording
+about "the person's" preferences. The correction prioritizes useful direct
+actions, grounded commitments and explicit date context; suggestions remain
+read-only, unexecuted and conditional on actual availability.
+
+Before promotion: full offline CI, pinned candidate, isolated HTTP tests,
+fresh database backup, rollback, and owner iPhone acceptance of all three
+auto-spoken questions, keyboard dictation, review/submit, clear plan wording
+and saved-history behavior. No new Gmail, Calendar scopes, provider tokens,
+audio storage, health records or deployment permissions are added.
 
 ## Morning entry and saved plans (P0 correction)
 
