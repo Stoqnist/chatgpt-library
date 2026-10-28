@@ -24,8 +24,11 @@
 .morning-entry .quiet{margin:9px 0 2px}
 #history-section>summary{cursor:pointer;min-height:48px;padding:12px 0;font-size:19px}
 #history-section>summary .quiet{font-size:12px}
-#morning-stop:disabled{cursor:default}
+#morning-voice-toggle[aria-pressed='false']{color:var(--muted)}
 #morning-greeting:focus{outline:none}
-#morning-speech-status:empty,#morning-voice-status:empty{display:none}
+#morning-speech-status:empty{display:none}
 #checkin-form{scroll-margin-top:20px}
 @media(max-width:600px){main{padding-bottom:calc(20px + env(safe-area-inset-bottom))}.morning-actions button{min-height:48px}.chips{margin-top:18px}}
+
+/* Keep the submitted plan below iOS browser overlays when scrolling to it. */
+@media(max-width:600px){.result{scroll-margin-top:calc(80px + env(safe-area-inset-top))}.next-steps li:first-child{font-size:19px;font-weight:600}.next-steps li:not(:first-child){font-size:15px}}
