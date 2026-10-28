@@ -59,6 +59,59 @@ specified below. Do not remove the second Daily access-code gate until
 backend validation of trusted Cloudflare identity is implemented and
 tested, including direct-origin bypass resistance.
 
+## Calendar OAuth protocol foundation (not connected)
+
+The calendar_oauth.py module provides a fixed, separate **Google Calendar
+authorization-code flow with PKCE S256**, exact callback
+https://stoq.page/daily/api/calendar/callback, random state, and a
+Google-token exchange restricted to the single calendar.freebusy scope.
+The current Daily server does **not** register that callback or a Connect
+button, accept tokens, connect calendars or modify model prompts. The code
+has only fictional, injected-network regression tests.
+
+Use a **different Web application OAuth client** from the existing
+Cloudflare Google sign-in client, even if both clients live inside the
+Google Cloud project named Stoq Authentication. Configure:
+- Client label: Stoq Daily Calendar (read-only)
+- Authorized redirect URI:
+  https://stoq.page/daily/api/calendar/callback
+- No browser JavaScript origin is required for a server-side token exchange
+- OAuth consent screen: External, with an explicitly approved test user during
+  Testing and only the calendar.freebusy scope
+- Enable Google Calendar API in the same Google Cloud project
+
+These are setup targets, **not proof of a functional login callback**.
+Do not click through a real Calendar consent until its runtime session,
+CSRF/state, token-security and revocation handlers have been implemented,
+reviewed and deployed. Never paste a Client Secret or OAuth authorization
+code into chat/GitHub. While the OAuth application remains in Testing,
+Google may expire the grant after seven days; durable refresh behavior must
+be evaluated before considering Production publication.
+
+### Mandatory before using these helpers in Daily
+
+- Bind state + PKCE verifier to an authenticated owner, single pending flow,
+  strict expiration and one-use consumption, with a protected private store.
+- Explicitly resolve cross-site Google-to-Stoq redirect cookie behavior:
+  the existing Daily app cookie has SameSite=Strict, so it must **not**
+  be assumed present on Google's cross-site callback. Use a limited-purpose
+  secure, HttpOnly, SameSite=Lax correlation cookie plus server-side
+  owner-bound, expiring state (or equivalent reviewed design); do not weaken
+  the existing app session cookie.
+- Require exactly one expected Google callback state and authorization code;
+  never allow a caller-provided redirect URL or scopes. If Google denies
+  access, clear pending state without storing credentials.
+- Validate the token response scope, bind the selected Google grant to the
+  current owner, store refresh tokens with restricted permissions, and
+  never return them to the browser. Verify revocation and failed refresh.
+- Before calling freeBusy, verify the particular calendar(s) were selected
+  and consented. If selection is absent or a call fails, say availability is
+  unavailable, not empty. Avoid logging request URLs, callback codes or
+  calendar identifiers in any proxy.
+- Keep all token scopes for the dedicated Calendar OAuth client separate from
+  Cloudflare's identity provider client. The latter authenticates the user
+  but does not grant calendar access.
+
 ## Auth and rollout blockers
 
 The adapter expects a separately supplied short-lived OAuth access token.
