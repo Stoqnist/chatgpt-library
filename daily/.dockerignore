@@ -4,6 +4,7 @@
 !calendar_oauth.py
 !calendar_readonly.py
 !calendar_verify.py
+!calendar_planning.py
 !static/
 !static/**
 !requirements.txt

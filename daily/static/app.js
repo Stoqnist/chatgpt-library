@@ -45,8 +45,15 @@ async function refresh(){
   const calendar=state.calendar||{configured:false,connected:false};
   $('calendar-setup').hidden=!calendar.configured;
   $('calendar-status').textContent=calendar.connected
-    ? 'Google Calendar permission is connected. Availability is not used in plans yet.'
+    ? (calendar.planning_enabled
+       ? 'Calendar connected. Planning may use read-only availability for relevant check-ins.'
+       : 'Calendar connected. Calendar-based planning is off.')
     : 'Connect Google Calendar for free/busy-only access.';
+  $('calendar-planning-setting').hidden=!calendar.connected;
+  $('calendar-planning').checked=Boolean(calendar.planning_enabled);
+  $('planning-scope').textContent=calendar.planning_enabled
+    ? 'For relevant check-ins, Planning may use sampled primary-calendar free/busy. If unavailable, the plan uses your check-in only. Advice only; no external changes.'
+    : 'Based on your check-in only. Calendar is not used unless you opt in. Advice only; no external changes.';
   $('calendar-connect').hidden=calendar.connected;
   $('calendar-disconnect').hidden=!calendar.connected;
   $('calendar-verify').hidden=!calendar.connected;
@@ -79,8 +86,20 @@ $('calendar-verify').addEventListener('click',async e=>{
     const check=await api('calendar/verify',{});
     if(check.verified!==true||check.scope!=='freebusy'||check.calendar_count!==1)
       throw new Error('Calendar verification was incomplete.');
-    notice('Google Calendar availability verified for the primary calendar. No event details were accessed; availability is not used in plans yet.');
+    notice('Google Calendar availability verified for the primary calendar. No event details were accessed. You can opt in to Calendar-based Planning below.');
   }catch(error){notice(error.message,true);}finally{button.disabled=false;}
+});
+$('calendar-planning').addEventListener('change',async e=>{
+  const control=e.currentTarget, enabled=control.checked;
+  control.disabled=true;
+  try{
+    await api('calendar/planning',{enabled});
+    await refresh();
+    notice(enabled
+      ? 'Calendar planning enabled. Only Planning receives sample free-time windows when relevant.'
+      : 'Calendar planning disabled. New check-ins will not access Calendar.');
+  }catch(error){control.checked=!enabled;notice(error.message,true);}
+  finally{control.disabled=false;}
 });
 $('calendar-disconnect').addEventListener('click',async e=>{
   if(!confirm('Disconnect Google Calendar from Stoq? This removes its saved authorization on this server.'))return;
@@ -94,6 +113,6 @@ $('calendar-disconnect').addEventListener('click',async e=>{
 $('clear').addEventListener('click',async()=>{if(!confirm('Delete your saved check-ins and plans? This cannot be undone.'))return;try{await api('clear',{});activeId=null;await refresh();notice('Check-in history cleared.');}catch(error){notice(error.message,true);}});
 if(new URLSearchParams(location.search).get('calendar')==='connected'){
   history.replaceState(null,'','/daily/');
-  notice('Calendar authorization saved. Availability is not used in plans yet.');
+  notice('Calendar authorization saved. Availability is not used in plans unless you opt in.');
 }
 refresh();
