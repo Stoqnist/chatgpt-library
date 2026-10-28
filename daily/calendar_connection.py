@@ -43,7 +43,7 @@ def _read_client(path):
         secret = client["client_secret"]
         if not isinstance(identifier, str) or not isinstance(secret, str):
             raise ValueError()
-        if CALLBACK_URL not in client["redirect_uris"]:
+        if not isinstance(client["redirect_uris"], list) or CALLBACK_URL not in client["redirect_uris"]:
             raise ValueError()
         # begin_calendar_auth validates the client identifier before any use.
         begin_calendar_auth(identifier)
@@ -97,7 +97,9 @@ class CalendarOwnerConsent:
         return url, correlation
 
     def complete(self, query, cookie, *, exchange=None):
-        if not isinstance(query, str) or len(query) > 8192 or not isinstance(cookie, str) or len(cookie) > 256:
+        if (not isinstance(query, str) or len(query) > 8192 or
+                not isinstance(cookie, str) or len(cookie) > 256 or
+                any(ord(c) < 33 or ord(c) > 126 for c in cookie)):
             raise CalendarConnectionError("Calendar connection could not be verified.")
         # Parse only the state needed to find the pending, owner-bound flow.
         try:
