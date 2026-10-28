@@ -2,21 +2,21 @@
 
 ## Morning Companion — staged UI source, not yet deployed
 
-The existing **Start my day** control opens a three-question, optional-answer
+The **Start morning check-in** control opens a three-question, optional-answer
 guide: sleep/physical comfort; energy/mood/mental clarity; and priorities
 including appointments, replies, hygiene, meals, chores and protected focus.
 The owner can review and edit the resulting text before pressing **Find my
 next steps**. There are no stored incomplete answers, mandatory health
 scores, new model calls, automatically submitted requests or provider writes.
 
-Browser speech synthesis can read a question or selected completed plan aloud
-after explicit button activation. Optional browser recognition can enter
+The start tap attempts a welcoming spoken prompt. Browser speech synthesis
+can also read a question or selected completed plan after explicit activation. Optional browser recognition can enter
 a spoken answer only after pressing **Speak answer**, and only on supporting
 browsers. **A browser may send microphone audio to its own speech provider**;
 Stoq itself does not record audio or upload it through this feature. Brave
 speech-recognition support is inconsistent. Device keyboard dictation and
 typing remain the supported fallbacks. Never claim guaranteed local-only
-transcription or full-duplex voice. Speech is stopped on logout, cancel or
+transcription or full-duplex voice. Speech is stopped on logout, cancel, backgrounding or
 check-in submission. This slice requires owner browser QA, a pinned-image
 deployment, backup and rollback before it is operational.
 
@@ -92,3 +92,26 @@ The existing demo proxy forwards only `/daily/` to `agency-daily:8000`. Runtime 
 Check: `python3 -m unittest discover -s daily/tests -v` and `node --check daily/static/app.js`, plus existing generated demo/HTTP checks. Build/release and live model canary must be recorded separately. Synthetic tests inject the provider; production has no mock mode.
 
 Source API contract: https://developers.openai.com/api/docs/guides/structured-outputs and https://developers.openai.com/api/reference/resources/responses/methods/create.
+
+## Morning entry and saved plans (P0 correction)
+
+The landing screen starts at **Not started** with **Start morning check-in** as
+the primary action and **Write a check-in instead** as an alternative. The start
+tap opens the optional three-question guide and attempts a welcome via browser
+speech synthesis. It never starts a microphone or submits a check-in. Speak
+answer is a separate explicit browser-permission action; Stop cancels audio.
+Unavailable recognition exposes **Use keyboard dictation** and instructions,
+including typing when device dictation is absent. Actual iPhone Brave voice
+support requires owner device acceptance; API presence does not prove audibility.
+
+Completed results are kept in collapsed, dated **Previous check-ins**, including
+same-day/fictional runs. Only a newly submitted or recovered running check-in
+uses the current result area automatically. An open result crossing local
+midnight becomes a labeled saved check-in. Drafts are memory-only: reload or
+lock discards them. Review and explicit submission remain required.
+
+Run `node --test daily/tests/test_morning*.cjs` for prompt and UI interactions,
+plus the existing Python regressions and production image CI. No schema,
+credentials, Calendar consent or server configuration changes are required for
+this frontend correction. Build the merged revision as a pinned candidate, use
+the existing isolated smoke/backup/rollback procedure, then check the phone UI.
