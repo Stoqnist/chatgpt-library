@@ -19,6 +19,11 @@ import uuid
 from http.cookies import SimpleCookie
 from wsgiref.simple_server import make_server
 
+from calendar_connection import (
+    CalendarOwnerConsent, CalendarConnectionError, CORRELATION_COOKIE,
+    PENDING_SECONDS,
+)
+
 DOMAINS = {
     'wellbeing': ('Wellbeing', 'Support a manageable daily routine, not medical treatment. Do not diagnose or suggest treatment, including stretching, exercises, manual therapy, heat/cold applications, or medications for unassessed pain or injury. Do not assume a common home remedy is safe when the cause of symptoms is unknown. If someone only reports pain, acknowledge that cause and safe movement are unknown; suggest an appropriate healthcare assessment for new, persistent or worsening symptoms rather than a therapeutic movement. For possible immediate danger, the router must interrupt routine planning. Keep any actions practical, acknowledge uncertainty, and reflect self-reports as self-reports.'),
     'home': ('Home', 'Suggest small home, food preparation and personal-care tasks. Never assume inventory, purchases or task completion. No health or financial judgments.'),
@@ -159,6 +164,8 @@ class App:
             CREATE TABLE IF NOT EXISTS usage(created REAL NOT NULL);''')
             db.execute("UPDATE runs SET status='interrupted',result=? WHERE status='running'", (json.dumps({'message':'The service restarted before this check-in finished. No external actions were performed.'}),))
         os.chmod(self.db_path,0o600)
+        self.calendar = CalendarOwnerConsent(self.data, self.db, self.clock)
+        self.calendar.init_table()
 
     @contextmanager
     def db(self):
@@ -286,7 +293,7 @@ class App:
         headers=[('Cache-Control','no-store'),('X-Content-Type-Options','nosniff'),('Referrer-Policy','no-referrer'),('X-Robots-Tag','noindex, nofollow'),('Content-Security-Policy',"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")]
         def respond(code,data,extra=(),mime='application/json'):
             body=data if isinstance(data,bytes) else json.dumps(data).encode()
-            start_response(str(code)+' '+{200:'OK',202:'Accepted',400:'Bad Request',401:'Unauthorized',403:'Forbidden',404:'Not Found',409:'Conflict',413:'Payload Too Large',429:'Too Many Requests',503:'Service Unavailable'}[code],headers+[('Content-Type',mime),('Content-Length',str(len(body))),*extra])
+            start_response(str(code)+' '+{200:'OK',202:'Accepted',303:'See Other',400:'Bad Request',401:'Unauthorized',403:'Forbidden',404:'Not Found',409:'Conflict',413:'Payload Too Large',429:'Too Many Requests',503:'Service Unavailable'}[code],headers+[('Content-Type',mime),('Content-Length',str(len(body))),*extra])
             return [body]
         path=environ.get('PATH_INFO',''); method=environ.get('REQUEST_METHOD','GET')
         if method=='GET' and path=='/health':
@@ -295,6 +302,25 @@ class App:
             name={'/daily/':'index.html','/daily/app.js':'app.js','/daily/style.css':'style.css'}[path]
             mime={'index.html':'text/html; charset=utf-8','app.js':'text/javascript; charset=utf-8','style.css':'text/css; charset=utf-8'}[name]
             return respond(200,(Path(__file__).parent/'static'/name).read_bytes(),mime=mime)
+        # OAuth callback is a top-level Google cross-site redirect.
+        # Do not require Daily's SameSite=Strict session cookie on this GET;
+        # the short-lived Lax correlation cookie and server-side owner session
+        # binding are verified in CalendarOwnerConsent instead.
+        if method=='GET' and path=='/daily/api/calendar/callback':
+            cookie_jar=SimpleCookie()
+            try:
+                cookie_jar.load(environ.get('HTTP_COOKIE',''))
+                correlation=cookie_jar[CORRELATION_COOKIE].value
+            except (KeyError,ValueError):
+                correlation=''
+            try:
+                self.calendar.complete(environ.get('QUERY_STRING',''), correlation)
+            except CalendarConnectionError:
+                return respond(403,{'error':'Calendar authorization could not be verified.'})
+            # Never serve HTML or expose authorization code in the response.
+            # Immediately navigate to the clean Daily URL.
+            expire=f'{CORRELATION_COOKIE}=; Path=/daily/api/calendar/callback; Max-Age=0; HttpOnly; SameSite=Lax; Secure'
+            return respond(303,b'', [('Location','/daily/?calendar=connected'),('Set-Cookie',expire)], mime='text/plain')
         session=self.session(environ)
         if method=='POST':
             if environ.get('HTTP_ORIGIN')!=self.origin:
@@ -338,7 +364,22 @@ class App:
                 db.execute('DELETE FROM runs WHERE created<?',(self.clock()-7*86400,))
                 runs=[{**dict(row),'result':json.loads(row['result'])} for row in db.execute('SELECT * FROM runs ORDER BY created DESC LIMIT 20')]
                 remaining=max(0,20-db.execute('SELECT count(*) FROM usage WHERE created>?',(self.clock()-86400,)).fetchone()[0])
-            return respond(200,{'csrf':session['csrf'],'connected':self.key_path.exists(),'model':self.model,'runs':runs,'remaining':remaining})
+            return respond(200,{'csrf':session['csrf'],'connected':self.key_path.exists(),'model':self.model,'runs':runs,'remaining':remaining,'calendar':self.calendar.status()})
+        if path=='/daily/api/calendar/connect' and method=='POST':
+            try:
+                url,correlation=self.calendar.begin(session)
+            except CalendarConnectionError:
+                return respond(503,{'error':'Calendar connection is not configured.'})
+            correlation_cookie=(f'{CORRELATION_COOKIE}={correlation}; '
+                f'Path=/daily/api/calendar/callback; Max-Age={PENDING_SECONDS}; '
+                'HttpOnly; SameSite=Lax; Secure')
+            return respond(200,{'authorization_url':url}, [('Set-Cookie',correlation_cookie)])
+        if path=='/daily/api/calendar/disconnect' and method=='POST':
+            try:
+                self.calendar.disconnect_local()
+            except CalendarConnectionError:
+                return respond(503,{'error':'Calendar disconnection failed.'})
+            return respond(200,{'ok':True,'note':'Calendar removed from Stoq. You can also revoke provider access in Google Account settings.'})
         if path=='/daily/api/settings' and method=='POST':
             key=payload.get('api_key')
             if not isinstance(key,str) or not key.startswith('sk-') or not 20<=len(key)<=300 or any(c.isspace() for c in key):

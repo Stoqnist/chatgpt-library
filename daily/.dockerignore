@@ -1,5 +1,8 @@
 *
 !app.py
+!calendar_connection.py
+!calendar_oauth.py
+!calendar_readonly.py
 !static/
 !static/**
 !requirements.txt
