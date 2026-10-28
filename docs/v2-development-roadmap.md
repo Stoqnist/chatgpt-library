@@ -4,6 +4,90 @@
 
 **Status (2026-10-14; GitHub implementation state verified):** End-to-end, evidence-backed personal assistance remains the V2 product target. Purchase benchmark/comparison/ablation component work (#7–#10), a health-led P0 contract (#12), scripted read-only J1 (#13), scripted J2/J3 safety journeys (#14), and disposable mock approval/execution (#15) are **merged into the experimental V2 branch only**. P0–P3 are experimental slices, not completed product/release gates. Draft [PR #3](https://github.com/Stoqnist/chatgpt-library/pull/3) still targets `main`; these experiments are not deployed. **S0 decisions explicitly confirmed by the user on 2026-10-13:** S1/S2/S5/S7 simplify; S3/S4 keep; S6 defer. Implementation remains subject to independent regression checks; real connector effects, model spending and deployment are not authorized. [P4 PR #16](https://github.com/Stoqnist/chatgpt-library/pull/16) is now merged into the experimental branch as **offline preflight only**; its checks and metadata/synthetic claims do not establish real provider authorization, transactional safety or release readiness. [PR #26](https://github.com/Stoqnist/chatgpt-library/pull/26) subsequently merged an offline-only synthetic elevated-read-role rejection; live authorization remains unverified. [PR #28](https://github.com/Stoqnist/chatgpt-library/pull/28) merged a synthetic OAuth-scope posture regression and documented limited, reported live read-only probes; effective scopes, audit provenance and execution safety remain unverified. [PR #30](https://github.com/Stoqnist/chatgpt-library/pull/30) adds Calendar-only operation-specific synthetic role checks and a redacted grant-feasibility audit, without establishing real token grants. [PR #34](https://github.com/Stoqnist/chatgpt-library/pull/34) merges the initial I1 scripted-to-P3 mock approval/execution bridge with 3.11/3.13 offline CI passing; it is not live integration. [PR #36](https://github.com/Stoqnist/chatgpt-library/pull/36) adds executor/store-bound mock approval revocation and cross-turn outcome history with Python 3.11/3.13 CI passing. [PR #38](https://github.com/Stoqnist/chatgpt-library/pull/38) adds an inspection-only synthetic recovery path for superseded unknown attempts with Python 3.11/3.13 offline checks passing. [PR #40](https://github.com/Stoqnist/chatgpt-library/pull/40) adds offline denial of cross-owner/unauthorized recovery reads, with Python 3.11/3.13 CI passing; it does not authenticate real users or prove connector scopes. [PR #42](https://github.com/Stoqnist/chatgpt-library/pull/42) merged uniform unauthorized recovery-ID denial into experimental V2 (`10e00ef`; Python 3.11/3.13 offline CI passed). See [I1 provider-operation feasibility](v2-i1-provider-operation-feasibility.md) for a *contract review only*, not live recovery evidence. Live execution remains blocked; V1 remains unchanged.
 
+## 2026-10-28 owner-observed iPhone usability: reprioritize Morning Companion (P0)
+
+**Evidence:** Owner screenshots of live `https://stoq.page/daily/` in Brave
+on iPhone after confirmed deployment of `agency-daily:candidate-ac599eb`.
+The page shows `Start my day · guided` only as a small chip alongside reset
+and close, a prominent blank text form and an old **fictional kitchen plan**
+labeled `Ready` / `A small plan for today` with `Listen to plan`.
+The owner did not hear a greeting or find a speech-input control and
+reasonably perceived the old plan as prepared *before* a morning report.
+
+**Verified code explanation:** The greeting is spoken only if the owner
+opens the guided panel **and then** presses `Hear question`.
+The `Speak answer` control is hidden unless the browser exposes
+`SpeechRecognition` / `webkitSpeechRecognition`. The app automatically
+displays the latest stored check-in result on login/refresh, without
+distinguishing previous work from an unsubmitted morning report. The
+textarea's example text is a placeholder, not a generated user report.
+A visible `Listen to plan` only proves speech synthesis was detected;
+it does not prove it played on this device. Browser recognition availability
+and any use of a third-party speech provider must be tested, not assumed.
+**No new personal health facts or device permissions were inferred.**
+
+**Revised prioritized product acceptance requirements:**
+
+1. **P0 — No phantom plan / accurate state.** The first screen must clearly
+   distinguish **Not started**, **Draft in progress**, **Working**, and
+   **Today's completed plan**. Do not automatically present a historical
+   `Ready` result as today's plan on landing. Place prior results in a
+   dated, explicitly labeled **Previous check-ins** section, collapsed
+   until opened. The user may return to the last plan deliberately.
+   No automatic planning or AI model calls on page load. Test reload,
+   login, timezone/day boundary, historical fictional runs, and running-run
+   recovery without overwriting live work.
+2. **P0 — One obvious voice-first entry point.** Make a single prominent
+   **Start morning check-in** control the main mobile action; text and
+   guided-skip remain available. On the *owner's tap*, open the first
+   question and attempt a welcoming spoken greeting via supported TTS;
+   no autoplay on page load or hidden microphone activation. Show
+   unmistakable **Speak / Stop** controls and listening/error indicators.
+   A lack of browser speech recognition must produce an immediate,
+   discoverable text/OS-dictation fallback rather than silently hiding
+   the user's only voice option. Confirm microphone consent and supported
+   device behavior with real iOS Brave and desktop tests.
+3. **P1 — True speech-input feasibility and privacy.** Treat browser
+   `SpeechRecognition` as a limited-availability enhancement, not as a
+   guaranteed iPhone or Brave solution. Investigate device dictation
+   and Safari as a short compatibility canary. If the owner's required
+   device does not support reliable transcription, design a separately
+   consented short-clip server transcription path with explicit provider,
+   request limits, no persistent audio by default, error handling,
+   security and spending caps before implementation. Do not over-promise
+   continuous/full-duplex conversation.
+4. **P1 — Minimal guided conversational workflow.** Three optional
+   questions about physical comfort/sleep, mood/energy/thoughts, and
+   deadlines/health/hygiene/focus. Keep a concise read-back of the drafted
+   report, a clear **Review** and **Submit** boundary, and progress.
+   No unrequested model calls, invented health facts, or stored partial
+   recordings. A morning session may start at the user's chosen hour;
+   no forced 08:00 assumption.
+5. **P2 — Adaptive planning and durable obligations.** Only after voice
+   entry and state clarity pass, improve the plan into **Must not miss,
+   Health essentials, Focus, Flexible chores**. Give a provenance label
+   to claims; a blank calendar does not mean no commitments. Create or
+   integrate a canonical obligation source with clear owner/permissions
+   before promising deadline coverage. No unsolicited Calendar/event
+   writes. Keep email read-only triage and approved drafts as a later
+   high-priority integration, and keep advocate-specific work separate.
+6. **P3 — Visual polish.** Reduce the text area's visual dominance in
+   voice mode, ensure accessible large controls, tested safe-area layout
+   and readable history labels. Do not prioritize cosmetic layout over
+   correct state and working speech.
+
+**Release gates:** A real iPhone screenshot/video shows a single primary
+start action, an audible greeting after explicit activation (or an honest
+unsupported-state message), an input method the owner can actually use,
+editable draft and no pre-existing plan masquerading as newly generated.
+Confirm no microphone operation or model request before user action,
+correct previous-run labeling across reload, preservation of Cloudflare
+Access, CSRF/session protections, Calendar default/explicit opt-in,
+and no change to email/advocate records. Then perform Android/desktop
+compatibility smoke checks, pinned CI-tested image, backup, rollback and
+observed deployment. **This is a prioritization change only; no live
+voice support is claimed and no code is deployed by this roadmap update.**
+
 ## 2026-10-28 accepted product priorities: Morning Companion first, email later
 
 **User decision:** Proceed with a voice-friendly Morning Companion as the next
