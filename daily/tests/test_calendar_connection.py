@@ -217,11 +217,12 @@ class CalendarConsentIntegrationTest(unittest.TestCase):
         self.configure(); self.login()
         _, old_cookie, old_state = self.begin()
         _, new_cookie, new_state = self.begin()
-        with patch("calendar_connection.exchange_calendar_code") as exchange:
+        with patch("calendar_connection.exchange_calendar_code",
+                   side_effect=CalendarOAuthError("fictional provider error")) as exchange:
             self.assertEqual(self.callback(old_state, old_cookie)["status"], 403)
-            self.assertEqual(self.callback(new_state, new_cookie)["status"], 403 if not False else 303)
-        # We supplied no token response; this verifies the old state cannot
-        # consume or authorize a newer request, even if the newer callback fails.
+            self.assertEqual(self.callback(new_state, new_cookie)["status"], 403)
+        # Only the latest state may reach token exchange, and it is consumed
+        # even if Google rejects the new authorization.
         self.assertEqual(exchange.call_count, 1)
 
 if __name__ == "__main__":
