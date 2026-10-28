@@ -35,14 +35,16 @@ what the user reported.
 The changes above are only active once this reviewed source is separately
 deployed to Hetzner. Passing CI does not verify the running image.
 
-## Calendar read-only foundation (not connected)
+## Calendar access (grant saved; availability not used in plans)
 
-- [Calendar availability design and authorization gates](CALENDAR.md)
-  describe the Google freeBusy-only adapter (calendar_readonly.py) and the explicit verification endpoint. The verification probe has no event
-  content, OAuth grant, Calendar reads or production connection yet.
-- The current app continues to use check-in text only. Do not claim real
-  Calendar availability until a separately consented owner OAuth connection,
-  private token lifecycle, privacy review and live read-only canary are verified.
+- [Calendar availability architecture and rollout gates](CALENDAR.md) document
+  the owner-consented Google OAuth grant on the private server and the
+  separately staged explicit free/busy verification check.
+- The application does not yet use Calendar in check-ins. The verification
+  probe (once deployed) checks only the primary calendar for 24 hours and
+  returns success/failure, not appointments or availability slots.
+- Calendar-to-Planning integration requires a further review, live read-only
+  verification, scoped data handling and rollout.
 
 ## Quality evidence
 
