@@ -15,12 +15,8 @@ const MorningCompanion = (() => {
     }).filter(Boolean);
     if(!lines.length)return '';
     return [
-      'Help me make an actionable plan based only on what I report below.',
-      ...lines,
-      'Prioritize my explicitly reported commitments and tasks. Keep suggestions practical, specific and directly addressed to me.',
-      'Do not invent a focus block, nap, meal, appointment, deadline, health fact, message or household task that I did not mention.',
-      'Distinguish today from tomorrow when giving times. Calendar-unblocked intervals do not prove I am available.',
-      'Do not claim an action was executed. Ask a short follow-up only if a critical detail is missing.'
+      'Daily check-in. Only the answers below are reported facts:',
+      ...lines
     ].join('\n');
   }
   function mount(){
