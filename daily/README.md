@@ -37,7 +37,7 @@ A separate, single-owner phone web app at `/daily/`. One submitted check-in is r
 
 ## Deliberate scope
 
-- User-submitted context only. **No Calendar, Gmail, inventory, bank or Library connector access.** Do not present this as the full existing daily routine or a clinical system.
+- User-submitted context, plus optional owner-enabled read-only primary-calendar free/busy samples scoped only to Planning. **No Gmail, inventory, bank or Library connector access.** Do not present this as the full existing daily routine or a clinical system.
 - No external writes or executed actions. Model advice stays explicitly unverified. The pilot does not reuse or impersonate existing custom GPTs.
 - Conservative urgent-input interruption is model-based, not a validated clinical triage service. No diagnosis or treatment. A provider failure blocks output or gives a clearly partial result.
 - Maximum one active run, three specialists, five bounded calls per check-in, 20 submissions per rolling 24 hours, one final coordinator selection pass, no automatic provider retry. Counts are not a dollar budget; configure provider project limits.
@@ -68,23 +68,22 @@ what the user reported.
 The changes above are only active once this reviewed source is separately
 deployed to Hetzner. Passing CI does not verify the running image.
 
-## Calendar access (verified; Planning opt-in source only)
+## Calendar access (read-only Planning opt-in)
 
 - [Calendar availability architecture and rollout gates](CALENDAR.md) document
   the owner-consented Google OAuth grant on the private server and the
   separately staged explicit free/busy verification check.
-- Production does not yet use Calendar in check-ins. The verification
-  probe (once deployed) checks only the primary calendar for 24 hours and
-  returns success/failure, not appointments or availability slots.
-- Calendar-to-Planning integration requires a further review, live read-only
-  verification, scoped data handling and rollout.
-
-- Source-only Planning integration adds a **default-off** one-time owner
-  setting. If enabled after deployment, only relevant nonurgent Planning
-  check-ins can read bounded primary-calendar free/busy samples, with clear
-  fallback when Google is unavailable. No Calendar events are listed or
-  modified and no raw availability is persisted. Do not mark this deployed
-  until a pinned candidate and a live read-only canary are verified.
+- Owner screenshots confirm one deployed read-only verification and a
+  subsequent explicitly opted-in Planning check-in that used bounded primary
+  Calendar free/busy samples. These observations do not establish permanent
+  grant validity or verified personal availability.
+- The default-off one-time owner setting only permits relevant nonurgent
+  Planning check-ins to read up to six bounded free/busy samples, with a clear
+  missing-data fallback. No Calendar event details are returned to Planning,
+  no event writes occur, and the raw availability is not persisted.
+- The current proposed source changes do not modify Calendar grants, access
+  scope, provider API paths or opt-in defaults. Do not issue new live Calendar
+  reads solely to validate wording.
 
 ## Quality evidence
 
