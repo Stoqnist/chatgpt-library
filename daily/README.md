@@ -1,5 +1,18 @@
 # Private daily MVP
 
+## One Daily experience — next source iteration (not yet deployed)
+
+After the owner's successful 2026-11-04 live conversation test, the next
+source iteration puts chat **inside** `/daily/`, redirects old `/daily/chat`
+links, removes the editable background/system-prompt field, and routes
+conversation turns through a coordinator plus relevant Wellbeing/Home/Planning
+specialists. These are the existing bounded Daily roles, **not** the full
+experimental family-agent orchestration or canonical record retrieval.
+No private notes are copied into prompts; prior context columns remain for
+backward-compatible export. See [conversation contract](CONVERSATION.md).
+Production remains on the previously deployed candidate until a reviewed
+and pinned update passes the owner phone checks.
+
 ## Private conversation — source candidate
 
 See [conversation foundation](CONVERSATION.md) for the new `/daily/chat` route,
