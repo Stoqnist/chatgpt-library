@@ -60,6 +60,25 @@ POSSIBLE_CREDENTIAL = re.compile(
     r"gh[pousr]_[a-z0-9]{20,}|xox[baprs]-[a-z0-9-]{20,})\b", re.I
 )
 
+def scope_non_sensitive_handoffs(tasks):
+    """Keep only safe verbatim Home/Planning excerpts; never edit source text.
+
+    A mixed spoken check-in must not fail entirely because one model-selected
+    excerpt contains a protected term. Drop that excerpt (or the owner if no
+    safe excerpts remain); do not try to redact or paraphrase private content.
+    """
+    scoped, withheld = [], 0
+    for task in tasks:
+        if task['domain'] not in ('home', 'planning'):
+            scoped.append(task)
+            continue
+        kept = [text for text in task['excerpts'] if not SENSITIVE_HANDOFF.search(text)]
+        withheld += len(task['excerpts']) - len(kept)
+        if kept:
+            scoped.append({**task, 'excerpts': kept})
+    return scoped, withheld
+
+
 # Explicitly described fictional exercises must not silently become the
 # account owner's life or trigger reads of the account owner's Calendar.
 FICTIONAL_SCENARIO = re.compile(
@@ -325,17 +344,22 @@ class App:
                 if not isinstance(excerpts,list) or not 1<=len(excerpts)<=6 or any(not isinstance(v,str) or not v.strip() or v not in prompt for v in excerpts):
                     raise ProviderError('The coordinator could not ground its handoffs in your check-in.')
                 seen.add(task['domain'])
-            # Fail closed rather than trusting the model's excerpt scoping.
-            # We do not attempt to rewrite user text or promise perfect PII detection.
-            for task in tasks:
-                if task['domain'] in ('home', 'planning') and any(
-                    SENSITIVE_HANDOFF.search(excerpt) for excerpt in task['excerpts']
-                ):
-                    raise ProviderError(
-                        'The coordinator could not separate private details from '
-                        'routine tasks. Put routine tasks in separate sentences '
-                        'and try again.'
-                    )
+            # Fail closed per specialist handoff, not per user check-in.
+            # Only unmodified exact safe excerpts can reach Home/Planning.
+            tasks, withheld = scope_non_sensitive_handoffs(tasks)
+            if withheld:
+                result['privacy_note'] = (
+                    'Some private details were withheld from Home and Planning.'
+                )
+            if not tasks:
+                result['next_steps'] = []
+                result['message'] = (
+                    'Your check-in was saved, but no safe specialist handoff remained. '
+                    'Continue in the conversation without repeating your check-in; '
+                    'no external actions were performed.'
+                )
+                self.save(run_id, 'partial', result)
+                return
             routine_goals = list(dict.fromkeys(
                 excerpt for task in tasks if task['domain'] in ('home', 'planning')
                 for excerpt in task['excerpts']
@@ -422,7 +446,15 @@ class App:
                     result['consolidation_error'] = 'The final coordinator could not reconcile the suggestions. Review individual perspectives before using them.'
             if completed and not candidates:
                 state = 'partial'
-            result['message']=('Ideas for the fictional scenario.' if fictional else 'Your next steps from this check-in.') if state=='completed' else result.get('consolidation_error', 'Some guidance is missing. Review the specialist status below.')
+            if withheld and state == 'completed':
+                state = 'partial'
+            if withheld and completed:
+                result['message'] = (
+                    'Some private details were kept out of Home and Planning. '
+                    'Review the available suggestions or continue the conversation.'
+                )
+            else:
+                result['message']=('Ideas for the fictional scenario.' if fictional else 'Your next steps from this check-in.') if state=='completed' else result.get('consolidation_error', 'Some guidance is missing. Review the specialist status below.')
             self.save(run_id,state,result)
         except ProviderError as exc:
             result['message']=str(exc)
