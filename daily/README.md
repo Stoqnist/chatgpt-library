@@ -17,7 +17,9 @@ and pinned update passes the owner phone checks.
 
 The previous standalone conversation source at `/daily/chat` was deployed and
 tested on 2026-11-04. The next source revision integrates it within `/daily/`,
-redirecting that old URL. The former editable context field is retired;
+redirecting that old URL.
+A saved plan can be explicitly copied as an editable suggestion-only message
+through **Discuss these steps**; nothing is automatically submitted or imported. The former editable context field is retired;
 existing notes remain in exports but are not included in new model requests.
 The service still has no automatic access to canonical records, and no full V2
 parity is claimed. Check-in submissions retain their existing 4,000-character
