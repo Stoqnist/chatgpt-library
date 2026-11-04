@@ -36,6 +36,16 @@ class CompanionTest(unittest.TestCase):
         self.app.provider.call=call
         return calls
 
+    def test_legacy_chat_redirects_to_one_daily_workspace(self):
+        response=self.request('/daily/chat')
+        self.assertEqual(response['status'],303)
+        self.assertEqual(response['headers']['Location'],'/daily/#conversation')
+        shell=self.request('/daily/')
+        self.assertEqual(shell['status'],200)
+        self.assertIn(b'id="conversation"',shell['raw'])
+        self.assertIn(b'/daily/chat.js',shell['raw'])
+        self.assertNotIn(b'id="chat-context"',shell['raw'])
+
     def test_private_routes_require_session_origin_csrf(self):
         for route in ['state','export']:
             self.assertEqual(self.request('/daily/api/chat/'+route)['status'],401)
