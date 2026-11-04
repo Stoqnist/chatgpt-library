@@ -32,7 +32,8 @@ collaboration, canonical memory, automatic actions or new grants. Historical
 chat background is exportable but no longer injected into new calls.
 
 **Acceptance:** Review diff, full offline and production-image CI, original
-Daily regression, and owner iPhone check-in → conversation follow-up → reload
+Daily regression, and owner iPhone check-in → explicitly reviewed suggestion-only
+**Discuss these steps** draft → conversation follow-up → reload
 and export with the same session. Test no API key, general conversation with
 zero specialists, bounded multi-domain case, sensitive routing failure,
 and urgent interruption without specialist work. Preserve backup and rollback.
