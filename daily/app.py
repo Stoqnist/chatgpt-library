@@ -440,9 +440,11 @@ class App:
         path=environ.get('PATH_INFO',''); method=environ.get('REQUEST_METHOD','GET')
         if method=='GET' and path=='/health':
             return respond(200,{'ok':True})
-        if method=='GET' and path in ('/daily/','/daily/app.js','/daily/morning.js','/daily/style.css','/daily/chat','/daily/chat.js'):
-            name={'/daily/chat':'chat.html','/daily/chat.js':'chat.js','/daily/':'index.html','/daily/app.js':'app.js','/daily/morning.js':'morning.js','/daily/style.css':'style.css'}[path]
-            mime={'chat.html':'text/html; charset=utf-8','chat.js':'text/javascript; charset=utf-8','index.html':'text/html; charset=utf-8','app.js':'text/javascript; charset=utf-8','morning.js':'text/javascript; charset=utf-8','style.css':'text/css; charset=utf-8'}[name]
+        if method=='GET' and path=='/daily/chat':
+            return respond(303,b'', [('Location','/daily/#conversation')], mime='text/plain')
+        if method=='GET' and path in ('/daily/','/daily/app.js','/daily/morning.js','/daily/style.css','/daily/chat.js'):
+            name={'/daily/chat.js':'chat.js','/daily/':'index.html','/daily/app.js':'app.js','/daily/morning.js':'morning.js','/daily/style.css':'style.css'}[path]
+            mime={'chat.js':'text/javascript; charset=utf-8','index.html':'text/html; charset=utf-8','app.js':'text/javascript; charset=utf-8','morning.js':'text/javascript; charset=utf-8','style.css':'text/css; charset=utf-8'}[name]
             return respond(200,(Path(__file__).parent/'static'/name).read_bytes(),mime=mime)
         # OAuth callback is a top-level Google cross-site redirect.
         # Do not require Daily's SameSite=Strict session cookie on this GET;
