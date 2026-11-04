@@ -13,13 +13,15 @@ backward-compatible export. See [conversation contract](CONVERSATION.md).
 Production remains on the previously deployed candidate until a reviewed
 and pinned update passes the owner phone checks.
 
-## Private conversation — source candidate
+## Private conversation foundation — merged and owner-deployed
 
-See [conversation foundation](CONVERSATION.md) for the new `/daily/chat` route,
-persistent history, explicit draft/background saves, export/delete, limits and
-release gates. It is not deployed or full V2 parity. Guided input no longer
-silently cuts long answers; Daily still validates its 4,000-character processing
-limit, and conversation messages support 12,000 characters.
+The previous standalone conversation source at `/daily/chat` was deployed and
+tested on 2026-11-04. The next source revision integrates it within `/daily/`,
+redirecting that old URL. The former editable context field is retired;
+existing notes remain in exports but are not included in new model requests.
+The service still has no automatic access to canonical records, and no full V2
+parity is claimed. Check-in submissions retain their existing 4,000-character
+processing limit; conversation messages permit 12,000 characters.
 
 ## Morning Companion — staged UI source, not yet deployed
 
