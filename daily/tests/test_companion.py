@@ -183,6 +183,56 @@ class CompanionTest(unittest.TestCase):
         self.assertEqual(state['turns'][0]['status'],'completed')
         self.assertEqual(len(calls),4)
 
+    def test_mixed_private_and_routine_chat_still_replies_safely(self):
+        self.login()
+        prompt = 'My salary changed. I need to tidy the kitchen.'
+        calls = []
+        def routed(_instructions, payload, schema):
+            calls.append((payload, schema))
+            if schema is ROUTE_SCHEMA:
+                return {'urgent': False, 'tasks': [
+                    {'domain': 'planning', 'excerpts': ['My salary changed.']},
+                    {'domain': 'home', 'excerpts': [
+                        'My salary changed.', 'I need to tidy the kitchen.']},
+                ]}
+            if schema is RESULT_SCHEMA:
+                self.assertEqual(payload['user_reported_excerpts'],
+                                 ['I need to tidy the kitchen.'])
+                return {'summary': 'A routine task was reported.',
+                        'suggestions': ['Tidy the kitchen.'],
+                        'missing_context': [], 'question': ''}
+            self.assertIs(schema, SCHEMA)
+            self.assertEqual(payload['message'], prompt)
+            self.assertEqual(payload['specialists_consulted'], ['home'])
+            self.assertTrue(payload['private_handoffs_withheld'])
+            self.assertNotIn('salary', json.dumps(payload['scoped_specialist_proposals']))
+            return {'reply': 'You mentioned a kitchen task; we can discuss the rest privately.'}
+        self.app.provider.call = routed
+        self.assertEqual(self.chat(prompt)['status'], 202)
+        state = self.complete()
+        self.assertEqual(state['turns'][0]['status'], 'completed')
+        self.assertEqual(len(calls), 3)
+
+    def test_all_private_handoffs_withheld_still_get_coordinator_reply(self):
+        self.login()
+        prompt = 'My salary changed.'
+        calls = []
+        def routed(_instructions, payload, schema):
+            calls.append((payload, schema))
+            if schema is ROUTE_SCHEMA:
+                return {'urgent': False, 'tasks': [
+                    {'domain': 'planning', 'excerpts': [prompt]}]}
+            self.assertIs(schema, SCHEMA)
+            self.assertEqual(payload['specialists_consulted'], [])
+            self.assertEqual(payload['scoped_specialist_proposals'], [])
+            self.assertTrue(payload['private_handoffs_withheld'])
+            return {'reply': 'I can discuss your question without sending it to Planning.'}
+        self.app.provider.call = routed
+        self.assertEqual(self.chat(prompt)['status'], 202)
+        state = self.complete()
+        self.assertEqual(state['turns'][0]['status'], 'completed')
+        self.assertEqual(len(calls), 2)
+
     def test_router_rejects_ungrounded_or_sensitive_handoffs(self):
         self.login()
         seen=[]

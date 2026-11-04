@@ -86,9 +86,14 @@ These are defense-in-depth checks, **not** a comprehensive classification or
 data-loss prevention system. The initial router necessarily receives the
 submitted prompt; model-generated specialist suggestions can still inadvertently
 contain sensitive details. Users should not submit credentials, and sensitive
-health details require a separate privacy review before personal use. A rejected
-handoff yields a clear failed status; the server does not silently rewrite
-what the user reported.
+health details require a separate privacy review before personal use. A protected excerpt is withheld from Home/Planning rather than rewritten.
+Safe verbatim excerpts may still be routed; the check-in remains visibly
+partial if any excerpt was withheld, and the original submitted text remains
+in the private check-in record. When no safe handoff remains, the application
+returns a partial, recoverable result with no specialist or Calendar call.
+Ordinary conversation still receives a coordinator reply with only safe
+specialist handoffs. Unsafe or ungrounded router output still fails closed;
+no automatic paid retry or external action is introduced.
 
 The changes above are only active once this reviewed source is separately
 deployed to Hetzner. Passing CI does not verify the running image.
