@@ -3,7 +3,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY app.py ./
+COPY app.py companion.py ./
 COPY calendar_oauth.py calendar_connection.py calendar_readonly.py calendar_verify.py calendar_planning.py ./
 COPY static ./static
 # Build contexts may be checked out with a restrictive umask (e.g. 077).

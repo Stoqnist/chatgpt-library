@@ -1,5 +1,13 @@
 # Private daily MVP
 
+## Private conversation — source candidate
+
+See [conversation foundation](CONVERSATION.md) for the new `/daily/chat` route,
+persistent history, explicit draft/background saves, export/delete, limits and
+release gates. It is not deployed or full V2 parity. Guided input no longer
+silently cuts long answers; Daily still validates its 4,000-character processing
+limit, and conversation messages support 12,000 characters.
+
 ## Morning Companion — staged UI source, not yet deployed
 
 The **Start morning check-in** control opens a three-question, optional-answer

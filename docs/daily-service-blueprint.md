@@ -32,6 +32,15 @@ information require their own publication review; an SLA does not substitute for
 them. Legal jurisdiction, contracting entity and applicable customer protections
 remain unresolved. No legal compliance or enforceability is asserted here.
 
+## Personal-release priority update — 2026-11-04
+
+The owner has prioritized a private API-backed conversation and essential knowledge
+cutover within a one-week planning horizon. Customer subscription/SLA launch is
+deferred behind that personal release. The new [conversation source candidate](../daily/CONVERSATION.md)
+is not a deployed service promise; the baseline below describes the previously
+reviewed main revision. New explicit conversation retention is separate from
+Daily's seven-day check-in history.
+
 ## Evidence baseline
 
 Source inspected at main commit

@@ -34,11 +34,12 @@ test('draft preserves only reported answers, not invented priorities or suggesti
   assert.ok(draft.length<4000);
 });
 
-test('answers are bounded to keep the existing server check-in limit', () => {
-  const draft=buildPrompt(['x'.repeat(1200),'y'.repeat(1200),'z'.repeat(1200)]);
-  assert.ok(draft.length<=4000);
-  assert.ok(draft.includes('x'.repeat(900)));
-  assert.ok(!draft.includes('x'.repeat(901)));
+test('long Unicode answers survive assembly without silent cutting', () => {
+  const answer='🙂 Bulgarian български '.repeat(400)+'FINAL MARKER';
+  const draft=buildPrompt([answer,'Another answer','']);
+  assert.ok(draft.includes(answer));
+  assert.ok(draft.includes('FINAL MARKER'));
+  assert.ok(draft.length>4000);
 });
 
 test('voice is explicit and never posts or persists on its own', () => {
