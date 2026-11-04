@@ -4,6 +4,60 @@
 
 **Status (2026-10-14; GitHub implementation state verified):** End-to-end, evidence-backed personal assistance remains the V2 product target. Purchase benchmark/comparison/ablation component work (#7–#10), a health-led P0 contract (#12), scripted read-only J1 (#13), scripted J2/J3 safety journeys (#14), and disposable mock approval/execution (#15) are **merged into the experimental V2 branch only**. P0–P3 are experimental slices, not completed product/release gates. Draft [PR #3](https://github.com/Stoqnist/chatgpt-library/pull/3) still targets `main`; these experiments are not deployed. **S0 decisions explicitly confirmed by the user on 2026-10-13:** S1/S2/S5/S7 simplify; S3/S4 keep; S6 defer. Implementation remains subject to independent regression checks; real connector effects, model spending and deployment are not authorized. [P4 PR #16](https://github.com/Stoqnist/chatgpt-library/pull/16) is now merged into the experimental branch as **offline preflight only**; its checks and metadata/synthetic claims do not establish real provider authorization, transactional safety or release readiness. [PR #26](https://github.com/Stoqnist/chatgpt-library/pull/26) subsequently merged an offline-only synthetic elevated-read-role rejection; live authorization remains unverified. [PR #28](https://github.com/Stoqnist/chatgpt-library/pull/28) merged a synthetic OAuth-scope posture regression and documented limited, reported live read-only probes; effective scopes, audit provenance and execution safety remain unverified. [PR #30](https://github.com/Stoqnist/chatgpt-library/pull/30) adds Calendar-only operation-specific synthetic role checks and a redacted grant-feasibility audit, without establishing real token grants. [PR #34](https://github.com/Stoqnist/chatgpt-library/pull/34) merges the initial I1 scripted-to-P3 mock approval/execution bridge with 3.11/3.13 offline CI passing; it is not live integration. [PR #36](https://github.com/Stoqnist/chatgpt-library/pull/36) adds executor/store-bound mock approval revocation and cross-turn outcome history with Python 3.11/3.13 CI passing. [PR #38](https://github.com/Stoqnist/chatgpt-library/pull/38) adds an inspection-only synthetic recovery path for superseded unknown attempts with Python 3.11/3.13 offline checks passing. [PR #40](https://github.com/Stoqnist/chatgpt-library/pull/40) adds offline denial of cross-owner/unauthorized recovery reads, with Python 3.11/3.13 CI passing; it does not authenticate real users or prove connector scopes. [PR #42](https://github.com/Stoqnist/chatgpt-library/pull/42) merged uniform unauthorized recovery-ID denial into experimental V2 (`10e00ef`; Python 3.11/3.13 offline CI passed). See [I1 provider-operation feasibility](v2-i1-provider-operation-feasibility.md) for a *contract review only*, not live recovery evidence. Live execution remains blocked; V1 remains unchanged.
 
+## 2026-11-04 urgent personal V2 cutover: own interface and durable knowledge
+
+**Owner decision:** Prioritize a usable private API-backed interface on existing
+infrastructure within a one-week planning horizon. The exact cutover date remains
+unconfirmed. This changes delivery order: conversational continuity and essential
+knowledge take precedence over dashboards, subscription packaging and expanded
+agent orchestration. PR #127 was merged as documentation at `daebea17`; it did not
+change the running service.
+
+**Target:** A personal V2 first release, not full ChatGPT parity or the complete
+experimental V2 execution system. Native phone dictation, useful ongoing dialogue,
+saved/recoverable text, explicit knowledge context, provenance, export/deletion,
+and tested backup/restore are the critical path. Keep existing infrastructure and
+single-owner access; do not introduce multiple competing production apps or merge
+experimental orchestration wholesale. API access does not inherit ChatGPT memory,
+custom GPTs, tools or connected-account grants.
+
+**Storage proposal:** The VPS database owns new app conversation/draft state.
+Existing canonical domain records retain their owners and locations until a reviewed
+migration. Selected Drive documents may later be read as sources; encrypted backup
+archives may use a verified Drive or Yandex destination. Storage capacities, grants,
+backup configuration and restore performance are unknown. Do not duplicate live
+writable databases across sync folders or assume storage capacity provides memory.
+OpenAI processes supplied context; self-hosted state is not local model inference.
+
+**Implementation started:** [Private conversation foundation](../daily/CONVERSATION.md)
+adds a source candidate at `/daily/chat`: persistent exact message/reply history,
+explicit saved drafts/background, revision conflict checks, bounded recent context,
+export/delete, native dictation and optional read-aloud. Chat uses one model call,
+shares the existing 20-request rolling allowance, and has no tools. Remove silent
+900-character guided-answer slicing; display the existing Daily processing limit
+without destroying input. Background notes are not a replacement for canonical
+knowledge retrieval. No existing private data was imported, no provider was called,
+and no server deployment or full V2 readiness is claimed.
+
+**One-week delivery sequence, conditional on evidence**
+1. Review/test/deploy this conversation foundation with backup and image rollback.
+   Verify a real phone follow-up, exact text, save/reload, export, delete, lock and
+   one small explicit API canary. Confirm actual model quality and cost.
+2. Import only the essential user-selected knowledge from its registered canonical
+   sources with provenance; enable relevant retrieval, correction and visible
+   coverage. Never replace source facts with automatic conversational summaries.
+3. Configure encrypted off-server backups and test restoration; verify restarting
+   and continuing the conversation with the essential knowledge intact.
+4. Perform the user's real daily workflow end to end before declaring cutover.
+   If a required capability fails, state the gap and retain a working fallback;
+   do not claim all V2 gates passed because basic chat works.
+
+**Deferred from the deadline:** analytics polish, customer SLA guarantees, paid
+subscription tiers, Gmail/autonomous actions, media archive migration and full
+experimental multi-agent execution. Their existing decisions remain tracked.
+This source work is bounded implementation progress, not a promise of a release
+on an unconfirmed date or an instruction to cancel an existing subscription.
+
 ## 2026-11-04 accepted priorities: capture, continuity, analytics and service commitments
 
 **Status:** Owner reports updating the server with the 28 October work and testing

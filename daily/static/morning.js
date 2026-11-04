@@ -10,7 +10,7 @@ const MorningCompanion = (() => {
   function buildPrompt(answers) {
     if(!Array.isArray(answers)||answers.length!==questions.length)throw new Error('Expected three morning answers');
     const lines=answers.map((answer,i)=>{
-      const clean=typeof answer==='string'?answer.trim().slice(0,900):'';
+      const clean=typeof answer==='string'?answer:'';
       return clean?questions[i].label+': '+clean:'';
     }).filter(Boolean);
     if(!lines.length)return '';
@@ -83,7 +83,7 @@ const MorningCompanion = (() => {
     });
     next.addEventListener('click',()=>{
       if(!running)return;
-      stopAudio();speechStatus.textContent='';answers[position]=answer.value.slice(0,900);
+      stopAudio();speechStatus.textContent='';answers[position]=answer.value;
       if(position<questions.length-1){
         position+=1;show();
         if(voiceEnabled)speak(question.textContent,read);

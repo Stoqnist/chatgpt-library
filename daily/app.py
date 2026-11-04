@@ -27,6 +27,7 @@ from calendar_connection import (
 )
 from calendar_verify import verify_primary_freebusy, CalendarVerifyError
 from calendar_planning import planning_freebusy
+import companion
 
 DOMAINS = {
     'wellbeing': ('Wellbeing', 'Support a manageable daily routine, not medical treatment. Do not diagnose or suggest treatment, including stretching, exercises, manual therapy, heat/cold applications, or medications for unassessed pain or injury. Do not assume a common home remedy is safe when the cause of symptoms is unknown. If someone only reports pain, acknowledge that cause and safe movement are unknown; suggest an appropriate healthcare assessment for new, persistent or worsening symptoms rather than a therapeutic movement. For possible immediate danger, the router must interrupt routine planning. Keep any actions practical, acknowledge uncertainty, and reflect self-reports as self-reports.'),
@@ -255,6 +256,7 @@ class App:
             CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY, request_id TEXT UNIQUE NOT NULL, prompt TEXT NOT NULL, created REAL NOT NULL, status TEXT NOT NULL, result TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS usage(created REAL NOT NULL);''')
             db.execute("UPDATE runs SET status='interrupted',result=? WHERE status='running'", (json.dumps({'message':'The service restarted before this check-in finished. No external actions were performed.'}),))
+        companion.initialize(self)
         os.chmod(self.db_path,0o600)
         self.calendar = CalendarOwnerConsent(self.data, self.db, self.clock)
         self.calendar.init_table()
@@ -273,6 +275,10 @@ class App:
                 yield conn
         finally:
             conn.close()
+
+    def active_job(self, db):
+        return (db.execute("SELECT 1 FROM runs WHERE status='running'").fetchone() or
+                db.execute("SELECT 1 FROM chat_turns WHERE status='running'").fetchone())
 
     def session(self,environ):
         cookies = SimpleCookie()
@@ -434,9 +440,9 @@ class App:
         path=environ.get('PATH_INFO',''); method=environ.get('REQUEST_METHOD','GET')
         if method=='GET' and path=='/health':
             return respond(200,{'ok':True})
-        if method=='GET' and path in ('/daily/','/daily/app.js','/daily/morning.js','/daily/style.css'):
-            name={'/daily/':'index.html','/daily/app.js':'app.js','/daily/morning.js':'morning.js','/daily/style.css':'style.css'}[path]
-            mime={'index.html':'text/html; charset=utf-8','app.js':'text/javascript; charset=utf-8','morning.js':'text/javascript; charset=utf-8','style.css':'text/css; charset=utf-8'}[name]
+        if method=='GET' and path in ('/daily/','/daily/app.js','/daily/morning.js','/daily/style.css','/daily/chat','/daily/chat.js'):
+            name={'/daily/chat':'chat.html','/daily/chat.js':'chat.js','/daily/':'index.html','/daily/app.js':'app.js','/daily/morning.js':'morning.js','/daily/style.css':'style.css'}[path]
+            mime={'chat.html':'text/html; charset=utf-8','chat.js':'text/javascript; charset=utf-8','index.html':'text/html; charset=utf-8','app.js':'text/javascript; charset=utf-8','morning.js':'text/javascript; charset=utf-8','style.css':'text/css; charset=utf-8'}[name]
             return respond(200,(Path(__file__).parent/'static'/name).read_bytes(),mime=mime)
         # OAuth callback is a top-level Google cross-site redirect.
         # Do not require Daily's SameSite=Strict session cookie on this GET;
@@ -465,7 +471,7 @@ class App:
                 return respond(400,{'error':'Expected a JSON request.'})
             try:
                 length=int(environ.get('CONTENT_LENGTH') or '0')
-                if not 0<length<=16000:
+                if not 0<length<=(160000 if path.startswith('/daily/api/chat/') else 16000):
                     return respond(413,{'error':'Please keep this check-in short.'})
                 payload=json.loads(environ['wsgi.input'].read(length))
                 if not isinstance(payload,dict):
@@ -495,6 +501,9 @@ class App:
             return respond(200,{'ok':True},[('Set-Cookie',cookie)])
         if not session:
             return respond(401,{'error':'Please unlock your private space.'})
+        if path.startswith('/daily/api/chat/'):
+            return companion.handle(self, path.removeprefix('/daily/api/chat/'), method,
+                                    payload if method=='POST' else {}, respond, POSSIBLE_CREDENTIAL)
         if path=='/daily/api/state' and method=='GET':
             with self.db() as db:
                 db.execute('DELETE FROM runs WHERE created<?',(self.clock()-7*86400,))
@@ -510,7 +519,7 @@ class App:
                 return respond(400,{'error':'Expected a true or false calendar setting.'})
             with self.lock:
                 with self.db() as db:
-                    if db.execute("SELECT 1 FROM runs WHERE status='running'").fetchone():
+                    if self.active_job(db):
                         return respond(409,{'error':'Wait for the current check-in to finish.'})
                     if enabled and not self.calendar.status()['connected']:
                         return respond(409,{'error':'Connect Google Calendar first.'})
@@ -536,7 +545,7 @@ class App:
         if path=='/daily/api/calendar/disconnect' and method=='POST':
             with self.lock:
                 with self.db() as db:
-                    if db.execute("SELECT 1 FROM runs WHERE status='running'").fetchone():
+                    if self.active_job(db):
                         return respond(409,{'error':'Wait for the current check-in to finish.'})
                 try:
                     self.calendar.disconnect_local()
@@ -551,7 +560,7 @@ class App:
                 return respond(400,{'error':'Enter a valid OpenAI project API key.'})
             with self.lock:
                 with self.db() as db:
-                    if db.execute("SELECT 1 FROM runs WHERE status='running'").fetchone():
+                    if self.active_job(db):
                         return respond(409,{'error':'Wait for the current check-in to finish.'})
                 temp=self.data/('key-'+secrets.token_hex(8))
                 fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
@@ -564,7 +573,7 @@ class App:
         if path=='/daily/api/clear' and method=='POST':
             with self.lock:
                 with self.db() as db:
-                    if db.execute("SELECT 1 FROM runs WHERE status='running'").fetchone():
+                    if self.active_job(db):
                         return respond(409,{'error':'Wait for the current check-in to finish.'})
                     db.execute('DELETE FROM runs')
             return respond(200,{'ok':True})
@@ -586,7 +595,7 @@ class App:
                     if existing:
                         if existing['prompt']!=prompt:return respond(409,{'error':'This request already belongs to a different check-in.'})
                         return respond(202,{'id':existing['id']})
-                    if db.execute("SELECT 1 FROM runs WHERE status='running'").fetchone():return respond(409,{'error':'A check-in is already running. Your plan will appear shortly.'})
+                    if self.active_job(db):return respond(409,{'error':'A check-in is already running. Your plan will appear shortly.'})
                     db.execute('DELETE FROM usage WHERE created<?',(self.clock()-86400,))
                     if db.execute('SELECT count(*) FROM usage').fetchone()[0]>=20:return respond(429,{'error':'The 20-check-in daily limit has been reached.'})
                     run_id=str(uuid.uuid4())
