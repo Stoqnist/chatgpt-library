@@ -11,7 +11,7 @@ async function page(){
     append(...nodes){this.children.push(...nodes);}
     replaceChildren(){this.children=[];}
   }
-  const nodes=new Map();const html=fs.readFileSync(path.join(__dirname,'../static/chat.html'),'utf8');
+  const nodes=new Map();const html=fs.readFileSync(path.join(__dirname,'../static/index.html'),'utf8');
   for(const match of html.matchAll(/id="([^"]+)"/g))nodes.set(match[1],new Node());
   const document=new Node();Object.assign(document,{getElementById:id=>{assert.ok(nodes.has(id),id);return nodes.get(id);},createElement:()=>new Node()});
   const window=new Node(),calls=[];
@@ -30,7 +30,7 @@ async function page(){
       return{ok:true,status:200,json:async()=>data};
     }
   });
-  await flush();return{get:id=>nodes.get(id),calls,state,window,flush,setFailed:v=>{failed=v;}};
+  await document.fire('daily:unlocked');await flush();return{get:id=>nodes.get(id),calls,state,window,document,flush,setFailed:v=>{failed=v;}};
 }
 test('restores explicit draft without a model call and sends long input unchanged',async()=>{
   const p=await page();assert.equal(p.get('chat-input').value,'Recovered draft');
@@ -54,7 +54,16 @@ test('saved draft uses observed revision and locking clears private DOM',async()
   const p=await page();await p.get('draft-save').fire('click');
   const sent=p.calls.find(c=>c.url.endsWith('/draft'));assert.equal(JSON.parse(sent.options.body).revision,2);
   assert.match(p.get('draft-status').textContent,/Saved/);
-  await p.get('chat-lock').fire('click');assert.equal(p.get('chat-workspace').hidden,true);
-  assert.equal(p.get('chat-input').value,'');assert.equal(p.get('chat-context').value,'');
+  await p.document.fire('daily:locked');assert.equal(p.get('chat-workspace').hidden,true);
+  assert.equal(p.get('chat-input').value,'');
   assert.equal(p.get('chat-turns').children.length,0);
+});
+
+test('daily page has no user-editable background prompt and keeps saved draft',async()=>{
+  const p=await page();
+  assert.equal(p.get('chat-input').value,'Recovered draft');
+  assert.ok(!p.calls.some(c=>c.url.endsWith('/context')));
+  assert.ok(!p.calls.some(c=>c.url.endsWith('/send')));
+  assert.match(fs.readFileSync(path.join(__dirname,'../static/index.html'),'utf8'),/id="conversation"/);
+  assert.doesNotMatch(fs.readFileSync(path.join(__dirname,'../static/index.html'),'utf8'),/id="chat-context"/);
 });
