@@ -31,7 +31,8 @@ jobs:
           curl -fsS http://127.0.0.1:18001/daily/ > /tmp/daily.html
           cmp daily/static/index.html /tmp/daily.html
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18001/daily/chat)" = 303
-          test "$(curl -sSI http://127.0.0.1:18001/daily/chat | grep -ci '/daily/#conversation')" -ge 1 || true
+          curl -sS -D /tmp/chat-headers -o /dev/null http://127.0.0.1:18001/daily/chat
+          grep -qi 'Location: /daily/#conversation' /tmp/chat-headers
           grep -q 'id="conversation"' /tmp/daily.html
           curl -fsS http://127.0.0.1:18001/daily/chat.js > /tmp/daily-chat.js
           cmp daily/static/chat.js /tmp/daily-chat.js
