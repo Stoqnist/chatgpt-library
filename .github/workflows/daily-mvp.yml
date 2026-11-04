@@ -18,6 +18,12 @@ jobs:
       - run: node --check daily/static/morning.js
       - run: node --check daily/static/chat.js
       - run: node --test daily/tests/test_*.cjs
+      - name: Browser acceptance with synthetic conversation
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          export CHROME_PATH="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium)"
+          test -x "$CHROME_PATH"
+          node daily/tests/browser_conversation.mjs
       - run: docker build -t agency-daily:local daily
       - name: Check real production server and unauthenticated boundary
         run: |

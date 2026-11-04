@@ -4,6 +4,37 @@
 
 **Status (2026-10-14; GitHub implementation state verified):** End-to-end, evidence-backed personal assistance remains the V2 product target. Purchase benchmark/comparison/ablation component work (#7–#10), a health-led P0 contract (#12), scripted read-only J1 (#13), scripted J2/J3 safety journeys (#14), and disposable mock approval/execution (#15) are **merged into the experimental V2 branch only**. P0–P3 are experimental slices, not completed product/release gates. Draft [PR #3](https://github.com/Stoqnist/chatgpt-library/pull/3) still targets `main`; these experiments are not deployed. **S0 decisions explicitly confirmed by the user on 2026-10-13:** S1/S2/S5/S7 simplify; S3/S4 keep; S6 defer. Implementation remains subject to independent regression checks; real connector effects, model spending and deployment are not authorized. [P4 PR #16](https://github.com/Stoqnist/chatgpt-library/pull/16) is now merged into the experimental branch as **offline preflight only**; its checks and metadata/synthetic claims do not establish real provider authorization, transactional safety or release readiness. [PR #26](https://github.com/Stoqnist/chatgpt-library/pull/26) subsequently merged an offline-only synthetic elevated-read-role rejection; live authorization remains unverified. [PR #28](https://github.com/Stoqnist/chatgpt-library/pull/28) merged a synthetic OAuth-scope posture regression and documented limited, reported live read-only probes; effective scopes, audit provenance and execution safety remain unverified. [PR #30](https://github.com/Stoqnist/chatgpt-library/pull/30) adds Calendar-only operation-specific synthetic role checks and a redacted grant-feasibility audit, without establishing real token grants. [PR #34](https://github.com/Stoqnist/chatgpt-library/pull/34) merges the initial I1 scripted-to-P3 mock approval/execution bridge with 3.11/3.13 offline CI passing; it is not live integration. [PR #36](https://github.com/Stoqnist/chatgpt-library/pull/36) adds executor/store-bound mock approval revocation and cross-turn outcome history with Python 3.11/3.13 CI passing. [PR #38](https://github.com/Stoqnist/chatgpt-library/pull/38) adds an inspection-only synthetic recovery path for superseded unknown attempts with Python 3.11/3.13 offline checks passing. [PR #40](https://github.com/Stoqnist/chatgpt-library/pull/40) adds offline denial of cross-owner/unauthorized recovery reads, with Python 3.11/3.13 CI passing; it does not authenticate real users or prove connector scopes. [PR #42](https://github.com/Stoqnist/chatgpt-library/pull/42) merged uniform unauthorized recovery-ID denial into experimental V2 (`10e00ef`; Python 3.11/3.13 offline CI passed). See [I1 provider-operation feasibility](v2-i1-provider-operation-feasibility.md) for a *contract review only*, not live recovery evidence. Live execution remains blocked; V1 remains unchanged.
 
+## 2026-11-04 accepted follow-up: one submission and actionable conversation
+
+**Evidence:** PR #129 merged into main `1d66aa53947c1e5f5627406f334f432cfe526639`;
+its head `f8b78e15` passed the Private Daily MVP workflow, including image checks.
+The owner reports a successful phone test and requested fewer final taps, one
+findings/conversation flow and contextual choices. This follow-up is a source
+candidate, not a deployed release; private screenshots/content are not in Git.
+
+**Implementation:** Last guided action submits the editable check-in and requests
+findings once. The existing report/chat stores are rendered as one timeline;
+seven-day reports enter bounded coordinator context without copying their raw
+contents into permanent chat rows. Earlier turns and specialist details collapse.
+Three explicit follow-up choices submit to the coordinator with a latest-response
+anchor, preserve unsent drafts, and reject stale anchors before usage/storage.
+Export moves into details and includes retained reports with structured findings.
+No canonical owner change, external execution, public share route or extra model
+call for check-in integration. Existing source-scoped specialist handoffs remain.
+
+**Priority:** This small continuity correction precedes essential registered-source
+knowledge retrieval and encrypted off-server backup/restore. Those remain cutover
+requirements. Shareable read-only snapshots follow migration: explicit selection
+and preview, expiry/revocation, no credentials/internal prompts/unrelated records,
+no live addition of future messages, and verified reviewer access. A random URL
+alone is not access control. No share capability is implemented by this patch.
+
+**Acceptance:** Synthetic regression for one-tap submission, long-input recovery,
+check-in context/export/expiry, direct follow-ups, stale anchors, unsent edits,
+urgent interruption and existing auth/CSRF/concurrency/usage boundaries. Container
+CI and a real iPhone/API canary remain release checks; no paid calls or deployment
+are performed during this implementation.
+
 ## 2026-11-04 owner acceptance: unified Daily and coordinator-first conversation
 
 **Observed:** Owner deployed PR #128's pinned image `daee7034` on Hetzner

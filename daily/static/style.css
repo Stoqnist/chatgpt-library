@@ -34,3 +34,16 @@
 @media(max-width:600px){.result{scroll-margin-top:calc(80px + env(safe-area-inset-top))}.next-steps li:first-child{font-size:19px;font-weight:600}.next-steps li:not(:first-child){font-size:15px}}
 
 .conversation-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Keep the response and its choices together; implementation details stay collapsed. */
+.conversation{margin-top:28px;scroll-margin-top:80px}
+#chat-turns .panel{margin-bottom:16px;padding:22px}
+#chat-turns h3{margin:16px 0 8px}
+#chat-turns details{margin-top:14px;font-size:13px}
+#chat-turns summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.followup-actions{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.followup-actions button{background:#e5eadb;color:var(--ink);font-size:13px}
+.followup-actions button:hover{background:var(--accent)}
+#chat-form{padding:20px}#chat-form label{margin-top:0}
+#chat-form textarea{min-height:100px;margin-top:8px}
+#chat-notice:empty{display:none}

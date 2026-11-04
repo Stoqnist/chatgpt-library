@@ -206,7 +206,7 @@ class CompanionTest(unittest.TestCase):
         self.app.provider.call=urgent
         self.assertEqual(self.chat('Synthetic immediate danger scenario')['status'],202)
         state=self.complete()
-        self.assertEqual(state['turns'][0]['status'],'completed')
+        self.assertEqual(state['turns'][0]['status'],'needs_attention')
         self.assertIn('emergency services',state['turns'][0]['answer'])
         self.assertEqual(schemas,[ROUTE_SCHEMA])
 
@@ -220,5 +220,38 @@ class CompanionTest(unittest.TestCase):
         state=self.request('/daily/api/chat/state')['json']
         self.assertEqual(state['turns'][0]['status'],'interrupted')
         self.assertEqual(calls,[])
+
+    def test_checkin_context_export_expiry_and_no_duplicate_storage(self):
+        self.login();calls=self.install_provider()
+        now=self.app.clock()
+        source='Exact synthetic check-in 🙂'
+        result={'message':'Your next steps', 'next_steps':[{'text':'Read one page','owner':'Planning'}],
+                'agents':[{'name':'Planning','status':'completed','summary':'A reported goal'}]}
+        with self.app.db() as db:
+            for rid,created in [('recent',now-10),('expired',now-8*86400)]:
+                db.execute('INSERT INTO runs VALUES (?,?,?,?,?,?)',
+                    (rid,str(uuid.uuid4()),source,created,'completed',json.dumps(result)))
+        exported=self.request('/daily/api/chat/export')['json']
+        self.assertEqual(len(exported['turns']),1)
+        self.assertEqual(exported['turns'][0]['result'],result)
+        self.assertEqual(exported['turns'][0]['kind'],'checkin')
+        self.assertEqual(self.chat('What should I do first?')['status'],202)
+        self.complete()
+        prior=calls[0][1]['bounded_history'][0]
+        self.assertEqual(prior['user'],source)
+        self.assertIn('Read one page',prior['assistant'])
+        self.assertEqual(prior['kind'],'checkin')
+        with self.app.db() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM chat_turns').fetchone()[0],1)
+        self.request('/daily/api/clear',{})
+        self.assertEqual(self.request('/daily/api/chat/state')['json']['total'],1)
+
+    def test_stale_followup_does_not_spend_or_store(self):
+        self.login();calls=self.install_provider()
+        response=self.request('/daily/api/chat/send',{'prompt':'Explain this',
+            'request_id':str(uuid.uuid4()),'reply_to':'missing'})
+        self.assertEqual(response['status'],409)
+        self.assertEqual(calls,[])
+        self.assertEqual(self.request('/daily/api/chat/state')['json']['remaining'],20)
 
 if __name__ == '__main__':unittest.main()
