@@ -24,14 +24,14 @@
   }
   const node=(tag,text)=>{const n=document.createElement(tag);n.textContent=text;return n;};
   function count(){get('chat-count').textContent=Array.from(get('chat-input').value).length.toLocaleString()+' / 12,000 characters. Text is never cut to fit.';}
-  function render(data){
+  function render(data, dailyState){
     get('chat-workspace').hidden=false;get('chat-locked').hidden=true;
     if(!loaded||!edited){
       get('chat-input').value=data.notes.draft.text;
       revision=data.notes.draft.revision;
     }
     if(!loaded)get('draft-status').textContent=data.notes.draft.text?'Saved draft restored.':'Unsent text is recoverable only after Save draft succeeds.';
-    loaded=true;busy=data.turns.some(t=>t.status==='running');
+    loaded=true;busy=data.turns.some(t=>t.status==='running')||Boolean(dailyState.runs?.some(t=>t.status==='running'));
     get('chat-send').disabled=busy||!data.connected;
     get('chat-send').textContent=busy?'Coordinator working…':'Send to coordinator';
     get('chat-usage').textContent=data.connected?`${data.remaining} shared requests remain.`:'API key missing. Open Daily Settings above for a setup guide; API billing is separate from ChatGPT.';
@@ -45,7 +45,7 @@
       if(turn.answer&&window.speechSynthesis&&window.SpeechSynthesisUtterance){
         const listen=node('button','Listen');listen.type='button';listen.className='text-button';
         listen.addEventListener('click',()=>{stopSpeech();notice('If audio does not play, read the reply below.');window.speechSynthesis.speak(new window.SpeechSynthesisUtterance(turn.answer));});
-        const stop=node('button','Stop audio');stop.type='button';stop.className='text-button';stop.addEventListener('click',stopSpeech);article.append(listen,stop);
+        const stop=node('button','Stop audio');stop.type='button';stop.className='text-button';stop.addEventListener('click',stopSpeech);const audio=node('div','');audio.className='morning-actions';audio.append(listen,stop);article.append(audio);
       }
       if(turn.omitted)article.append(node('small',`${turn.omitted} older exchanges were not included in this reply.`));
       get('chat-turns').append(article);
@@ -56,7 +56,7 @@
     const version=epoch;
     try{
       const state=await api('state');if(version!==epoch)return;csrf=state.csrf;
-      const data=await api('chat/state');if(version!==epoch)return;render(data);
+      const data=await api('chat/state');if(version!==epoch)return;render(data,state);
       clearTimeout(timer);if(busy)timer=setTimeout(refresh,1800);
     }catch(error){notice(error.message);}
   }
