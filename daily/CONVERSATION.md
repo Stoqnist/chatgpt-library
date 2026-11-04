@@ -15,7 +15,21 @@ tested release. The private Daily service remains the single deployment.
 - If the API key is missing, Daily opens Settings and links to the official
   API key and spending-limit pages. The key belongs in the password-type
   Settings field, never a chat message, Git, screenshot or console output.
-- A completed or partial check-in with selected next steps offers **Discuss these steps**. This copies only up to three suggestion texts and a dated label into the editable conversation input on the owner's click. It does not copy the full check-in report, send a message or call the model. The owner must review and press Send; sent suggestions then follow conversation retention rather than check-in retention.
+- The last guided button is **Send check-in**: one explicit action saves the
+  answers and requests findings. The final question includes an optional editable
+  preview. Over-limit or rejected input remains editable; no silent truncation.
+- Check-ins, findings and replies appear in one timeline. The latest response and
+  three direct choices (choose a next step, make it manageable, explain) precede
+  the reply field. Earlier exchanges and supporting perspectives are collapsed.
+  A choice is an explicit paid submission, not an external action; it preserves
+  unsent text, uses request deduplication and rejects an outdated response anchor.
+  Urgent/failed/running replies have no routine choice menu.
+- The timeline reads the existing stores without copying reports into permanent
+  conversation rows. Recent check-in text and selected findings become bounded
+  coordinator context; specialist handoffs still use only exact latest-message
+  excerpts. Seven-day check-in expiry and both existing deletion controls remain.
+  Export version 2 includes retained check-ins with full structured findings and
+  saved conversation turns. No public sharing route is introduced.
 - Native keyboard dictation, edit-before-send, explicit Save draft,
   saved messages/replies, export, delete and optional tapped read-aloud remain.
   No in-page microphone, audio storage, automatic model calls or background
@@ -31,7 +45,7 @@ latest message and reject ungrounded or high-confidence sensitive handoffs to
 Home/Planning. Specialists receive only their excerpts, not earlier chat history.
 Planning gets Europe/Amsterdam time context but **no Calendar access from chat**.
 Wellbeing's existing conservative safety checks remain. The final coordinator
-receives bounded conversation history and scoped specialist proposals, and
+receives bounded conversation/check-in history and scoped specialist proposals, and
 responds to the user in prose; it can distinguish near-term next steps from
 longer-term possibilities when grounded.
 
@@ -79,7 +93,7 @@ introduces autonomous writes.
 3. Create a fresh consistent SQLite backup, preserve Compose and tunnel
    overrides, and keep both prior images available. Deploy using only the
    existing operator-approved path. A green CI run does not deploy a server.
-4. Test on iPhone: unlock once, use morning check-in, continue in conversation
+4. Test on iPhone: unlock once, use one final Send check-in, choose a direct follow-up, continue in conversation
    without a second login, reload a saved draft, verify a benign general
    question and a grounded multi-domain action request, test export/delete,
    lock/unlock and missing-API-key guidance. Confirm routing privacy with

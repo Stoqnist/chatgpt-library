@@ -64,14 +64,21 @@ const MorningCompanion = (() => {
       question.textContent=questions[position].question;
       progress.textContent='Question '+(position+1)+' of '+questions.length+' · You may leave any answer blank';
       answer.value=answers[position];
-      next.textContent=position===questions.length-1?'Review my check-in':'Next question / skip';
+      get('morning-review-section').hidden=position!==questions.length-1;
+      updateReview();
+      next.textContent=position===questions.length-1?'Send check-in':'Next question / skip';
       get('morning-greeting').focus();
       panel.scrollIntoView({block:'start'});
     }
+    function updateReview(){
+      const current=answers.slice();current[position]=answer.value;
+      get('morning-review').value=buildPrompt(current);
+    }
+    answer.addEventListener('input',updateReview);
     const draft=active=>document.dispatchEvent(new CustomEvent('daily:draft',{detail:{active}}));
     function close(){
       stopAudio();running=false;panel.hidden=true;open.setAttribute('aria-expanded','false');
-      answer.value='';answers=['','',''];position=0;speechStatus.textContent='';draft(false);
+      answer.value='';get('morning-review').value='';get('morning-review-section').open=false;answers=['','',''];position=0;speechStatus.textContent='';draft(false);
     }
     open.addEventListener('click',()=>{
       const prompt=get('prompt');
@@ -89,14 +96,14 @@ const MorningCompanion = (() => {
         if(voiceEnabled)speak(question.textContent,read);
         return;
       }
-      const text=buildPrompt(answers);
-      if(!text){speechStatus.textContent='Add at least one answer before reviewing, or cancel to write a check-in.';return;}
+      const text=get('morning-review').value;
+      if(Array.from(text.trim()).length<3){speechStatus.textContent='Add at least one answer before sending, or cancel to write a check-in.';return;}
       const prompt=get('prompt');
       if(prompt.value.trim()&&!window.confirm('Replace your unsent check-in with these morning answers?'))return;
       prompt.value=text;get('checkin-form').hidden=false;
       prompt.dispatchEvent(new Event('input',{bubbles:true}));
-      close();prompt.focus();
-      get('notice').textContent='Check-in drafted. Review and edit it before choosing Find my next steps.';
+      close();
+      get('checkin-form').requestSubmit();
     });
     cancel.addEventListener('click',()=>{close();get('checkin-form').hidden=!get('prompt').value.trim();open.focus();});
     read.addEventListener('click',()=>speak(question.textContent,read));

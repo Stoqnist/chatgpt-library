@@ -15,6 +15,7 @@ async function page({runs=[],recognition=false,speech=true}={}){
     addEventListener(type,fn){(this.listeners[type]??=[]).push(fn);}
     dispatchEvent(event){for(const fn of this.listeners[event.type]||[])fn(event);}
     async fire(type,extra={}){for(const fn of this.listeners[type]||[])await fn({type,preventDefault(){},currentTarget:this,submitter:new Node(),...extra});}
+    requestSubmit(){return this.fire('submit');}
     append(node){this.children.push(node);}
     replaceChildren(){this.children=[];}
     setAttribute(k,v){this.attrs[k]=v;}
@@ -73,7 +74,7 @@ test('recover a working run without replacing unsent work or making another run 
   assert.ok(p.calls.every(c=>c.options.method===undefined));
 });
 
-test('one user tap opens guided draft and greeting, never microphone or model; review is separate from submit',async()=>{
+test('guided check-in previews all answers and final tap submits once',async()=>{
   const p=await page({recognition:true});await p.get('morning-open').fire('click');
   assert.equal(p.spoken.length,1);assert.match(p.spoken[0].text,/Welcome.*sleep/);
   assert.equal(p.recognizers.length,0);assert.equal(p.calls.length,1);
@@ -81,11 +82,13 @@ test('one user tap opens guided draft and greeting, never microphone or model; r
   assert.equal(p.get('morning-companion').hidden,false);
   assert.equal(p.focused(),p.get('morning-greeting'));
   p.get('morning-answer').value='A fictional report.';
-  for(let i=0;i<3;i++)await p.get('morning-next').fire('click');
-  assert.equal(p.get('checkin-form').hidden,false);assert.equal(p.get('morning-companion').hidden,true);
-  assert.match(p.get('prompt').value,/A fictional report/);assert.equal(p.calls.length,1);
+  for(let i=0;i<2;i++)await p.get('morning-next').fire('click');
+  assert.equal(p.calls.length,1);
+  assert.match(p.get('morning-review').value,/A fictional report/);
   const submitted=completed('submitted');p.state.runs=[submitted];
-  await p.get('checkin-form').fire('submit');
+  await p.get('morning-next').fire('click');await p.flush();
+  assert.equal(p.get('checkin-form').hidden,true);assert.equal(p.get('morning-companion').hidden,true);
+  assert.match(p.get('prompt').value,/A fictional report/);assert.equal(p.get('result').hidden,true);
   assert.equal(p.calls.filter(c=>c.url.endsWith('/run')).length,1);
   assert.equal(p.get('checkin-state').textContent,"Today's completed plan");
   p.advance(86400*1000);p.tick();
@@ -156,6 +159,7 @@ test('backgrounding and locking stop playback and discard private guided draft',
   p.get('morning-answer').value='Unsent synthetic draft';
   vm.runInContext('lockUI()',p.context);
   assert.equal(p.get('morning-answer').value,'');
+  assert.equal(p.get('morning-review').value,'');
   assert.equal(p.get('morning-companion').hidden,true);
   assert.equal(p.get('history-section').open,false);
   assert.equal(p.get('checkin-state').textContent,'Not started');
@@ -183,24 +187,24 @@ test('historical failed and safety-interrupted check-ins retain their actionable
   }
 });
 
-test('reviewed plan handoff pre-fills chat without sending or copying the full report',async()=>{
-  const p=await page({runs:[completed('old')]});
-  assert.equal(p.get('chat-input').value,'');
-  assert.equal(p.get('discuss-plan').hidden,true);
-  await p.get('history').children[0].fire('click');
-  assert.equal(p.get('discuss-plan').hidden,false);
-  const before=p.calls.length;
-  await p.get('discuss-plan').fire('click');
-  assert.match(p.get('chat-input').value,/A fictional step/);
-  assert.match(p.get('chat-input').value,/not verified commitments/);
-  assert.doesNotMatch(p.get('chat-input').value,/Fictional kitchen check-in/);
-  assert.equal(p.calls.length,before);
-  assert.equal(p.get('discuss-plan').hidden,false);
+test('oversize guided input stays editable without a request',async()=>{
+  const p=await page();await p.get('morning-open').fire('click');
+  p.get('morning-answer').value='x'.repeat(4100);
+  for(let i=0;i<3;i++)await p.get('morning-next').fire('click');
+  await p.flush();
+  assert.equal(p.calls.filter(c=>c.url.endsWith('/run')).length,0);
+  assert.ok(p.get('prompt').value.includes('x'.repeat(4100)));
+  assert.equal(p.get('checkin-form').hidden,false);
 });
 
-test('no plan suggestions yields no conversation handoff',async()=>{
-  const p=await page({runs:[{...completed('empty'),result:{message:'No reliable next steps',next_steps:[]}}]});
-  await p.get('history').children[0].fire('click');
-  assert.equal(p.get('discuss-plan').hidden,true);
-  assert.equal(p.get('chat-input').value,'');
+test('final submission uses the edited preview exactly',async()=>{
+  const p=await page();await p.get('morning-open').fire('click');
+  await p.get('morning-next').fire('click');await p.get('morning-next').fire('click');
+  p.get('morning-review').value='';await p.get('morning-next').fire('click');
+  assert.equal(p.calls.filter(c=>c.url.endsWith('/run')).length,0);
+  p.get('morning-review').value='  My corrected synthetic answers 🙂  ';
+  await p.get('morning-next').fire('click');await p.flush();
+  const sent=p.calls.filter(c=>c.url.endsWith('/run'));
+  assert.equal(sent.length,1);
+  assert.equal(JSON.parse(sent[0].options.body).prompt,'  My corrected synthetic answers 🙂  ');
 });

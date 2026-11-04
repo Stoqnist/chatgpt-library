@@ -23,7 +23,7 @@ async function page(){
       calls.push({url,options});let data;
       if(url.endsWith('/send')){
         if(failed)return{ok:false,status:503,json:async()=>({error:'Unavailable'})};
-        const payload=JSON.parse(options.body);state.turns=[{created:1,prompt:payload.prompt,answer:'safe <script>text</script>',status:'completed',omitted:0}];state.total=1;state.notes.draft={text:'',revision:3};data={id:'1'};
+        const payload=JSON.parse(options.body);state.turns=[{id:'1',created:1,prompt:payload.prompt,answer:'safe <script>text</script>',status:'completed',omitted:0}];state.total=1;state.notes.draft={text:'',revision:3};data={id:'1'};
       }else if(url.endsWith('/chat/state'))data=state;
       else if(url.endsWith('/draft'))data={revision:3};
       else data={csrf:'fixture'};
@@ -39,7 +39,7 @@ test('restores explicit draft without a model call and sends long input unchange
   await p.get('chat-form').fire('submit');
   const call=p.calls.find(c=>c.url.endsWith('/send'));assert.equal(JSON.parse(call.options.body).prompt,text);
   assert.equal(call.options.headers['X-CSRF-Token'],'fixture');assert.equal(p.get('chat-input').value,'');
-  assert.equal(p.get('chat-turns').children[0].children[4].textContent,'safe <script>text</script>');
+  assert.equal(p.get('chat-turns').children[0].children[3].textContent,'safe <script>text</script>');
 });
 test('over-limit and failed requests preserve edits and retry identity',async()=>{
   const p=await page();p.get('chat-input').value='x'.repeat(12001);await p.get('chat-input').fire('input');
@@ -66,4 +66,27 @@ test('daily page has no user-editable background prompt and keeps saved draft',a
   assert.ok(!p.calls.some(c=>c.url.endsWith('/send')));
   assert.match(fs.readFileSync(path.join(__dirname,'../static/index.html'),'utf8'),/id="conversation"/);
   assert.doesNotMatch(fs.readFileSync(path.join(__dirname,'../static/index.html'),'utf8'),/id="chat-context"/);
+});
+
+test('follow-up choice sends once with its source and preserves unsent edits',async()=>{
+  const p=await page();p.state.turns=[{id:'source',created:1,kind:'checkin',prompt:'Synthetic check-in',answer:'One small step',status:'completed',result:{agents:[]}}];
+  await p.document.fire('daily:unlocked');await p.flush();
+  p.get('chat-input').value='Unsent edits';await p.get('chat-input').fire('input');
+  const card=p.get('chat-turns').children[0];
+  const actions=card.children.find(n=>n.className==='followup-actions');
+  assert.equal(actions.children.length,3);
+  await actions.children[0].fire('click');
+  const sends=p.calls.filter(c=>c.url.endsWith('/send'));
+  assert.equal(sends.length,1);
+  assert.equal(JSON.parse(sends[0].options.body).reply_to,'source');
+  assert.equal(p.get('chat-input').value,'Unsent edits');
+});
+
+test('urgent and running responses offer no routine follow-up choices',async()=>{
+  for(const status of ['needs_attention','running','failed']){
+    const p=await page();p.state.turns=[{id:'source',created:1,prompt:'Synthetic',answer:'Warning',status}];
+    await p.document.fire('daily:unlocked');await p.flush();
+    assert.ok(!p.get('chat-turns').children[0].children.some(n=>n.className==='followup-actions'));
+    assert.ok(!p.calls.some(c=>c.url.endsWith('/send')));
+  }
 });

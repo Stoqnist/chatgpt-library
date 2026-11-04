@@ -2,7 +2,7 @@
 (() => {
   const get=id=>document.getElementById(id);
   let csrf='', timer=null, epoch=0, loaded=false, busy=false, request=null;
-  let revision=0, edited=false;
+  let revision=0, edited=false, actionButtons=[];
   function stopSpeech(){if(window.speechSynthesis)window.speechSynthesis.cancel();}
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stopSpeech();});
   window.addEventListener('pagehide',stopSpeech);
@@ -33,22 +33,47 @@
     if(!loaded)get('draft-status').textContent=data.notes.draft.text?'Saved draft restored.':'Unsent text is recoverable only after Save draft succeeds.';
     loaded=true;busy=data.turns.some(t=>t.status==='running')||Boolean(dailyState.runs?.some(t=>t.status==='running'));
     get('chat-send').disabled=busy||!data.connected;
-    get('chat-send').textContent=busy?'Coordinator working…':'Send to coordinator';
+    get('chat-send').textContent=busy?'Preparing reply…':'Send';
     get('chat-usage').textContent=data.connected?`${data.remaining} shared requests remain.`:'API key missing. Open Daily Settings above for a setup guide; API billing is separate from ChatGPT.';
-    get('chat-coverage').textContent=`Showing the latest ${data.turns.length} of ${data.total} saved exchanges. Replies use a bounded recent history; ${data.next_omitted} older exchanges would currently be omitted. Export includes all saved exchanges.`;
-    get('chat-turns').replaceChildren();
+    get('chat-coverage').textContent=`Showing the latest ${data.turns.length} of ${data.total} retained exchanges (including seven-day check-ins). Replies use a bounded recent history; ${data.next_omitted} older exchanges would currently be omitted. Export includes all saved exchanges.`;
+    get('chat-turns').replaceChildren();actionButtons=[];
+    const older=node('details','');older.append(node('summary','Earlier messages and check-ins'));
+    if(data.turns.length>1)get('chat-turns').append(older);
     for(const turn of data.turns){
       const article=node('article','');article.className='panel';
       article.append(node('p',new Date(turn.created*1000).toLocaleString()+' · '+turn.status));
-      article.append(node('h2','You'));const prompt=node('p',turn.prompt);prompt.className='conversation-text';article.append(prompt);
-      article.append(node('h2','Stoq'));const reply=node('p',turn.answer||turn.error||'Your message is saved. Preparing a reply…');reply.className='conversation-text';article.append(reply);
+      const source=node('details','');source.append(node('summary',turn.kind==='checkin'?'Your check-in':'Your message'));
+      const prompt=node('p',turn.prompt);prompt.className='conversation-text';source.append(prompt);article.append(source);
+      article.append(node('h3',turn.kind==='checkin'?'Your next steps':'Stoq'));const reply=node('p',turn.answer||turn.error||'Your message is saved. Preparing a reply…');reply.className='conversation-text';article.append(reply);
+      if(turn===data.turns[data.turns.length-1]&&['completed','partial'].includes(turn.status)&&turn.answer){
+        const actions=node('div','');actions.className='followup-actions';
+        for(const [label,prompt] of [
+          ['Choose my next step','Help me choose one concrete next step from your last response.'],
+          ['Make it manageable','Make your last response more manageable: suggest a smaller first step.'],
+          ['Explain this','Explain the reasoning and uncertainties in your last response.']]){
+          const button=node('button',label);button.type='button';button.disabled=busy||!data.connected;
+          button.addEventListener('click',()=>send(prompt,turn.id));
+          actionButtons.push(button);actions.append(button);
+        }
+        article.append(actions);
+      }
+      if(turn.kind==='checkin'&&turn.result){
+        const details=node('details','');details.append(node('summary','Supporting perspectives'));
+        for(const agent of turn.result.agents||[]){
+          details.append(node('h3',agent.name+' · '+agent.status));
+          details.append(node('p',agent.summary||''));
+          for(const text of agent.suggestions||[])details.append(node('p',text));
+          for(const text of agent.missing_context||[])details.append(node('p','Unknown: '+text));
+        }
+        article.append(details);
+      }
       if(turn.answer&&window.speechSynthesis&&window.SpeechSynthesisUtterance){
         const listen=node('button','Listen');listen.type='button';listen.className='text-button';
         listen.addEventListener('click',()=>{stopSpeech();notice('If audio does not play, read the reply below.');window.speechSynthesis.speak(new window.SpeechSynthesisUtterance(turn.answer));});
         const stop=node('button','Stop audio');stop.type='button';stop.className='text-button';stop.addEventListener('click',stopSpeech);const audio=node('div','');audio.className='morning-actions';audio.append(listen,stop);article.append(audio);
       }
       if(turn.omitted)article.append(node('small',`${turn.omitted} older exchanges were not included in this reply.`));
-      get('chat-turns').append(article);
+      (turn===data.turns[data.turns.length-1]?get('chat-turns'):older).append(article);
     }
     count();
   }
@@ -78,19 +103,27 @@
     }catch(error){notice(error.message);}
     finally{button.disabled=false;}
   });
-  get('chat-form').addEventListener('submit',async e=>{
-    e.preventDefault();if(busy)return;
-    const prompt=get('chat-input').value,version=epoch;
+  async function send(prompt,replyTo=null){
+    if(busy)return;
+    const version=epoch;
     if(!prompt.trim()||Array.from(prompt).length>12000){notice('Send 1–12,000 characters. Your text is intact.');return;}
-    if(!request||request.prompt!==prompt)request={prompt,request_id:crypto.randomUUID()};
-    busy=true;get('chat-send').disabled=true;notice('');
+    if(!request||request.prompt!==prompt||request.reply_to!==replyTo)
+      request={prompt,reply_to:replyTo,request_id:crypto.randomUUID()};
+    busy=true;get('chat-send').disabled=true;actionButtons.forEach(b=>b.disabled=true);notice('');
     try{
       await api('chat/send',request);if(version!==epoch)return;
       request=null;
-      if(get('chat-input').value===prompt){get('chat-input').value='';edited=false;}
-      get('draft-status').textContent='Message saved. New unsent edits need Save draft.';
+      if(!replyTo&&get('chat-input').value===prompt){get('chat-input').value='';edited=false;}
+      if(!replyTo)get('draft-status').textContent='Message saved. New unsent edits need Save draft.';
       await refresh();
-    }catch(error){notice(error.message);busy=false;get('chat-send').disabled=false;}
+    }catch(error){
+      if(version!==epoch)return;
+      notice(error.message);busy=false;get('chat-send').disabled=false;
+      actionButtons.forEach(b=>b.disabled=false);
+    }
+  }
+  get('chat-form').addEventListener('submit',async e=>{
+    e.preventDefault();await send(get('chat-input').value);
   });
   get('chat-clear').addEventListener('click',async()=>{
     if(!confirm('Delete all conversation messages, saved drafts and background? Existing backups are not erased.'))return;
