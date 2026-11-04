@@ -159,6 +159,7 @@ test('backgrounding and locking stop playback and discard private guided draft',
   p.get('morning-answer').value='Unsent synthetic draft';
   vm.runInContext('lockUI()',p.context);
   assert.equal(p.get('morning-answer').value,'');
+  assert.equal(p.get('morning-review').value,'');
   assert.equal(p.get('morning-companion').hidden,true);
   assert.equal(p.get('history-section').open,false);
   assert.equal(p.get('checkin-state').textContent,'Not started');
@@ -194,4 +195,16 @@ test('oversize guided input stays editable without a request',async()=>{
   assert.equal(p.calls.filter(c=>c.url.endsWith('/run')).length,0);
   assert.ok(p.get('prompt').value.includes('x'.repeat(4100)));
   assert.equal(p.get('checkin-form').hidden,false);
+});
+
+test('final submission uses the edited preview exactly',async()=>{
+  const p=await page();await p.get('morning-open').fire('click');
+  await p.get('morning-next').fire('click');await p.get('morning-next').fire('click');
+  p.get('morning-review').value='';await p.get('morning-next').fire('click');
+  assert.equal(p.calls.filter(c=>c.url.endsWith('/run')).length,0);
+  p.get('morning-review').value='  My corrected synthetic answers 🙂  ';
+  await p.get('morning-next').fire('click');await p.flush();
+  const sent=p.calls.filter(c=>c.url.endsWith('/run'));
+  assert.equal(sent.length,1);
+  assert.equal(JSON.parse(sent[0].options.body).prompt,'  My corrected synthetic answers 🙂  ');
 });

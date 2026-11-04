@@ -96,8 +96,8 @@ const MorningCompanion = (() => {
         if(voiceEnabled)speak(question.textContent,read);
         return;
       }
-      const text=get('morning-review').value||buildPrompt(answers);
-      if(!text){speechStatus.textContent='Add at least one answer before reviewing, or cancel to write a check-in.';return;}
+      const text=get('morning-review').value;
+      if(Array.from(text.trim()).length<3){speechStatus.textContent='Add at least one answer before sending, or cancel to write a check-in.';return;}
       const prompt=get('prompt');
       if(prompt.value.trim()&&!window.confirm('Replace your unsent check-in with these morning answers?'))return;
       prompt.value=text;get('checkin-form').hidden=false;

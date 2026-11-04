@@ -235,8 +235,11 @@ class CompanionTest(unittest.TestCase):
         self.assertEqual(len(exported['turns']),1)
         self.assertEqual(exported['turns'][0]['result'],result)
         self.assertEqual(exported['turns'][0]['kind'],'checkin')
-        self.assertEqual(self.chat('What should I do first?')['status'],202)
+        followup={'prompt':'What should I do first?', 'request_id':str(uuid.uuid4()), 'reply_to':'recent'}
+        self.assertEqual(self.request('/daily/api/chat/send',followup)['status'],202)
         self.complete()
+        self.assertEqual(self.request('/daily/api/chat/send',followup)['status'],202)
+        self.assertEqual(len(calls),2)
         prior=calls[0][1]['bounded_history'][0]
         self.assertEqual(prior['user'],source)
         self.assertIn('Read one page',prior['assistant'])
