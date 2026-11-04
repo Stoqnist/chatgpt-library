@@ -15,6 +15,7 @@ tested release. The private Daily service remains the single deployment.
 - If the API key is missing, Daily opens Settings and links to the official
   API key and spending-limit pages. The key belongs in the password-type
   Settings field, never a chat message, Git, screenshot or console output.
+- A completed or partial check-in with selected next steps offers **Discuss these steps**. This copies only up to three suggestion texts and a dated label into the editable conversation input on the owner's click. It does not copy the full check-in report, send a message or call the model. The owner must review and press Send; sent suggestions then follow conversation retention rather than check-in retention.
 - Native keyboard dictation, edit-before-send, explicit Save draft,
   saved messages/replies, export, delete and optional tapped read-aloud remain.
   No in-page microphone, audio storage, automatic model calls or background
