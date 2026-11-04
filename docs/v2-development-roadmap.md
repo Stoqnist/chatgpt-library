@@ -4,6 +4,41 @@
 
 **Status (2026-10-14; GitHub implementation state verified):** End-to-end, evidence-backed personal assistance remains the V2 product target. Purchase benchmark/comparison/ablation component work (#7–#10), a health-led P0 contract (#12), scripted read-only J1 (#13), scripted J2/J3 safety journeys (#14), and disposable mock approval/execution (#15) are **merged into the experimental V2 branch only**. P0–P3 are experimental slices, not completed product/release gates. Draft [PR #3](https://github.com/Stoqnist/chatgpt-library/pull/3) still targets `main`; these experiments are not deployed. **S0 decisions explicitly confirmed by the user on 2026-10-13:** S1/S2/S5/S7 simplify; S3/S4 keep; S6 defer. Implementation remains subject to independent regression checks; real connector effects, model spending and deployment are not authorized. [P4 PR #16](https://github.com/Stoqnist/chatgpt-library/pull/16) is now merged into the experimental branch as **offline preflight only**; its checks and metadata/synthetic claims do not establish real provider authorization, transactional safety or release readiness. [PR #26](https://github.com/Stoqnist/chatgpt-library/pull/26) subsequently merged an offline-only synthetic elevated-read-role rejection; live authorization remains unverified. [PR #28](https://github.com/Stoqnist/chatgpt-library/pull/28) merged a synthetic OAuth-scope posture regression and documented limited, reported live read-only probes; effective scopes, audit provenance and execution safety remain unverified. [PR #30](https://github.com/Stoqnist/chatgpt-library/pull/30) adds Calendar-only operation-specific synthetic role checks and a redacted grant-feasibility audit, without establishing real token grants. [PR #34](https://github.com/Stoqnist/chatgpt-library/pull/34) merges the initial I1 scripted-to-P3 mock approval/execution bridge with 3.11/3.13 offline CI passing; it is not live integration. [PR #36](https://github.com/Stoqnist/chatgpt-library/pull/36) adds executor/store-bound mock approval revocation and cross-turn outcome history with Python 3.11/3.13 CI passing. [PR #38](https://github.com/Stoqnist/chatgpt-library/pull/38) adds an inspection-only synthetic recovery path for superseded unknown attempts with Python 3.11/3.13 offline checks passing. [PR #40](https://github.com/Stoqnist/chatgpt-library/pull/40) adds offline denial of cross-owner/unauthorized recovery reads, with Python 3.11/3.13 CI passing; it does not authenticate real users or prove connector scopes. [PR #42](https://github.com/Stoqnist/chatgpt-library/pull/42) merged uniform unauthorized recovery-ID denial into experimental V2 (`10e00ef`; Python 3.11/3.13 offline CI passed). See [I1 provider-operation feasibility](v2-i1-provider-operation-feasibility.md) for a *contract review only*, not live recovery evidence. Live execution remains blocked; V1 remains unchanged.
 
+## 2026-11-04 owner acceptance: unified Daily and coordinator-first conversation
+
+**Observed:** Owner deployed PR #128's pinned image `daee7034` on Hetzner
+with a consistent SQLite backup and rollback script. Operator screenshot reports
+healthy Daily/demo containers and authenticated private phone conversation with
+one completed model reply. This verifies a first conversation, **not** the full
+knowledge or multi-agent cutover. The next changes are under review and are not
+assumed deployed.
+
+**Corrected user goal:** One Daily experience for initial spoken check-in,
+ongoing dialogue and later action suggestions. The 4,000-character editable
+"background" field was mistakenly perceived as an internal agent prompt.
+The agent instructions must be application-owned; user conversation is ordinary
+input, not prompt configuration. The user wants each submitted message handled
+by a coordinator with relevant specialist contributions and grounded short- or
+long-term suggestions. Provide visible API key setup guidance when absent.
+
+**Smallest source implementation:** Integrate stored conversation into the
+existing authenticated `/daily/` workspace, redirect `/daily/chat`, retire
+the editable context endpoint without erasing historical notes, and route chat
+through the three **currently available Daily specialists** (Wellbeing, Home,
+Planning). Preserve exact user excerpts, failure isolation, health-first
+interruption, no Calendar read through chat, shared usage and explicit
+submission. Use 2–5 model calls as needed. Do not claim full family-agent
+collaboration, canonical memory, automatic actions or new grants. Historical
+chat background is exportable but no longer injected into new calls.
+
+**Acceptance:** Review diff, full offline and production-image CI, original
+Daily regression, and owner iPhone check-in → conversation follow-up → reload
+and export with the same session. Test no API key, general conversation with
+zero specialists, bounded multi-domain case, sensitive routing failure,
+and urgent interruption without specialist work. Preserve backup and rollback.
+Canonical record retrieval, durable obligations and encrypted restore remain
+release blockers and require separate evidence.
+
 ## 2026-11-04 urgent personal V2 cutover: own interface and durable knowledge
 
 **Owner decision:** Prioritize a usable private API-backed interface on existing
