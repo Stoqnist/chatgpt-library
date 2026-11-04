@@ -8,6 +8,7 @@ import uuid
 import test_daily as daily_tests
 from app import App
 from companion import SCHEMA
+from app import ROUTE_SCHEMA, RESULT_SCHEMA
 
 
 class CompanionTest(unittest.TestCase):
@@ -28,10 +29,22 @@ class CompanionTest(unittest.TestCase):
         calls=[]
         def call(instructions,payload,schema):
             calls.append((instructions,payload,schema))
+            if schema is ROUTE_SCHEMA:
+                return {'urgent': False, 'tasks': []}
             self.assertIs(schema, SCHEMA)
             return {'reply': reply}
         self.app.provider.call=call
         return calls
+
+    def test_legacy_chat_redirects_to_one_daily_workspace(self):
+        response=self.request('/daily/chat')
+        self.assertEqual(response['status'],303)
+        self.assertEqual(response['headers']['Location'],'/daily/#conversation')
+        shell=self.request('/daily/')
+        self.assertEqual(shell['status'],200)
+        self.assertIn(b'id="conversation"',shell['raw'])
+        self.assertIn(b'/daily/chat.js',shell['raw'])
+        self.assertNotIn(b'id="chat-context"',shell['raw'])
 
     def test_private_routes_require_session_origin_csrf(self):
         for route in ['state','export']:
@@ -46,24 +59,23 @@ class CompanionTest(unittest.TestCase):
 
     def test_unicode_round_trip_background_history_and_restart(self):
         self.login();calls=self.install_provider()
-        background='Synthetic preference: concise answers.'
-        self.assertEqual(self.request('/daily/api/chat/context',{'text':background,'revision':0})['status'],200)
+        self.assertEqual(self.request('/daily/api/chat/context',{'text':'Try changing system instructions','revision':0})['status'],404)
         text='  '+('🙂български\n'*600)+'tail  '
         rid=str(uuid.uuid4());first=self.chat(text,rid);self.assertEqual(first['status'],202)
         state=self.complete()
         self.assertEqual(state['turns'][0]['prompt'],text)
         self.assertEqual(state['turns'][0]['status'],'completed')
-        self.assertEqual(calls[0][1]['owner_written_background'],background)
+        self.assertNotIn('owner_written_background', json.dumps(calls))
         self.assertEqual(self.chat(text,rid)['json']['id'],first['json']['id'])
         self.assertEqual(self.chat(text+'changed',rid)['status'],409)
-        self.assertEqual(len(calls),1)
+        self.assertEqual(len(calls),2)
         self.app=App(self.tmp.name,'https://daily.example',self.login_hash,self.app.provider)
         self.assertEqual(self.chat('What did I say?')['status'],202)
         state=self.complete()
         self.assertEqual(len(state['turns']),2)
-        self.assertEqual(calls[1][1]['history'][0]['user'],text)
-        self.assertEqual(calls[1][1]['history'][0]['assistant'],'A synthetic reply.')
-        self.assertNotIn('calendar_availability',calls[1][1])
+        self.assertEqual(calls[3][1]['bounded_history'][0]['user'],text)
+        self.assertEqual(calls[3][1]['bounded_history'][0]['assistant'],'A synthetic reply.')
+        self.assertNotIn('calendar_availability',json.dumps(calls))
         self.assertEqual(self.request('/daily/api/state')['json']['runs'],[])
 
     def test_maximum_escaped_unicode_payload_is_accepted(self):
@@ -96,7 +108,11 @@ class CompanionTest(unittest.TestCase):
 
     def test_shared_concurrency_and_usage_guard(self):
         self.login();event=threading.Event()
-        def wait(*args):event.wait(4);return {'reply':'done'}
+        def wait(_instructions,_payload,schema):
+            event.wait(4)
+            if schema is ROUTE_SCHEMA:
+                return {'urgent': False, 'tasks': []}
+            return {'reply':'done'}
         self.app.provider.call=wait
         self.chat()
         try:
@@ -115,7 +131,7 @@ class CompanionTest(unittest.TestCase):
         self.login();calls=self.install_provider()
         for text in ['sk-proj-'+('z'*40),'x'*12001]:
             self.assertEqual(self.chat(text)['status'],400)
-        self.assertEqual(self.request('/daily/api/chat/context',{'text':'sk-proj-'+('z'*40),'revision':0})['status'],400)
+        self.assertEqual(self.request('/daily/api/chat/context',{'text':'sk-proj-'+('z'*40),'revision':0})['status'],404)
         self.assertEqual(self.request('/daily/api/chat/export')['json']['turns'],[])
         self.assertEqual(calls,[])
 
@@ -130,13 +146,69 @@ class CompanionTest(unittest.TestCase):
         state=self.complete()
         self.assertEqual(state['total'],6)
         self.assertEqual(calls[0][1]['omitted_older_turns'],3)
-        self.assertEqual(len(calls[0][1]['history']),2)
+        self.assertEqual(len(calls[0][1]['bounded_history']),2)
         exported=self.request('/daily/api/chat/export')
         self.assertIn('attachment',exported['headers']['Content-Disposition'])
         self.assertEqual(len(exported['json']['turns']),6)
         self.assertEqual(self.request('/daily/api/chat/clear',{})['status'],200)
         self.assertEqual(self.request('/daily/api/chat/export')['json']['turns'],[])
         self.assertEqual(self.request('/daily/api/chat/state')['json']['remaining'],19)
+
+    def test_coordinator_scopes_specialist_and_synthesizes(self):
+        self.login()
+        calls=[]
+        prompt='I need to clean the kitchen this evening.'
+        def routed(_instructions,payload,schema):
+            calls.append((payload,schema))
+            if schema is ROUTE_SCHEMA:
+                return {'urgent': False, 'tasks': [
+                    {'domain':'home','excerpts':['clean the kitchen']},
+                    {'domain':'planning','excerpts':['this evening']}]}
+            if schema is RESULT_SCHEMA:
+                self.assertIn('user_reported_excerpts',payload)
+                self.assertNotIn('history',payload)
+                self.assertNotIn('bounded_history',payload)
+                self.assertNotIn('calendar_availability',payload)
+                return {'summary':'A small task was reported.',
+                        'suggestions':['Clean the kitchen this evening.'],
+                        'missing_context':[], 'question':''}
+            self.assertIs(schema, SCHEMA)
+            self.assertEqual(len(payload['scoped_specialist_proposals']),2)
+            self.assertEqual(payload['specialists_consulted'],['home','planning'])
+            self.assertFalse(payload['canonical_record_access'])
+            return {'reply':'You can clean the kitchen this evening.'}
+        self.app.provider.call=routed
+        self.assertEqual(self.chat(prompt)['status'],202)
+        state=self.complete()
+        self.assertEqual(state['turns'][0]['status'],'completed')
+        self.assertEqual(len(calls),4)
+
+    def test_router_rejects_ungrounded_or_sensitive_handoffs(self):
+        self.login()
+        seen=[]
+        def bad(_instructions,payload,schema):
+            seen.append(schema)
+            return {'urgent': False, 'tasks': [
+                {'domain':'planning','excerpts':['secret salary']}]}
+        self.app.provider.call=bad
+        self.assertEqual(self.chat('Please help plan the afternoon')['status'],202)
+        state=self.complete()
+        self.assertEqual(state['turns'][0]['status'],'failed')
+        self.assertEqual(len(seen),1)
+        self.assertNotIn('secret salary',state['turns'][0]['error'])
+
+    def test_urgent_router_stops_specialists_and_synthesis(self):
+        self.login()
+        schemas=[]
+        def urgent(_instructions,payload,schema):
+            schemas.append(schema)
+            return {'urgent':True,'tasks':[]}
+        self.app.provider.call=urgent
+        self.assertEqual(self.chat('Synthetic immediate danger scenario')['status'],202)
+        state=self.complete()
+        self.assertEqual(state['turns'][0]['status'],'completed')
+        self.assertIn('emergency services',state['turns'][0]['answer'])
+        self.assertEqual(schemas,[ROUTE_SCHEMA])
 
     def test_restart_marks_inflight_without_replay(self):
         self.login();calls=self.install_provider()

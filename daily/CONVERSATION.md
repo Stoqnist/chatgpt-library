@@ -1,100 +1,92 @@
-# Private conversation foundation
+# Daily integrated conversation — source candidate
 
-Status: source candidate, not a completed V2 release or verified deployment.
+Status: merged V2 conversation foundation was owner-deployed and verified on a real
+iPhone on 2026-11-04. This next revision is source-only until a separately
+tested release. The private Daily service remains the single deployment.
 
-## Scope
+## One Daily surface
 
-A single-owner ongoing conversation at `/daily/chat`, using the existing access
-code, server-held API key, Responses provider and configured model. The Daily
-check-in and optional Calendar integration remain separate. This assistant has
-no tools or external-account access and cannot perform development, browse,
-update canonical records, send messages or schedule events. It does not inherit
-ChatGPT history, memory, subscriptions, custom GPTs or connectors.
+- `/daily/` is the one primary experience for morning check-ins, previous
+  check-in plans and continued conversation. The old `/daily/chat` address
+  redirects to `/daily/#conversation`; it is not a second app.
+- Login, Settings, API key status and logout are shared. The private chat UI
+  has no editable background/system-prompt field. Agent instructions are
+  application-owned and versioned, never supplied by an initial user prompt.
+- If the API key is missing, Daily opens Settings and links to the official
+  API key and spending-limit pages. The key belongs in the password-type
+  Settings field, never a chat message, Git, screenshot or console output.
+- A completed or partial check-in with selected next steps offers **Discuss these steps**. This copies only up to three suggestion texts and a dated label into the editable conversation input on the owner's click. It does not copy the full check-in report, send a message or call the model. The owner must review and press Send; sent suggestions then follow conversation retention rather than check-in retention.
+- Native keyboard dictation, edit-before-send, explicit Save draft,
+  saved messages/replies, export, delete and optional tapped read-aloud remain.
+  No in-page microphone, audio storage, automatic model calls or background
+  transcription is added.
 
-This slice adds:
-- Exact saved messages and replies, with accepted/running/completed/failed/
-  interrupted states. Provider failure does not erase the accepted message.
-- Explicit Save draft and Save background actions. They return a server save
-  acknowledgment; concurrent stale edits are rejected by revision. Unsaved text
-  is still vulnerable to reload, session expiry or device loss. No browser storage.
-- One bounded context note written by the owner, not extracted model memory.
-  No existing canonical records are migrated or duplicated automatically.
-- Recent conversational context with explicit omitted-history counts and stored
-  input provenance (background snapshot, prior turn IDs, model and local time sent).
-- Export and application deletion, phone dictation through the keyboard, optional
-  browser read-aloud after a tap, and a no-audio-input fallback.
+## Conversation coordination
 
-## Storage and privacy contract
+Every **submitted conversation message** first goes through a model-based
+coordinator. The coordinator selects zero to three currently implemented Daily
+specialists (Wellbeing, Home, Planning) only when relevant; general conversation
+can proceed without a specialist. Handoffs must quote exact substrings of the
+latest message and reject ungrounded or high-confidence sensitive handoffs to
+Home/Planning. Specialists receive only their excerpts, not earlier chat history.
+Planning gets Europe/Amsterdam time context but **no Calendar access from chat**.
+Wellbeing's existing conservative safety checks remain. The final coordinator
+receives bounded conversation history and scoped specialist proposals, and
+responds to the user in prose; it can distinguish near-term next steps from
+longer-term possibilities when grounded.
 
-New `chat_turns` and `chat_notes` tables share the existing private SQLite file.
-Conversation messages and explicitly saved drafts/background remain until the
-owner deletes the conversation. The page states this before use. Daily check-ins
-retain their existing seven-day policy; Daily Clear history does not erase chat.
-Conversation deletion removes all chat messages/background/drafts from application
-state but cannot erase filesystem remnants, existing backups or provider records.
-Lock revokes the session and clears visible private data; saved chat remains.
+This is **not** deployment of the full experimental V2 collaboration framework
+or all family-agent prompts. The three existing Daily roles are the available
+runtime subset. They have no tools and do not fetch, infer or update Health,
+Home, Finance, inventory, Library, Drive, Yandex or other canonical records.
+Suggested actions are not scheduled, accepted or executed. Previous AI replies
+are not canonical evidence. The user can correct text through a new message,
+but there is no verified durable action/obligation store.
 
-Private file permissions are not encryption at rest. No personal record, API key,
-conversation export or screenshot belongs in public Git. All private routes reuse
-session protection; mutations require the exact Origin and CSRF token. Recognizable
-credentials are rejected before saving or model submission, but detection is not
-comprehensive. Never store credentials in conversation or background notes.
+Coordination uses one router call, up to three specialist calls and one final
+reply call: **2–5 bounded model calls per message** (urgent interruption may use
+only one). This is still one of the shared 20 submissions/check-ins per rolling
+24 hours, not a monetary budget. Existing request-ID deduplication, single
+active job, no automatic replay and `store:false` remain. OpenAI API spending
+and availability require independent checks.
 
-Each model call receives the current message, owner-written background, bounded
-recent exchanges and current local time. There is no automatic access to other
-conversations, Daily history, Drive, Yandex, Calendar or canonical domain files.
-The existing provider uses `store:false`; this is not a claim of zero provider
-retention. See OpenAI's [conversation-state](https://developers.openai.com/api/docs/guides/conversation-state)
-and [data controls](https://developers.openai.com/api/docs/guides/your-data) documentation.
+## Storage and privacy
 
-## Bounds and failure handling
+SQLite continues to own private `chat_turns` and saved chat drafts; accepted
+turns and replies remain until explicitly deleted. A 12,000-code-point message
+limit and 24,000-character contiguous prior-history context bound remain. The
+latest 50 exchanges are displayed; export includes the complete saved history.
+Omitted-history counts are visible. Check-in history has a separate seven-day
+retention rule. Logout clears visible content and revokes the session.
+The old `chat_notes.context` and historical `chat_turns.context` columns are
+preserved for backward compatibility and export, but no owner-written context
+is included in **new** model requests and the editor endpoint is disabled.
+The source patch does not delete or migrate existing user data. Export can
+still contain historical notes; explicit Clear conversation removes them from
+application state, not existing backups or provider retention.
 
-- Chat message/draft: 12,000 Unicode code points. Background: 4,000.
-- Earlier context: newest contiguous exchanges fitting 24,000 characters. Older
-  exchanges remain stored/exportable but are not silently represented as recalled.
-- UI shows the latest 50 exchanges; export contains all saved exchanges.
-- One provider call per chat message, using the existing 1,100 output-token cap.
-  Long/incomplete model responses fail visibly; no automatic paid retry.
-- Shared rolling 24-hour allowance: 20 chat submissions/check-ins combined.
-  Daily may use up to five calls per submission; chat uses one. This is not a
-  monetary limit. Provider billing/model access must be checked independently.
-- Shared single active job; request UUIDs deduplicate transport retries. A changed
-  message cannot reuse an accepted ID. Restart marks in-flight work interrupted
-  without replay. An explicit follow-up is a new charged attempt.
-- Guided Daily input no longer silently slices answers or uses HTML maxlength;
-  the existing Daily 4,000-character processing limit is visibly enforced without
-  deleting the input. The new chat supports longer messages. Guided drafts remain
-  memory-only and are not automatically moved into chat.
+Server files are private but not encrypted at rest. The existing authenticated
+Origin and CSRF protections, credentials rejection, session expiry, and Cloudflare
+gate remain necessary. Nothing in this change broadens provider access or
+introduces autonomous writes.
 
-## Before personal cutover
+## Release and acceptance gates
 
-1. Pass offline Python/Node checks and CI production-image tests at the exact SHA.
-2. Rebuild the demo proxy as well: its request-body ceiling changes from 16 KiB
-   to 192 KiB for Unicode chat payloads; the application keeps per-endpoint
-   limits (160,000 bytes for chat, 16,000 otherwise). Build a pinned candidate; use the existing deployment's isolated smoke test,
-   fresh consistent SQLite backup, runtime UID permissions and image rollback.
-   Do not copy a live SQLite file without a consistent backup method.
-3. Deploy using existing operator access; verify `/daily/chat`, unauthorized
-   state/export 401, rejected bad-Origin/CSRF writes, and existing Daily behavior.
-4. In an explicitly initiated small API canary, verify model access/billing,
-   a factual follow-up about a synthetic first message, saved draft after reload,
-   failed/limited response handling, export, delete, and lock/unlock on iPhone.
-5. Before importing real records, choose the essential knowledge set, preserve
-   source paths/versions and canonical ownership, and verify retrieval/correction.
-   A manual background note alone does not fulfill the full knowledge requirement.
-6. Configure an encrypted off-server backup destination with separate recovery
-   key handling and perform a restore drill. Drive/Yandex capacity and access are
-   unverified; no cloud synchronization or backup is installed by this change.
+1. Review this PR diff; run full Python/Node, template, demo and container CI at
+   the exact head SHA. Confirm no new external grants or private records.
+2. Build isolated pinned Daily and demo proxy images. The proxy still requires
+   the 192 KiB chat request-body allowance from the prior release.
+3. Create a fresh consistent SQLite backup, preserve Compose and tunnel
+   overrides, and keep both prior images available. Deploy using only the
+   existing operator-approved path. A green CI run does not deploy a server.
+4. Test on iPhone: unlock once, use morning check-in, continue in conversation
+   without a second login, reload a saved draft, verify a benign general
+   question and a grounded multi-domain action request, test export/delete,
+   lock/unlock and missing-API-key guidance. Confirm routing privacy with
+   synthetic text and check the bounded API cost.
+5. Verify rollback and a separate encrypted off-server backup/restore before
+   subscription cutover. Canonical knowledge retrieval, corrections and
+   verified action storage remain distinct release gates.
 
-Schema changes are additive. The previous image ignores the chat tables, so image
-rollback keeps chat data but removes the chat UI. Avoid restoring an older database
-over newer messages unless intentional data loss has been assessed. No deletion
-or migration of existing canonical records is part of this release.
-
-## Remaining V2 release work
-
-Essential knowledge import/retrieval with provenance and corrections; off-server
-backup/restore; model quality/cost acceptance; cross-session resume UX; optional
-multiple conversations/search; scoped tool adapters with explicit authority.
-Analytics, Gmail, subscription billing and customer SLAs follow the personal
-cutover. The experimental orchestration branch is not bulk-merged by this slice.
+Do not present this source as full ChatGPT parity, live memory integration or
+deployed multi-agent execution. Its scope is one coherent Daily workflow.

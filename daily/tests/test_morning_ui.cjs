@@ -182,3 +182,25 @@ test('historical failed and safety-interrupted check-ins retain their actionable
     assert.doesNotMatch(p.get('result-source').textContent,/can take about a minute/);
   }
 });
+
+test('reviewed plan handoff pre-fills chat without sending or copying the full report',async()=>{
+  const p=await page({runs:[completed('old')]});
+  assert.equal(p.get('chat-input').value,'');
+  assert.equal(p.get('discuss-plan').hidden,true);
+  await p.get('history').children[0].fire('click');
+  assert.equal(p.get('discuss-plan').hidden,false);
+  const before=p.calls.length;
+  await p.get('discuss-plan').fire('click');
+  assert.match(p.get('chat-input').value,/A fictional step/);
+  assert.match(p.get('chat-input').value,/not verified commitments/);
+  assert.doesNotMatch(p.get('chat-input').value,/Fictional kitchen check-in/);
+  assert.equal(p.calls.length,before);
+  assert.equal(p.get('discuss-plan').hidden,false);
+});
+
+test('no plan suggestions yields no conversation handoff',async()=>{
+  const p=await page({runs:[{...completed('empty'),result:{message:'No reliable next steps',next_steps:[]}}]});
+  await p.get('history').children[0].fire('click');
+  assert.equal(p.get('discuss-plan').hidden,true);
+  assert.equal(p.get('chat-input').value,'');
+});

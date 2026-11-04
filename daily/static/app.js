@@ -49,6 +49,7 @@ function renderRun(run){
   $('result').hidden=false;$('result').setAttribute('aria-busy',String(run.status==='running'));
   $('result-context').textContent=(historical?'Previous check-in · ':"Current check-in · ")+runDate(run);
   $('run-status').textContent=({running:'Working',completed:'Completed',partial:'Partial',failed:'Needs attention',interrupted:'Interrupted',needs_attention:'Pause & seek help'})[run.status]||run.status;
+  $('discuss-plan').hidden=!(['completed','partial'].includes(run.status)&&Boolean(run.result.next_steps?.length));
   $('result-title').textContent=historical&&run.status==='completed'?'Saved check-in from '+runDate(run):run.result.message||'Preparing your plan.';
   $('result-source').textContent=run.result.source||(run.status==='running'?'This can take about a minute. You can return to this page.':'Saved response based on that check-in.');
   $('progress').replaceChildren();$('plan').replaceChildren();$('questions').replaceChildren();
@@ -94,16 +95,36 @@ async function refresh(){
   $('history').replaceChildren();$('history-section').hidden=previous.length<1;
   for(const run of previous){const b=el('button',run.prompt.slice(0,95)+(run.prompt.length>95?'…':''));b.type='button';b.disabled=busy;b.append(el('small',runDate(run)+' · '+run.status));b.addEventListener('click',()=>{if(busy)return;activeId=run.id;activeKind='history';renderRun(run);$('result').scrollIntoView({block:'start'});});$('history').append(b);}
   updateCheckinState();
+  document.dispatchEvent(new Event('daily:unlocked'));
   clearTimeout(poll);if(running)poll=setTimeout(refresh,1800);
 }
 $('date').textContent=new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'});
 $('login-form').addEventListener('submit',async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;try{await api('login',{password:$('password').value});$('password').value='';notice('');await refresh();}catch(error){notice(error.message,true);}finally{button.disabled=false;}});
 $('settings-toggle').addEventListener('click',()=>{$('settings').hidden=!$('settings').hidden;$('settings-toggle').setAttribute('aria-expanded',String(!$('settings').hidden));});
 $('key-form').addEventListener('submit',async e=>{e.preventDefault();e.submitter.disabled=true;try{await api('settings',{api_key:$('api-key').value.trim()});$('api-key').value='';$('settings').hidden=true;$('settings-toggle').setAttribute('aria-expanded','false');notice('Key saved. Your first check-in will test the connection.');await refresh();}catch(error){notice(error.message,true);}finally{e.submitter.disabled=false;}});
-$('checkin-form').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const prompt=$('prompt').value;if(!prompt.trim()||Array.from(prompt.trim()).length>4000){notice('This check-in supports up to 4,000 characters. Your text is intact: shorten it or use Private conversation for up to 12,000 characters.',true);return;}if(!request||request.prompt!==prompt)request={prompt,request_id:crypto.randomUUID()};busy=true;$('run-button').disabled=true;$('morning-open').disabled=true;updateCheckinState();notice('');try{const r=await api('run',request);activeId=r.id;activeKind='current';submittedPrompt=prompt;request=null;guidedDraft=false;await refresh();$('result').scrollIntoView({block:'start'});}catch(error){notice(error.message,true);busy=false;await refresh();}});
+$('checkin-form').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const prompt=$('prompt').value;if(!prompt.trim()||Array.from(prompt.trim()).length>4000){notice('This check-in supports up to 4,000 characters. Your text is intact: shorten it or continue in the conversation below (up to 12,000 characters).',true);return;}if(!request||request.prompt!==prompt)request={prompt,request_id:crypto.randomUUID()};busy=true;$('run-button').disabled=true;$('morning-open').disabled=true;updateCheckinState();notice('');try{const r=await api('run',request);activeId=r.id;activeKind='current';submittedPrompt=prompt;request=null;guidedDraft=false;await refresh();$('result').scrollIntoView({block:'start'});}catch(error){notice(error.message,true);busy=false;await refresh();}});
 $('prompt').addEventListener('input',editDraft);
 $('write-instead').addEventListener('click',openTextDraft);
+$('discuss-plan').addEventListener('click',()=>{
+  const run=state?.runs.find(r=>r.id===activeId);
+  if(!run||!['completed','partial'].includes(run.status))return;
+  const steps=(run.result.next_steps||[]).map(s=>s.text).filter(s=>typeof s==='string'&&s.trim()).slice(0,3);
+  if(!steps.length)return;
+  const draft='Please help me review and prioritize these suggestions from my Daily check-in on '+runDate(run)+
+    '. These are proposals, not verified commitments.\n\n'+
+    steps.map((step,i)=>(i+1)+'. '+step).join('\n')+
+    '\n\nWhat should I do first?';
+  if(Array.from(draft).length>12000){notice('These suggestions exceed the conversation limit; nothing was copied.',true);return;}
+  if($('chat-input').value.trim()&&!confirm('Replace your unsent conversation draft?'))return;
+  $('chat-input').value=draft;
+  $('chat-input').dispatchEvent(new Event('input',{bubbles:true}));
+  $('conversation').scrollIntoView({block:'start'});
+  $('chat-input').focus();
+  notice('Suggested steps copied to an editable message. Review before sending; saved conversations have separate retention.');
+});
+
 document.addEventListener('daily:draft',e=>{guidedDraft=e.detail.active;editDraft();});
+document.addEventListener('daily:session-expired',lockUI);
 for(const button of document.querySelectorAll('[data-starter]'))button.addEventListener('click',()=>{if($('prompt').value.trim()&&!confirm('Replace your current check-in text?'))return;openTextDraft();$('prompt').value=button.dataset.starter;editDraft();});
 // Re-label an open plan when the local day changes, including return from background.
 function refreshDate(){

@@ -30,8 +30,12 @@ jobs:
           for n in $(seq 1 20); do curl -fsS http://127.0.0.1:18001/health && break || sleep 1; done
           curl -fsS http://127.0.0.1:18001/daily/ > /tmp/daily.html
           cmp daily/static/index.html /tmp/daily.html
-          curl -fsS http://127.0.0.1:18001/daily/chat > /tmp/chat.html
-          cmp daily/static/chat.html /tmp/chat.html
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18001/daily/chat)" = 303
+          curl -sS -D /tmp/chat-headers -o /dev/null http://127.0.0.1:18001/daily/chat
+          grep -qi 'Location: /daily/#conversation' /tmp/chat-headers
+          grep -q 'id="conversation"' /tmp/daily.html
+          curl -fsS http://127.0.0.1:18001/daily/chat.js > /tmp/daily-chat.js
+          cmp daily/static/chat.js /tmp/daily-chat.js
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18001/daily/api/chat/export)" = 401
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18001/daily/api/state)" = 401
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18001/daily/../../app.py)" != 200
