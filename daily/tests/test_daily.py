@@ -237,24 +237,55 @@ class DailyTest(unittest.TestCase):
             elif payload.get('user_reported_excerpts') != ['My prescription changed.']:
                 self.assertNotIn('prescription', json.dumps(payload).lower())
 
-    def test_sensitive_health_handoff_to_home_fails_closed(self):
+    def test_sensitive_health_handoff_to_home_is_withheld_without_losing_checkin(self):
         prompt = 'My prescription changed. I want to tidy the kitchen.'
         self.provider.route = {'urgent': False, 'tasks': [
             {'domain': 'home', 'excerpts': ['My prescription changed.']}
         ]}
         self.login();self.submit(prompt=prompt);run=self.finish()
-        self.assertEqual(run['status'], 'failed')
+        self.assertEqual(run['status'], 'partial')
         self.assertEqual(len(self.provider.calls), 1)
-        self.assertIn('separate private details', run['result']['message'])
+        self.assertEqual(run['prompt'], prompt)
+        self.assertEqual(run['result']['next_steps'], [])
+        self.assertIn('no safe specialist handoff', run['result']['message'])
+        self.assertIn('withheld', run['result']['privacy_note'])
 
-    def test_financial_handoff_to_planning_fails_closed(self):
+    def test_financial_handoff_to_planning_is_withheld_without_calendar(self):
         prompt = 'My salary changed. I have an hour this morning.'
         self.provider.route = {'urgent': False, 'tasks': [
             {'domain': 'planning', 'excerpts': ['My salary changed.']}
         ]}
         self.login();self.submit(prompt=prompt);run=self.finish()
-        self.assertEqual(run['status'], 'failed')
+        self.assertEqual(run['status'], 'partial')
         self.assertEqual(len(self.provider.calls), 1)
+        self.assertEqual(run['prompt'], prompt)
+        self.assertEqual(run['result']['agents'], [])
+        self.assertIn('no safe specialist handoff', run['result']['message'])
+
+    def test_mixed_private_and_routine_input_keeps_only_safe_verbatim_excerpts(self):
+        prompt = ('My prescription changed. I want to tidy the kitchen. '
+                  'I have an hour this morning.')
+        private = 'My prescription changed.'
+        safe_home = 'I want to tidy the kitchen.'
+        safe_planning = 'I have an hour this morning.'
+        self.provider.route = {'urgent': False, 'tasks': [
+            {'domain': 'wellbeing', 'excerpts': [private]},
+            {'domain': 'home', 'excerpts': [private, safe_home]},
+            {'domain': 'planning', 'excerpts': [private, safe_planning]},
+        ]}
+        self.login();self.assertEqual(self.submit(prompt=prompt)['status'], 202)
+        run = self.finish()
+        self.assertEqual(run['status'], 'partial')
+        self.assertEqual(run['prompt'], prompt)
+        self.assertEqual(len(self.provider.calls), 5)
+        self.assertTrue(run['result']['next_steps'])
+        self.assertIn('withheld', run['result']['privacy_note'])
+        for _instructions, payload, schema in self.provider.calls[1:]:
+            if schema is PLAN_SCHEMA:
+                self.assertEqual(payload['routine_goals'], [safe_home, safe_planning])
+                self.assertNotIn(private, json.dumps(payload))
+            elif 'user_reported_excerpts' in payload and payload['user_reported_excerpts'] != [private]:
+                self.assertNotIn(private, json.dumps(payload))
 
     def test_recognizable_pasted_key_rejected_before_storage_or_model(self):
         self.login()
