@@ -4,6 +4,86 @@
 
 **Status (2026-10-14; GitHub implementation state verified):** End-to-end, evidence-backed personal assistance remains the V2 product target. Purchase benchmark/comparison/ablation component work (#7–#10), a health-led P0 contract (#12), scripted read-only J1 (#13), scripted J2/J3 safety journeys (#14), and disposable mock approval/execution (#15) are **merged into the experimental V2 branch only**. P0–P3 are experimental slices, not completed product/release gates. Draft [PR #3](https://github.com/Stoqnist/chatgpt-library/pull/3) still targets `main`; these experiments are not deployed. **S0 decisions explicitly confirmed by the user on 2026-10-13:** S1/S2/S5/S7 simplify; S3/S4 keep; S6 defer. Implementation remains subject to independent regression checks; real connector effects, model spending and deployment are not authorized. [P4 PR #16](https://github.com/Stoqnist/chatgpt-library/pull/16) is now merged into the experimental branch as **offline preflight only**; its checks and metadata/synthetic claims do not establish real provider authorization, transactional safety or release readiness. [PR #26](https://github.com/Stoqnist/chatgpt-library/pull/26) subsequently merged an offline-only synthetic elevated-read-role rejection; live authorization remains unverified. [PR #28](https://github.com/Stoqnist/chatgpt-library/pull/28) merged a synthetic OAuth-scope posture regression and documented limited, reported live read-only probes; effective scopes, audit provenance and execution safety remain unverified. [PR #30](https://github.com/Stoqnist/chatgpt-library/pull/30) adds Calendar-only operation-specific synthetic role checks and a redacted grant-feasibility audit, without establishing real token grants. [PR #34](https://github.com/Stoqnist/chatgpt-library/pull/34) merges the initial I1 scripted-to-P3 mock approval/execution bridge with 3.11/3.13 offline CI passing; it is not live integration. [PR #36](https://github.com/Stoqnist/chatgpt-library/pull/36) adds executor/store-bound mock approval revocation and cross-turn outcome history with Python 3.11/3.13 CI passing. [PR #38](https://github.com/Stoqnist/chatgpt-library/pull/38) adds an inspection-only synthetic recovery path for superseded unknown attempts with Python 3.11/3.13 offline checks passing. [PR #40](https://github.com/Stoqnist/chatgpt-library/pull/40) adds offline denial of cross-owner/unauthorized recovery reads, with Python 3.11/3.13 CI passing; it does not authenticate real users or prove connector scopes. [PR #42](https://github.com/Stoqnist/chatgpt-library/pull/42) merged uniform unauthorized recovery-ID denial into experimental V2 (`10e00ef`; Python 3.11/3.13 offline CI passed). See [I1 provider-operation feasibility](v2-i1-provider-operation-feasibility.md) for a *contract review only*, not live recovery evidence. Live execution remains blocked; V1 remains unchanged.
 
+## 2026-11-04 accepted priorities: capture, continuity, analytics and service commitments
+
+**Status:** Owner reports updating the server with the 28 October work and testing
+on iPhone. Source review confirmed main `0501c74d480ac38fc7cfa3c02d93ef74ce85a07a`
+contains merged PR #126. The running image/commit and database were not independently
+inspected. Findings below are source-confirmed or owner-observed, not completed fixes.
+
+**Verified findings**
+- Guided input has HTML maxlength=900 and silent JavaScript slice(0,900) on
+  continuation and assembly. Review input and API separately limit submissions
+  to 4,000 characters. This establishes an application truncation path; it does
+  not establish where every missing dictated word was lost.
+- Three fixed questions are assembled only at review. Earlier answers can contain
+  later topics, but the flow cannot recognize coverage or adapt its questions.
+- Unsubmitted drafts are memory-only. Accepted prompt text, timestamp, status and
+  result are stored in SQLite, including failed runs; state retrieval purges runs
+  older than seven days and returns at most 20. Earlier runs are not passed into
+  new planning calls. Saved history is not longitudinal agent memory.
+- The observed grounding error comes from router excerpt validation (type/count,
+  nonempty exact-substring checks). The specific failed predicate is unknown.
+  Preserve grounding checks; improve routing reliability and recovery rather
+  than bypassing evidence validation. Screenshots and private report content
+  must not be committed to this public repository.
+
+**Accepted build sequence** (supersedes the older fixed-three-question direction)
+1. **P0 — Reliable capture and recovery.** Remove silent truncation; align UI,
+   transport, API and model-processing bounds. Preserve captured text on
+   over-limit validation instead of cutting it. Define a visible supported limit.
+   Add recoverable private drafts with explicit storage, expiry, lock/unlock,
+   deletion and shared-device behavior before changing the memory-only policy.
+   Keep report saving separate from plan generation status. Explain routing
+   failures in ordinary language and offer recovery without duplicate reports
+   or uncontrolled model retries.
+2. **P1 — Natural check-in.** One continuous editable draft, an open welcome,
+   optional topic prompts, explicit review and submit. Optional prompts first;
+   then at most one useful adaptive follow-up based on existing coverage.
+   No mandatory numeric ratings, repeated answers, hidden submission or
+   unbudgeted model calls. Keep working native keyboard dictation and text entry.
+3. **P2 — Analytics foundation.** Define source text/version, report time and
+   submission time, source-linked observations, uncertainty, corrections,
+   explicit fictional/test classification, retention, export and deletion.
+   Longer retention and history retrieval require deliberate policy/schema work;
+   do not silently change the existing seven-day setting. Use the existing
+   Daily infrastructure initially. Preserve Health/Home/Planning ownership and
+   existing canonical records; do not create a competing health truth store.
+4. **P3 — Visual dashboard and scoped continuity.** Prefer product charts and a
+   report timeline over long prose. Start with explicitly reported sleep duration
+   and optional explicit energy/mood ratings; qualitative themes stay qualitative.
+   No invented numeric scores, zero-filled missing data or causal conclusions.
+   Chart points link to source reports/corrections. Supply only relevant prior
+   evidence to the appropriate agent, showing coverage and provenance.
+5. **Service and subscriptions workstream — begin documentation now.**
+   [Service-level and subscription blueprint](daily-service-blueprint.md) owns
+   the capability/commitment matrix and proposed agreement structure.
+   Define the intended user cohort, measurable service indicators, support model,
+   plan entitlements and launch gates before customer promises or pricing.
+   Capture reliability remains the first engineering priority. Gmail remains
+   a later separately permissioned integration; Advocate work remains separate.
+
+**Acceptance and verification**
+- Synthetic long input beyond 900 and 4,000 characters, Unicode and pasted
+  paragraphs: exact captured text survives navigation/review; supported submissions
+  round-trip unchanged; over-limit submissions remain editable with clear feedback.
+- Reload/lock/unlock and generation/network failures preserve recoverable drafts
+  according to the chosen private-draft policy. No plaintext draft exposure after lock.
+- A single answer spanning several topics does not require repetition. Corrections
+  preserve source history; fictional runs are excluded from personal trends.
+- Retrying a failed plan does not duplicate the source report; usage/charging
+  behavior is explicit. Failed plan state never masquerades as a completed plan.
+- Dashboard gaps remain gaps; every plotted observation resolves to its source;
+  historical retrieval respects domain privacy and never claims complete memory.
+- Existing Python/Node/security checks, then real iPhone native-dictation acceptance,
+  pinned deployment, backup and rollback. Timing estimates are provisional:
+  capture and simple-flow work may take several focused development days;
+  analytics and service readiness are separate verified milestones.
+
+**Tracking boundary:** This update records agreed direction and a first internal
+service blueprint. No capture fix, persistent draft, analytics, SLA, paid plan,
+customer onboarding, deployment or new external authority is active from these docs.
+
 ## 2026-10-28 owner acceptance: natural spoken flow and actionable plans (source stage)
 
 **Observed after Morning Companion use:** the owner's iPhone Brave web
