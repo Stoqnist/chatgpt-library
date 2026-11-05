@@ -5,7 +5,8 @@ const fs=require('node:fs');
 const path=require('node:path');
 async function page(){
   class Node {
-    constructor(){this.value='';this.hidden=false;this.children=[];this.listeners={};}
+    constructor(){this.value='';this.hidden=false;this.children=[];this.listeners={};this.attributes={};}
+    setAttribute(k,v){this.attributes[k]=v;}
     addEventListener(t,f){(this.listeners[t]??=[]).push(f);}
     async fire(t){for(const f of this.listeners[t]||[])await f({preventDefault(){},currentTarget:this});}
     append(...nodes){this.children.push(...nodes);}
@@ -75,11 +76,29 @@ test('follow-up choice sends once with its source and preserves unsent edits',as
   const card=p.get('chat-turns').children[0];
   const actions=card.children.find(n=>n.className==='followup-actions');
   assert.equal(actions.children.length,3);
-  await actions.children[0].fire('click');
+  assert.match(actions.children[0].children[1].textContent,/Picks one priority/);
+  assert.match(actions.children[1].children[1].textContent,/Breaks the advice/);
+  assert.equal(actions.children[0].children[0].attributes['aria-describedby'],'followup-help-0');
+  await actions.children[0].children[0].fire('click');
   const sends=p.calls.filter(c=>c.url.endsWith('/send'));
   assert.equal(sends.length,1);
   assert.equal(JSON.parse(sends[0].options.body).reply_to,'source');
   assert.equal(p.get('chat-input').value,'Unsent edits');
+});
+
+test('failed reply exposes explicit one-tap retry without automatically resending',async()=>{
+  const p=await page();p.state.turns=[{id:'failed',created:1,kind:'conversation',
+    prompt:'A saved failed prompt',answer:'',error:'Reply generation failed',status:'failed'}];
+  await p.document.fire('daily:unlocked');await p.flush();
+  const card=p.get('chat-turns').children[0];
+  const retry=card.children.find(n=>n.textContent==='Try replying again');
+  assert.ok(retry);
+  assert.equal(p.calls.filter(c=>c.url.endsWith('/send')).length,0);
+  await retry.fire('click');
+  const sends=p.calls.filter(c=>c.url.endsWith('/send'));
+  assert.equal(sends.length,1);
+  assert.equal(JSON.parse(sends[0].options.body).prompt,'A saved failed prompt');
+  assert.equal(JSON.parse(sends[0].options.body).reply_to,'failed');
 });
 
 test('urgent and running responses offer no routine follow-up choices',async()=>{
