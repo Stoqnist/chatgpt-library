@@ -47,15 +47,28 @@
       article.append(node('h3',turn.kind==='checkin'?'Your next steps':'Stoq'));const reply=node('p',turn.answer||turn.error||'Your message is saved. Preparing a reply…');reply.className='conversation-text';article.append(reply);
       if(turn===data.turns[data.turns.length-1]&&['completed','partial'].includes(turn.status)&&turn.answer){
         const actions=node('div','');actions.className='followup-actions';
-        for(const [label,prompt] of [
-          ['Choose my next step','Help me choose one concrete next step from your last response.'],
-          ['Make it manageable','Make your last response more manageable: suggest a smaller first step.'],
-          ['Explain this','Explain the reasoning and uncertainties in your last response.']]){
+        const choices=[
+          ['Choose my next step','Help me choose one concrete next step from your last response.','Picks one priority and explains why. Nothing is scheduled.'],
+          ['Make it manageable','Make your last response more manageable: suggest a smaller first step.','Breaks the advice into one easier action you can start.'],
+          ['Explain this','Explain the reasoning and uncertainties in your last response.','Explains the suggestions, assumptions and what is still unknown.']
+        ];
+        for(const [index,[label,prompt,description]] of choices.entries()){
+          const choice=node('div','');choice.className='followup-choice';
           const button=node('button',label);button.type='button';button.disabled=busy||!data.connected;
+          const help=node('p',description);help.className='followup-description';
+          help.id='followup-help-'+index;button.setAttribute('aria-describedby',help.id);
           button.addEventListener('click',()=>send(prompt,turn.id));
-          actionButtons.push(button);actions.append(button);
+          actionButtons.push(button);choice.append(button,help);actions.append(choice);
         }
-        article.append(actions);
+        article.append(actions,node('p','One tap sends one new AI request. These choices do not change external accounts.'));
+      }
+      if(turn===data.turns[data.turns.length-1]&&turn.kind==='conversation'&&turn.status==='failed'){
+        const retry=node('button','Try replying again');retry.type='button';
+        retry.disabled=busy||!data.connected;
+        retry.addEventListener('click',()=>send(turn.prompt,turn.id));
+        const info=node('p','Manually retries your saved message as a new AI request; the failed turn remains in history.');
+        info.className='followup-description';article.append(retry,info);
+        actionButtons.push(retry);
       }
       if(turn.kind==='checkin'&&turn.result){
         const details=node('details','');details.append(node('summary','Supporting perspectives'));
