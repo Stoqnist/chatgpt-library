@@ -7,7 +7,7 @@ import unittest
 import uuid
 import test_daily as daily_tests
 from app import App
-from companion import SCHEMA
+from companion import SCHEMA, QUICK_FOLLOWUPS
 from app import ROUTE_SCHEMA, RESULT_SCHEMA
 
 
@@ -105,6 +105,7 @@ class CompanionTest(unittest.TestCase):
         self.assertEqual(state['turns'][0]['status'],'failed')
         self.assertEqual(state['remaining'],19)
         self.assertNotIn('PRIVATE PROVIDER DETAIL',json.dumps(state))
+        self.assertIn('could not organize',state['turns'][0]['error'])
 
     def test_shared_concurrency_and_usage_guard(self):
         self.login();event=threading.Event()
@@ -298,6 +299,126 @@ class CompanionTest(unittest.TestCase):
             self.assertEqual(db.execute('SELECT count(*) FROM chat_turns').fetchone()[0],1)
         self.request('/daily/api/clear',{})
         self.assertEqual(self.request('/daily/api/chat/state')['json']['total'],1)
+
+    def test_quick_followup_uses_one_coordinator_call_with_saved_report(self):
+        self.login()
+        now = self.app.clock()
+        with self.app.db() as db:
+            db.execute('INSERT INTO runs VALUES (?,?,?,?,?,?)',
+                ('recent-report',str(uuid.uuid4()),'Synthetic plan request',now-5,
+                 'completed',json.dumps({
+                     'message':'Your next steps',
+                     'next_steps':[{'text':'Back up one important note','owner':'Planning'}]
+                 })))
+        seen = []
+        prompt = 'Make your last response more manageable: suggest a smaller first step.'
+        def direct(_instructions,payload,schema):
+            seen.append((payload,schema))
+            self.assertIs(schema, SCHEMA)  # Must not route through specialists.
+            self.assertEqual(payload['message'],prompt)
+            self.assertTrue(payload['quick_followup'])
+            self.assertEqual(payload['specialists_consulted'],[])
+            self.assertEqual(payload['scoped_specialist_proposals'],[])
+            self.assertIn('Back up one important note',payload['bounded_history'][-1]['assistant'])
+            return {'reply':'First, choose one note to back up.'}
+        self.app.provider.call = direct
+        response = self.request('/daily/api/chat/send',{
+            'prompt':prompt,'request_id':str(uuid.uuid4()),
+            'reply_to':'recent-report'})
+        self.assertEqual(response['status'],202)
+        state=self.complete()
+        self.assertEqual(state['turns'][-1]['status'],'completed')
+        self.assertEqual(state['turns'][-1]['answer'],'First, choose one note to back up.')
+        self.assertEqual(len(seen),1)
+        self.assertEqual(state['remaining'],19)
+
+    def test_quick_followup_without_anchor_uses_normal_router(self):
+        self.login()
+        calls = self.install_provider()
+        prompt = 'Help me choose one concrete next step from your last response.'
+        self.assertEqual(self.chat(prompt)['status'],202)
+        state=self.complete()
+        self.assertEqual(state['turns'][0]['status'],'completed')
+        self.assertEqual(len(calls),2)
+        self.assertIs(calls[0][2], ROUTE_SCHEMA)
+
+    def test_non_whitelisted_followup_keeps_emergency_routing(self):
+        self.login()
+        now=self.app.clock()
+        with self.app.db() as db:
+            db.execute('INSERT INTO runs VALUES (?,?,?,?,?,?)',
+                ('recent-report',str(uuid.uuid4()),'Synthetic plan request',now-5,
+                 'completed',json.dumps({'message':'Your next steps'})))
+        seen=[]
+        def emergency(_instructions,payload,schema):
+            seen.append(schema)
+            self.assertIs(schema,ROUTE_SCHEMA)
+            return {'urgent':True,'tasks':[]}
+        self.app.provider.call=emergency
+        response=self.request('/daily/api/chat/send',{
+            'prompt':'A new immediate danger is happening.',
+            'request_id':str(uuid.uuid4()), 'reply_to':'recent-report'})
+        self.assertEqual(response['status'],202)
+        state=self.complete()
+        self.assertEqual(state['turns'][-1]['status'],'needs_attention')
+        self.assertEqual(seen,[ROUTE_SCHEMA])
+
+    def test_quick_reply_generation_failure_is_explained_without_raw_error(self):
+        self.login()
+        now=self.app.clock()
+        with self.app.db() as db:
+            db.execute('INSERT INTO runs VALUES (?,?,?,?,?,?)',
+                ('recent-report',str(uuid.uuid4()),'Synthetic plan request',now-5,
+                 'completed',json.dumps({'message':'Your next steps'})))
+        calls=[]
+        def unavailable(_instructions,payload,schema):
+            calls.append(schema)
+            raise RuntimeError('SECRET PROVIDER DETAILS')
+        self.app.provider.call=unavailable
+        prompt='Explain the reasoning and uncertainties in your last response.'
+        response=self.request('/daily/api/chat/send',{
+            'prompt':prompt,'request_id':str(uuid.uuid4()), 'reply_to':'recent-report'})
+        self.assertEqual(response['status'],202)
+        state=self.complete()
+        self.assertEqual(len(calls),1)
+        self.assertEqual(state['turns'][-1]['status'],'failed')
+        self.assertIn('reply could not be generated',state['turns'][-1]['error'])
+        self.assertNotIn('SECRET',json.dumps(state))
+
+    def test_quick_retry_after_failed_turn_does_not_repeat_full_routing(self):
+        self.login()
+        now=self.app.clock()
+        prompt='Make your last response more manageable: suggest a smaller first step.'
+        with self.app.db() as db:
+            db.execute('INSERT INTO runs VALUES (?,?,?,?,?,?)',
+                ('report',str(uuid.uuid4()),'Synthetic check-in',now-10,
+                 'completed',json.dumps({'message':'Suggested step'})))
+            db.execute('INSERT INTO chat_turns VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                ('failed',str(uuid.uuid4()),now-5,prompt,'','failed',
+                 'Unfinished reply.','','[]',0,'fixture'))
+        seen=[]
+        def direct(_instructions,payload,schema):
+            seen.append(schema)
+            self.assertIs(schema,SCHEMA)
+            self.assertTrue(payload['quick_followup'])
+            return {'reply':'Use one smaller step.'}
+        self.app.provider.call=direct
+        response=self.request('/daily/api/chat/send',{
+            'prompt':prompt,'request_id':str(uuid.uuid4()),'reply_to':'failed'})
+        self.assertEqual(response['status'],202)
+        state=self.complete()
+        self.assertEqual(state['turns'][-1]['status'],'completed')
+        self.assertEqual(state['turns'][-1]['answer'],'Use one smaller step.')
+        self.assertEqual(len(seen),1)
+
+    def test_ui_quick_prompts_are_server_allowlisted_and_explained(self):
+        source = (daily_tests.Path(__file__).resolve().parents[1] /
+                  'static' / 'chat.js').read_text()
+        for prompt in QUICK_FOLLOWUPS:
+            self.assertIn(prompt,source)
+        for text in ('Picks one priority','Breaks the advice',
+                     'Explains the suggestions','Try replying again'):
+            self.assertIn(text,source)
 
     def test_stale_followup_does_not_spend_or_store(self):
         self.login();calls=self.install_provider()

@@ -1,5 +1,26 @@
 # Private daily MVP
 
+## Reply refinement and pinned deployments (owner-observed 2026-11-05)
+
+The previous release completed a full check-in but the owner's tap on
+"Make it manageable" produced a saved failed conversation turn. The cause
+was not exposed by the generic failure message. Three fixed and anchored
+follow-up buttons can be answered directly by the coordinator using the
+previous saved reply instead of routing to specialists again; ordinary
+messages still route to relevant specialists and urgent interruptions
+remain in place. Brief descriptions explain what each option does,
+and failed conversation turns offer a manual paid retry without losing
+the original message. Errors state only the stage, not private provider
+text. This remains source work until the owner deploys and tests it.
+
+A pinned deployment helper lives in `scripts/deploy-daily.sh` at the
+repository root. Execute it only through the existing private Hetzner
+SSH path with an explicitly verified merged commit SHA. It inspects
+the running Compose stack, backs up the existing database, retains an
+immutable previous image, updates only Daily and checks service health.
+Do not expose this helper as a web endpoint or run an unpinned
+`main` branch script on the production server.
+
 ## One Daily experience — next source iteration (not yet deployed)
 
 After the owner's successful 2026-11-04 live conversation test, the next
