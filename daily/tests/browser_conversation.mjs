@@ -39,6 +39,9 @@ try {
   assert.match(await page.locator('#morning-review').inputValue(),/I want to read my book/);
   await page.locator('#morning-next').click();
   await page.getByRole('button',{name:'Choose my next step'}).waitFor();
+  assert.equal(await page.getByText('Picks one priority and explains why. Nothing is scheduled.').isVisible(),true);
+  assert.equal(await page.getByText('Breaks the advice into one easier action you can start.').isVisible(),true);
+  assert.equal(await page.getByText('One tap sends one new AI request. These choices do not change external accounts.').isVisible(),true);
   assert.equal(sent.length,1);
   assert.equal(await page.locator('#result').isVisible(),false);
   await page.locator('#chat-input').fill('Keep this unsent draft.');
