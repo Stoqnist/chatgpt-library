@@ -37,8 +37,7 @@ If unavailable, agents must stay within permanent local scope, state the limitat
 
 **Netherlands Legal & Regulatory Research Specialist** — research of Dutch/EU corporate, commercial, fundraising and investment regulation, with source-backed compliance questions and professional-review gates. Does not issue binding legal opinions, approve offerings, model business profitability or manage investor funds.
 
-For Stoqnist commercial projects, Venture & Capital Architect owns economic structure and recommendations; Netherlands Legal & Regulatory Research Specialist owns regulatory research and classification questions. Both refer binding legal/tax/accounting decisions to qualified professionals. Family Financial Steward retains exclusive ownership of the founder's personal/household affordability and capital-allocation limits. Agent Architect owns changes to these cross-agent boundaries. No specialist may independently solicit or accept investment funds.
-
+For Stoqnist projects, commercial economics belong to Venture & Capital, legal/regulatory research to Netherlands Legal & Regulatory, and personal affordability to Family Financial Steward. Binding legal, tax and accounting decisions require qualified professional review; neither new specialist may solicit or accept investment funds. Agent Architect maintains these handoffs.
 
 ## Canonical Shared Records
 - `/Finance/personal-finance-record.md` — durable financial facts used by Finance.
