@@ -25,4 +25,23 @@ for rule in ("Exactly one current row per Item ID", "Unknown quantity is blank, 
 assert "redirect only" in state
 assert "Git-managed instructions" in arch
 assert "private operational state" in arch
-print("PASS: template bindings, publication metadata and core inventory rules")
+# Static checks for the two specialist prompts and their single ownership source.
+PROMPTS = {
+    "Venture & Capital Architect": ROOT / "library/Agents/venture-capital-architect-system-prompt.md",
+    "Netherlands Legal & Regulatory Research Specialist": ROOT / "library/Agents/netherlands-legal-regulatory-research-specialist-system-prompt.md",
+}
+for name, path in PROMPTS.items():
+    prompt = path.read_text(encoding="utf-8")
+    assert prompt.startswith(f"# {name}\\n"), path
+    assert prompt.endswith("\\n"), path
+    for heading in ("[IDENTITY & ROLE]", "[CAPABILITIES & SCOPE]", "[EXECUTION AUTHORITY]", "[CONSTRAINTS & GUARDRAILS]"):
+        assert f"## {heading}" in prompt, (path, heading)
+    assert len(prompt) <= 8000, path
+    assert arch.count(f"**{name}** —") == 1, name
+    assert not re.search(r"libfile_|file_000000|spreadsheets/d/[A-Za-z0-9_-]+", prompt), path
+business = ROOT / "business/stoqnist/README.md"
+brief = business.read_text(encoding="utf-8")
+for path in PROMPTS.values():
+    assert f"../../{path.relative_to(ROOT).as_posix()}" in brief, path
+assert "concept and research brief" in brief
+print("PASS: template bindings, publication metadata, inventory rules and specialist boundaries")
