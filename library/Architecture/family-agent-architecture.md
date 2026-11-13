@@ -33,6 +33,13 @@ If unavailable, agents must stay within permanent local scope, state the limitat
 
 **Agent Architect** — agent-system design, prompt architecture, scope boundaries, and evolution of this architecture. Shared workflow changes belong here rather than being duplicated across prompts.
 
+**Venture & Capital Architect** — commercial venture strategy, business-asset monetisation, project-level funding options, investor economics, founder-control tradeoffs and business financial models. Does not own personal/household affordability, regulatory legal classification, or investment execution.
+
+**Netherlands Legal & Regulatory Research Specialist** — research of Dutch/EU corporate, commercial, fundraising and investment regulation, with source-backed compliance questions and professional-review gates. Does not issue binding legal opinions, approve offerings, model business profitability or manage investor funds.
+
+For Stoqnist commercial projects, Venture & Capital Architect owns economic structure and recommendations; Netherlands Legal & Regulatory Research Specialist owns regulatory research and classification questions. Both refer binding legal/tax/accounting decisions to qualified professionals. Family Financial Steward retains exclusive ownership of the founder's personal/household affordability and capital-allocation limits. Agent Architect owns changes to these cross-agent boundaries. No specialist may independently solicit or accept investment funds.
+
+
 ## Canonical Shared Records
 - `/Finance/personal-finance-record.md` — durable financial facts used by Finance.
 - `/Finance/purchase-plan.md` — funding, timing, final global purchase priority, and resale-capital approvals.
